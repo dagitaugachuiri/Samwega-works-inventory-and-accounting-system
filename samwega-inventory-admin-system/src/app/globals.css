@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  html,
+  body {
+    @apply antialiased;
+    /* Darker brand background using OKLCH */
+    background-color: oklch(25% 0.12 278.697);
+    color: #e5e7eb;
+    /* light grey for any text not inside cards */
+    font-size: 16px;
+    line-height: 1.5;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+      "SF Pro Display", "Segoe UI", sans-serif;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-sky-500/30 transition hover:bg-sky-500 hover:shadow-md hover:shadow-sky-500/40 disabled:cursor-not-allowed disabled:bg-slate-400;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:ring-slate-300;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-rose-500/30 transition hover:bg-rose-500 hover:shadow-md hover:shadow-rose-500/40;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-green-500/30 transition hover:bg-green-500 hover:shadow-md hover:shadow-green-500/40;
+  }
+
+  .input-field {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-inner shadow-slate-100 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-200 placeholder:text-slate-400;
+  }
+
+  .glass-panel {
+    /* Unified card style for dashboard & detail views - solid white with consistent shadow */
+    background-color: rgb(243, 247, 250);
+    border: 1px solid rgba(133, 180, 242, 0.8);
+    border-radius: 1rem;
+    /* box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05); */
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700;
+  }
+
+  .pill-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .pill-badge-green {
+    @apply pill-badge bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200;
+  }
+
+  .pill-badge-amber {
+    @apply pill-badge bg-amber-50 text-amber-700 ring-1 ring-amber-200;
+  }
+
+  .pill-badge-red {
+    @apply pill-badge bg-rose-50 text-rose-700 ring-1 ring-rose-200;
+  }
+
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+}
+
+/* Remove up/down spinners from number inputs */
+@layer base {
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}

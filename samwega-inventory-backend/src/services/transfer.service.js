@@ -470,6 +470,55 @@ class TransferService {
 
             await this.db.collection(this.collection).doc(transferId).update(updateData);
 
+            // If all items collected, calculate and set sales target
+            if (status === 'collected') {
+                try {
+                    // Get all vehicle inventory with prices
+                    const vehicleInventorySnapshot = await this.db.collection(this.vehicleInventoryCollection)
+                        .where('vehicleId', '==', transfer.vehicleId)
+                        .get();
+
+                    let totalInventoryValue = 0;
+
+                    // Calculate total value: sum(quantity × sellingPrice) for all items
+                    for (const doc of vehicleInventorySnapshot.docs) {
+                        const invData = doc.data();
+                        const layers = invData.layers || [];
+
+                        // Get selling price from inventory collection
+                        let sellingPrice = 0;
+                        try {
+                            const inventoryDoc = await this.db.collection('inventory').doc(invData.inventoryId).get();
+                            if (inventoryDoc.exists) {
+                                sellingPrice = inventoryDoc.data().sellingPrice || 0;
+                            }
+                        } catch (err) {
+                            logger.warn(`Could not fetch selling price for ${invData.inventoryId}`, err);
+                        }
+
+                        // Sum up all layers' value
+                        const itemTotalQty = layers.reduce((sum, layer) => sum + (layer.quantity || 0), 0);
+                        totalInventoryValue += itemTotalQty * sellingPrice;
+                    }
+
+                    // Calculate target: 95% of total inventory value
+                    const salesTarget = Math.round(totalInventoryValue * 0.95);
+
+                    // Update vehicle with new sales target
+                    await this.db.collection('vehicles').doc(transfer.vehicleId).update({
+                        currentSalesTarget: salesTarget,
+                        targetSetAt: admin.firestore.FieldValue.serverTimestamp(),
+                        targetSetBy: transferId,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    logger.info(`Sales target set for vehicle ${transfer.vehicleId}: ${salesTarget} (95% of ${totalInventoryValue})`);
+                } catch (targetError) {
+                    // Don't fail the collection if target calculation fails, just log
+                    logger.error('Error calculating/setting sales target:', targetError);
+                }
+            }
+
             logger.info(`Transfer layer collected: ${transfer.transferNumber} Item:${itemIndex} Layer:${layerIndex}`);
 
             // Invalidate cache

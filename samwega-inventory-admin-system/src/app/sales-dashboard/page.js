@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "../../lib/api";
 import Header from "../../components/Header";
-import KKCalcModal from "../../components/KKCalcModal";
+import DeleteSaleModal from "../../components/KKCalcModal";
 
 
 export default function SalesDashboard() {
@@ -29,7 +29,8 @@ export default function SalesDashboard() {
     const [sales, setSales] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isKKModalOpen, setIsKKModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedSales, setSelectedSales] = useState([]);
 
     // Filters
     const [selectedVehicle, setSelectedVehicle] = useState("");
@@ -169,6 +170,27 @@ export default function SalesDashboard() {
         }
     };
 
+    const toggleSaleSelection = (saleId) => {
+        setSelectedSales(prev =>
+            prev.includes(saleId)
+                ? prev.filter(id => id !== saleId)
+                : [...prev, saleId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedSales.length === sales.length) {
+            setSelectedSales([]);
+        } else {
+            setSelectedSales(sales.map(s => s.id));
+        }
+    };
+
+    const handleDeleteSuccess = () => {
+        setSelectedSales([]);
+        fetchData();
+    };
+
     const StatCard = ({ title, value, subValue, icon: Icon, color }) => (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
             <div className="flex justify-between items-start mb-4">
@@ -205,11 +227,12 @@ export default function SalesDashboard() {
 
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => setIsKKModalOpen(true)}
-                                className="flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-lg font-medium hover:bg-rose-100 transition-colors border border-rose-200"
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                disabled={selectedSales.length === 0}
+                                className="flex items-center gap-2 bg-rose-50 text-rose-600 px-4 py-2 rounded-lg font-medium hover:bg-rose-100 transition-colors border border-rose-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Sparkles size={16} />
-                                Smart Delete
+                                <Trash2 size={16} />
+                                Delete {selectedSales.length > 0 ? `(${selectedSales.length})` : 'Sale'}
                             </button>
 
                             <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
@@ -319,7 +342,15 @@ export default function SalesDashboard() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
                                     <tr>
-                                        <th className="px-6 py-4">Receipt ID</th>
+                                        <th className="px-6 py-4 w-12">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedSales.length === sales.length && sales.length > 0}
+                                                onChange={toggleSelectAll}
+                                                className="w-4 h-4 text-rose-600 border-slate-300 rounded focus:ring-rose-500 cursor-pointer"
+                                            />
+                                        </th>
+                                        <th className="px-6 py-4">Receipt Number</th>
                                         <th className="px-6 py-4">Date & Time</th>
                                         <th className="px-6 py-4">Vehicle</th>
                                         <th className="px-6 py-4">Items</th>
@@ -330,29 +361,43 @@ export default function SalesDashboard() {
                                 <tbody className="divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
                                                 Loading sales data...
                                             </td>
                                         </tr>
                                     ) : sales.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
                                                 No sales found matching your filters.
                                             </td>
                                         </tr>
                                     ) : (
                                         sales.map((sale) => {
                                             const vehicle = vehicles.find(v => v.id === sale.vehicleId);
+                                            const isSelected = selectedSales.includes(sale.id);
                                             return (
                                                 <tr
                                                     key={sale.id}
-                                                    onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                                    className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-rose-50' : ''}`}
                                                 >
-                                                    <td className="px-6 py-4 font-mono text-slate-600">
-                                                        #{sale.id.substring(0, 8)}
+                                                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleSaleSelection(sale.id)}
+                                                            className="w-4 h-4 text-rose-600 border-slate-300 rounded focus:ring-rose-500 cursor-pointer"
+                                                        />
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-900">
+                                                    <td
+                                                        className="px-6 py-4 font-mono text-slate-600 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
+                                                        {sale.receiptNumber || `#${sale.id.substring(0, 8)}`}
+                                                    </td>
+                                                    <td
+                                                        className="px-6 py-4 text-slate-900 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
                                                         <div className="font-medium">
                                                             {convertTimestamp(sale.saleDate)?.toLocaleDateString() || 'N/A'}
                                                         </div>
@@ -360,7 +405,10 @@ export default function SalesDashboard() {
                                                             {convertTimestamp(sale.saleDate)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || ''}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td
+                                                        className="px-6 py-4 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
                                                         <div className="flex items-center gap-2">
                                                             <Truck size={14} className="text-slate-400" />
                                                             <span className="text-slate-700">
@@ -368,7 +416,10 @@ export default function SalesDashboard() {
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td
+                                                        className="px-6 py-4 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
                                                         <div className="text-slate-700">
                                                             {sale.items.length} items
                                                         </div>
@@ -376,7 +427,10 @@ export default function SalesDashboard() {
                                                             {sale.items[0]?.productName} {sale.items.length > 1 && `+${sale.items.length - 1} more`}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td
+                                                        className="px-6 py-4 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
                                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                                         ${sale.paymentMethod === 'cash' ? 'bg-emerald-100 text-emerald-800' :
                                                                 sale.paymentMethod === 'mpesa' ? 'bg-violet-100 text-violet-800' :
@@ -384,7 +438,10 @@ export default function SalesDashboard() {
                                                             {sale.paymentMethod}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right font-bold text-slate-900">
+                                                    <td
+                                                        className="px-6 py-4 text-right font-bold text-slate-900 cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${sale.id}`)}
+                                                    >
                                                         KSh {parseFloat(sale.grandTotal).toLocaleString()}
                                                     </td>
                                                 </tr>
@@ -397,10 +454,12 @@ export default function SalesDashboard() {
                     </div>
                 </div>
 
-                <KKCalcModal
-                    isOpen={isKKModalOpen}
-                    onClose={() => setIsKKModalOpen(false)}
-                    onSuccess={fetchData}
+                <DeleteSaleModal
+                    isOpen={isDeleteModalOpen}
+                    onClose={() => setIsDeleteModalOpen(false)}
+                    onSuccess={handleDeleteSuccess}
+                    selectedSales={selectedSales}
+                    sales={sales}
                 />
             </div>
         </div>

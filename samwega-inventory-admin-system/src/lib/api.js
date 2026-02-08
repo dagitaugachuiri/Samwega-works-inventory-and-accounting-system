@@ -298,6 +298,12 @@ class APIClient {
         });
     }
 
+    async deleteSale(id) {
+        return this.request(`/sales/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     async getDailySummary(vehicleId, date) {
         return this.request(`/sales/daily-summary?vehicleId=${vehicleId}&date=${date}`);
     }

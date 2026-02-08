@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Clock, Package, Truck, Printer, Receipt, Calendar, TrendingUp, AlertCircle, FileText, Plus } from "lucide-react";
 import Link from "next/link";
 import api from "../../../lib/api";
+import CustomModal from "../../../components/ui/CustomModal";
 
 export default function VehicleDetailsDashboard() {
   const [vehicleId, setVehicleId] = useState(null);
@@ -12,7 +13,17 @@ export default function VehicleDetailsDashboard() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFilter, setDateFilter] = useState("");
+  const [dateFilter, setDateFilter] = "";
+
+  // Modal state
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: "confirm",
+    title: "",
+    message: "",
+    onConfirm: null,
+    loading: false
+  });
 
   // Fetch vehicle, transfers, and inventory
   useEffect(() => {
@@ -61,34 +72,89 @@ export default function VehicleDetailsDashboard() {
   }, [vehicleId]);
 
   const handleApproveTransfer = async (transferId) => {
-    if (!confirm("Approve this transfer? Stock will be deducted from main inventory and added to vehicle inventory.")) {
-      return;
-    }
-    try {
-      await api.request(`/transfers/${transferId}/approve`, { method: 'POST' });
-      // Refresh transfers
-      const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
-      const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
-      setTransfers(transfersList);
-      alert("Transfer approved! Stock has been deducted from inventory.");
-    } catch (err) {
-      console.error("Error approving transfer", err);
-      alert(`Failed to approve: ${err.message}`);
-    }
+    setModal({
+      isOpen: true,
+      type: "confirm",
+      title: "Approve Transfer?",
+      message: "Stock will be deducted from main inventory and added to vehicle inventory. This action cannot be undone.",
+      onConfirm: async () => {
+        // Show loading state
+        setModal(prev => ({ ...prev, type: "loading", title: "Approving Transfer", message: "Please wait while we process the transfer..." }));
+
+        try {
+          await api.request(`/transfers/${transferId}/approve`, { method: 'POST' });
+
+          // Refresh transfers
+          const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
+          const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
+          setTransfers(transfersList);
+
+          // Show success
+          setModal({
+            isOpen: true,
+            type: "success",
+            title: "Transfer Approved!",
+            message: "Stock has been successfully deducted from inventory and added to the vehicle.",
+            onConfirm: null
+          });
+        } catch (err) {
+          console.error("Error approving transfer", err);
+
+          // Show error
+          setModal({
+            isOpen: true,
+            type: "error",
+            title: "Approval Failed",
+            message: err.response?.data?.error || err.message || "Failed to approve transfer. Please try again.",
+            onConfirm: null
+          });
+        }
+      },
+      loading: false
+    });
   };
 
   const handleConfirmTransfer = async (transferId) => {
-    try {
-      await api.request(`/transfers/${transferId}/confirm`, { method: 'POST' });
-      // Refresh transfers
-      const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
-      const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
-      setTransfers(transfersList);
-      alert("Transfer confirmed successfully!");
-    } catch (err) {
-      console.error("Error confirming transfer", err);
-      alert(`Failed: ${err.message}`);
-    }
+    setModal({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirm Collection?",
+      message: "Mark this transfer as collected by the sales representative?",
+      onConfirm: async () => {
+        // Show loading state
+        setModal(prev => ({ ...prev, type: "loading", title: "Confirming Collection", message: "Please wait..." }));
+
+        try {
+          await api.request(`/transfers/${transferId}/confirm`, { method: 'POST' });
+
+          // Refresh transfers
+          const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
+          const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
+          setTransfers(transfersList);
+
+          // Show success
+          setModal({
+            isOpen: true,
+            type: "success",
+            title: "Collection Confirmed!",
+            message: "Transfer has been marked as collected successfully.",
+            onConfirm: null
+          });
+        } catch (err) {
+          console.error("Error confirming transfer", err);
+
+          // Show error
+          setModal({
+            isOpen: true,
+            type: "error",
+            title: "Confirmation Failed",
+            message: err.response?.data?.error || err.message || "Failed to confirm collection. Please try again.",
+            onConfirm: null
+          });
+        }
+      },
+      loading: false
+    });
   };
 
   const getPrice = (productName, unit, layerIndex) => {
@@ -354,6 +420,19 @@ export default function VehicleDetailsDashboard() {
           )}
         </div>
       </div>
+
+      {/* Custom Modal */}
+      <CustomModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        loading={modal.loading}
+        confirmText="Approve"
+        cancelText="Cancel"
+      />
     </>
   );
 }

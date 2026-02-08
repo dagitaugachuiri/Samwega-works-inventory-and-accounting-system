@@ -4,7 +4,7 @@ import { Package } from "lucide-react";
 import { parseSupplierItem } from "@/lib/universalSupplierParser";
 
 // Hardware, building materials, farming tools suggestions
-const PRODUCT_CATALOG = [
+export const PRODUCT_CATALOG = [
   // Building Materials
   { name: "Cement - Portland 50kg", price: 750, category: "Building Materials" },
   { name: "Cement - Simba 50kg", price: 720, category: "Building Materials" },

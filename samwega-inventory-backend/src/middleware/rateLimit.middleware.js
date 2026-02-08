@@ -52,7 +52,7 @@ const authLimiter = rateLimit({
  */
 const writeLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 30, // 30 requests per minute
+    max: 300, // 300 requests per minute
     message: {
         success: false,
         error: 'Too many write requests, please slow down.',

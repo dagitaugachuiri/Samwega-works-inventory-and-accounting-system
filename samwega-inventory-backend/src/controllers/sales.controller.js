@@ -138,6 +138,19 @@ const deleteBatch = async (req, res) => {
     }
 };
 
+/**
+ * Delete single sale
+ */
+const deleteSale = async (req, res) => {
+    try {
+        const result = await salesService.deleteSalesBatch([req.params.id], req.user.uid);
+        return res.status(200).json(successResponse(result, 'Sale deleted successfully'));
+    } catch (error) {
+        logger.error('Delete sale controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
 module.exports = {
     createSale,
     getAllSales,
@@ -147,5 +160,6 @@ module.exports = {
     getDailySummary,
     getStats,
     findCombination,
-    deleteBatch
+    deleteBatch,
+    deleteSale
 };

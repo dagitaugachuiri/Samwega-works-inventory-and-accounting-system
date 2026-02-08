@@ -142,4 +142,17 @@ router.post(
     salesController.deleteBatch
 );
 
+/**
+ * @route   DELETE /api/v1/sales/:id
+ * @desc    Delete single sale
+ * @access  Admin only
+ */
+router.delete(
+    '/:id',
+    verifyToken,
+    requireRole('admin'),
+    validateParams(saleIdSchema),
+    salesController.deleteSale
+);
+
 module.exports = router;

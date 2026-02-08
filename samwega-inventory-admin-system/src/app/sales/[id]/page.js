@@ -129,7 +129,7 @@ export default function SaleDetailPage() {
                             <div className="flex items-center gap-3 mb-2">
                                 <Receipt className="text-sky-600" size={28} />
                                 <h1 className="text-2xl font-bold text-slate-900">
-                                    Receipt #{sale.id.substring(0, 8).toUpperCase()}
+                                    {sale.receiptNumber || `Receipt #${sale.id.substring(0, 8).toUpperCase()}`}
                                 </h1>
                             </div>
                             <p className="text-sm text-slate-500">Sale ID: {sale.id}</p>

@@ -1,57 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { X, Calculator, Trash2, ArrowRight } from "lucide-react";
+import { X, Trash2, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
 
-export default function KKCalcModal({ isOpen, onClose, onSuccess }) {
-    const [targetAmount, setTargetAmount] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
+export default function DeleteSaleModal({ isOpen, onClose, onSuccess, selectedSales = [], sales = [] }) {
     const [deleting, setDeleting] = useState(false);
 
     if (!isOpen) return null;
 
-    const handleFind = async (e) => {
-        e.preventDefault();
-        if (!targetAmount) return;
-
-        setLoading(true);
-        setResult(null);
-        try {
-            const amount = parseFloat(targetAmount);
-            const response = await api.findSalesCombination(amount);
-            if (response.success) {
-                setResult(response.data);
-            } else {
-                alert("Failed to find sales: " + response.message);
-            }
-        } catch (error) {
-            console.error("KK-Calc Error:", error);
-            alert("An error occurred while searching for sales.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Get full sale details for selected IDs
+    const selectedSaleDetails = sales.filter(sale => selectedSales.includes(sale.id));
+    const totalAmount = selectedSaleDetails.reduce((sum, sale) => sum + (sale.grandTotal || 0), 0);
 
     const handleDelete = async () => {
-        if (!result || !result.sales.length) return;
-        if (!confirm(`Are you sure you want to delete ${result.sales.length} sales totaling KSh ${result.foundAmount?.toLocaleString()}? This cannot be undone.`)) return;
+        if (selectedSales.length === 0) return;
+
+        const confirmMessage = selectedSales.length === 1
+            ? `Are you sure you want to delete this sale?\n\nReceipt: ${selectedSaleDetails[0].receiptNumber}\nAmount: KSh ${selectedSaleDetails[0].grandTotal?.toLocaleString()}\n\nThis action cannot be undone.`
+            : `Are you sure you want to delete ${selectedSales.length} sales?\n\nTotal Amount: KSh ${totalAmount.toLocaleString()}\n\nThis action cannot be undone.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
 
         setDeleting(true);
         try {
-            const saleIds = result.sales.map(s => s.id);
-            const response = await api.deleteSalesBatch(saleIds);
-            if (response.success) {
-                alert("Sales deleted successfully.");
-                onSuccess();
-                onClose();
+            // Use batch delete for multiple sales, single delete for one
+            if (selectedSales.length === 1) {
+                const response = await api.deleteSale(selectedSales[0]);
+                if (response.success) {
+                    alert("Sale deleted successfully.");
+                    onSuccess();
+                    onClose();
+                } else {
+                    alert("Failed to delete sale: " + response.message);
+                }
             } else {
-                alert("Failed to delete sales: " + response.message);
+                const response = await api.deleteSalesBatch(selectedSales);
+                if (response.success) {
+                    alert(`${selectedSales.length} sales deleted successfully.`);
+                    onSuccess();
+                    onClose();
+                } else {
+                    alert("Failed to delete sales: " + response.message);
+                }
             }
         } catch (error) {
-            console.error("Delete Batch Error:", error);
-            alert("An error occurred while deleting sales.");
+            console.error("Delete Error:", error);
+            alert("An error occurred while deleting the sale(s).");
         } finally {
             setDeleting(false);
         }
@@ -59,16 +56,18 @@ export default function KKCalcModal({ isOpen, onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
                     <div className="flex items-center gap-2">
-                        <div className="p-2 bg-violet-100 rounded-lg text-violet-600">
-                            <Calculator size={20} />
+                        <div className="p-2 bg-rose-100 rounded-lg text-rose-600">
+                            <Trash2 size={20} />
                         </div>
                         <div>
-                            <h2 className="font-bold text-slate-800">Smart Sales Deletion</h2>
-                            <p className="text-xs text-slate-500">Find and remove sales by target amount</p>
+                            <h2 className="font-bold text-slate-800">
+                                Delete {selectedSales.length} Sale{selectedSales.length !== 1 ? 's' : ''}
+                            </h2>
+                            <p className="text-xs text-slate-500">Review and confirm deletion</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
@@ -78,78 +77,85 @@ export default function KKCalcModal({ isOpen, onClose, onSuccess }) {
 
                 {/* Body */}
                 <div className="p-6 overflow-y-auto flex-1">
-                    {!result ? (
-                        <form onSubmit={handleFind} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Target Amount to Delete (KSh)</label>
-                                <input
-                                    type="number"
-                                    value={targetAmount}
-                                    onChange={(e) => setTargetAmount(e.target.value)}
-                                    placeholder="e.g. 50000"
-                                    className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none text-lg font-medium"
-                                    autoFocus
-                                />
-                                <p className="text-xs text-slate-500 mt-2">
-                                    The system will use the "KK-Calc" algorithm to find a combination of existing sales that match this amount exactly or as closely as possible.
-                                </p>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={loading || !targetAmount}
-                                className="w-full py-3 bg-violet-600 text-white rounded-lg font-bold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                            >
-                                {loading ? 'Searching...' : 'Find Sales'}
-                                {!loading && <ArrowRight size={18} />}
-                            </button>
-                        </form>
+                    {selectedSales.length === 0 ? (
+                        <div className="text-center py-12">
+                            <AlertCircle className="mx-auto text-slate-400 mb-4" size={48} />
+                            <p className="text-slate-600 font-medium">No sales selected</p>
+                            <p className="text-sm text-slate-500 mt-2">Please select sales from the table to delete</p>
+                        </div>
                     ) : (
                         <div className="space-y-6">
-                            <div className="bg-slate-50 p-4 rounded-lg flex justify-between items-center">
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Target</p>
-                                    <p className="text-lg font-medium text-slate-700">KSh {parseFloat(targetAmount).toLocaleString()}</p>
-                                </div>
-                                <ArrowRight className="text-slate-400" />
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Found</p>
-                                    <p className="text-lg font-bold text-emerald-600">KSh {result.foundAmount?.toLocaleString()}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Diff</p>
-                                    <p className="text-sm font-medium text-rose-500">{Math.abs(result.difference).toLocaleString()}</p>
+                            {/* Summary Card */}
+                            <div className="bg-rose-50 border border-rose-200 rounded-lg p-5">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs text-rose-600 uppercase font-bold tracking-wider mb-1">Selected Sales</p>
+                                        <p className="text-2xl font-bold text-rose-900">{selectedSales.length}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-rose-600 uppercase font-bold tracking-wider mb-1">Total Amount</p>
+                                        <p className="text-2xl font-bold text-rose-900">KSh {totalAmount.toLocaleString()}</p>
+                                    </div>
                                 </div>
                             </div>
 
+                            {/* Sales List */}
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                    <span className="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">{result.count}</span>
-                                    Sales Selected
-                                </h3>
-                                <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-60 overflow-y-auto">
-                                    {result.sales.map((sale) => (
-                                        <div key={sale.id} className="p-3 flex justify-between items-center hover:bg-slate-50">
-                                            <div>
-                                                <p className="text-sm font-medium text-slate-900">
-                                                    {new Date(sale.saleDate || sale.createdAt).toLocaleDateString()}
-                                                    <span className="text-xs text-slate-400 ml-2">
-                                                        {new Date(sale.saleDate || sale.createdAt).toLocaleTimeString()}
+                                <h3 className="text-sm font-semibold text-slate-900 mb-3">Sales to be deleted:</h3>
+                                <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                                    {selectedSaleDetails.map((sale) => (
+                                        <div key={sale.id} className="p-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex-1">
+                                                    <p className="font-mono font-bold text-slate-900 text-sm mb-1">
+                                                        {sale.receiptNumber || `#${sale.id.substring(0, 8)}`}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        {new Date(sale.saleDate || sale.createdAt).toLocaleDateString()} • {new Date(sale.saleDate || sale.createdAt).toLocaleTimeString()}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-bold text-slate-900">KSh {sale.grandTotal?.toLocaleString()}</p>
+                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize mt-1
+                                                        ${sale.paymentMethod === 'cash' ? 'bg-emerald-100 text-emerald-800' :
+                                                            sale.paymentMethod === 'mpesa' ? 'bg-violet-100 text-violet-800' :
+                                                                'bg-amber-100 text-amber-800'}`}>
+                                                        {sale.paymentMethod}
                                                     </span>
-                                                </p>
-                                                <p className="text-xs text-slate-500 line-clamp-1">{sale.items?.map(i => i.productName).join(', ')}</p>
+                                                </div>
                                             </div>
-                                            <span className="font-mono font-bold text-slate-700">KSh {sale.grandTotal?.toLocaleString()}</span>
+                                            {sale.customerName && (
+                                                <p className="text-xs text-slate-600">
+                                                    <span className="font-medium">Customer:</span> {sale.customerName}
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-slate-600">
+                                                <span className="font-medium">Items:</span> {sale.items?.length || 0} item(s)
+                                                {sale.items?.length > 0 && ` - ${sale.items[0].productName}${sale.items.length > 1 ? ` +${sale.items.length - 1} more` : ''}`}
+                                            </p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
+                            {/* Warning */}
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                                <AlertCircle className="text-amber-600 flex-shrink-0" size={20} />
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-900">Warning</p>
+                                    <p className="text-sm text-amber-700">
+                                        This action cannot be undone. {selectedSales.length > 1 ? 'These sales' : 'This sale'} will be permanently deleted from the system.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setResult(null)}
+                                    onClick={onClose}
                                     className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-lg font-medium hover:bg-slate-50 transition-colors"
                                 >
-                                    Cancel / Reselect
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={handleDelete}
@@ -157,7 +163,7 @@ export default function KKCalcModal({ isOpen, onClose, onSuccess }) {
                                     className="flex-1 py-3 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                                 >
                                     <Trash2 size={18} />
-                                    {deleting ? 'Deleting...' : 'Delete Sales'}
+                                    {deleting ? 'Deleting...' : `Delete ${selectedSales.length} Sale${selectedSales.length !== 1 ? 's' : ''}`}
                                 </button>
                             </div>
                         </div>

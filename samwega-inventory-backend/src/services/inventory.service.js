@@ -27,6 +27,29 @@ class InventoryService {
                 await invoiceService.addItemToInvoice(itemData.invoiceId, itemCost);
             }
 
+            // Check for existing item with same name
+            const nameLower = (itemData.productName || '').toLowerCase();
+            const existingName = await this.db.collection(this.collection)
+                .where('productNameLower', '==', nameLower)
+                .limit(1)
+                .get();
+
+            if (!existingName.empty) {
+                throw new ValidationError(`Item with name "${itemData.productName}" already exists`);
+            }
+
+            // Check for existing item with same barcode (if provided)
+            if (itemData.barcode) {
+                const existingBarcode = await this.db.collection(this.collection)
+                    .where('barcode', '==', itemData.barcode)
+                    .limit(1)
+                    .get();
+
+                if (!existingBarcode.empty) {
+                    throw new ValidationError(`Item with barcode "${itemData.barcode}" already exists`);
+                }
+            }
+
             const data = {
                 ...itemData,
                 productNameLower: (itemData.productName || '').toLowerCase(),

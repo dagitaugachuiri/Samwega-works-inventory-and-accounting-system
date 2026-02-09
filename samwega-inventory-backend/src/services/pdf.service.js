@@ -4,8 +4,8 @@ const logger = require('../utils/logger');
 class PDFService {
     constructor() {
         this.companyName = 'SAMWEGA WORKS LTD';
-        this.companyAddress = 'Nairobi, Kenya';
-        this.companyPhone = '+254 XXX XXX XXX';
+        this.companyAddress = 'Gilgil, Kenya';
+        this.companyPhone = '0113689071';
     }
 
     /**
@@ -19,7 +19,9 @@ class PDFService {
             .text(this.companyName, 50, 50, { align: 'center' });
 
         doc.fontSize(10)
-            .font('Helvetica');
+            .font('Helvetica')
+            .text(this.companyAddress, { align: 'center' })
+            .text(`Tel: ${this.companyPhone}`, { align: 'center' });
 
         doc.moveDown();
         doc.fontSize(16)
@@ -473,39 +475,95 @@ class PDFService {
                 this.addHeader(doc, 'EXPENSE REPORT');
 
                 // Period
-                doc.fontSize(12)
-                    .font('Helvetica-Bold')
-                    .text(`Period: ${reportData.period.startDate} to ${reportData.period.endDate}`);
+                doc.fontSize(10).font('Helvetica-Bold');
+                doc.text(`Period: ${reportData.period.startDate} to ${reportData.period.endDate}`, 50, 95);
+
+                // Summary Box (Right aligned)
+                const summary = reportData.summary;
+                doc.fontSize(10).text(`Total Expenses: KES ${summary.totalExpenses.toLocaleString()}`, 400, 95, { align: 'right' });
+                doc.text(`Approved: KES ${summary.approvedExpenses.toLocaleString()}`, 400, 110, { align: 'right' });
                 doc.moveDown();
 
-                // By Category
-                if (reportData.byCategory) {
-                    doc.fontSize(14)
-                        .font('Helvetica-Bold')
-                        .text('Expenses by Category');
-                    doc.moveDown(0.5);
+                // Table Configuration
+                const tableTop = 140;
+                const colX = {
+                    date: 30,
+                    desc: 110,
+                    category: 400,
+                    amount: 500
+                };
 
-                    doc.fontSize(10).font('Helvetica');
-                    reportData.byCategory.forEach(cat => {
-                        doc.text(`${cat.category}: KES ${cat.totalAmount.toLocaleString()} (${cat.count} transactions)`);
+                // Table Header
+                doc.fontSize(9).font('Helvetica-Bold');
+                doc.text('Date', colX.date, tableTop);
+                doc.text('Description', colX.desc, tableTop);
+                doc.text('Category', colX.category, tableTop);
+                doc.text('Amount (KES)', colX.amount, tableTop, { align: 'right', width: 60 });
+
+                doc.moveTo(30, tableTop + 15)
+                    .lineTo(560, tableTop + 15)
+                    .stroke();
+
+                let y = tableTop + 25;
+                doc.font('Helvetica');
+
+                if (reportData.expenses && reportData.expenses.length > 0) {
+                    reportData.expenses.forEach((exp, index) => {
+                        if (y > 700) {
+                            doc.addPage();
+                            y = 50;
+                            // Re-draw header
+                            doc.fontSize(9).font('Helvetica-Bold');
+                            doc.text('Date', colX.date, y);
+                            doc.text('Description', colX.desc, y);
+                            doc.text('Category', colX.category, y);
+                            doc.text('Amount (KES)', colX.amount, y, { align: 'right', width: 60 });
+                            doc.moveTo(30, y + 15).lineTo(560, y + 15).stroke();
+                            y += 25;
+                            doc.font('Helvetica');
+                        }
+
+                        // Zebra striping
+                        if (index % 2 === 0) {
+                            doc.fillColor('#f9fafb');
+                            doc.rect(30, y - 5, 530, 20).fill();
+                            doc.fillColor('black');
+                        }
+
+                        const dateStr = new Date(exp.expenseDate?._seconds * 1000 || exp.expenseDate).toLocaleDateString();
+                        const desc = exp.description || exp.reason || 'N/A';
+
+                        doc.fontSize(8);
+                        doc.text(dateStr, colX.date, y);
+                        doc.text(desc.substring(0, 55) + (desc.length > 55 ? '...' : ''), colX.desc, y, { width: 280 });
+                        doc.text(exp.category || '-', colX.category, y);
+
+                        doc.text(exp.amount?.toLocaleString() || '0', colX.amount, y, { align: 'right', width: 60 });
+
+                        y += 20;
                     });
+                } else {
+                    doc.text("No expenses found for this period.", colX.date, y);
                 }
 
-                // Summary
-                doc.moveDown();
-                if (doc.y > 600) doc.addPage();
-                doc.fontSize(14)
-                    .font('Helvetica-Bold')
-                    .text('Summary');
-                doc.moveDown(0.5);
+                // Final Summary at Bottom
+                y += 20;
+                doc.moveTo(30, y).lineTo(560, y).stroke();
+                y += 15;
 
-                doc.fontSize(10).font('Helvetica');
-                const summary = reportData.summary;
-                doc.text(`Total Expenses: KES ${summary.totalExpenses.toLocaleString()}`);
-                doc.text(`Approved: KES ${summary.approvedExpenses.toLocaleString()}`);
-                doc.text(`Pending: KES ${summary.pendingExpenses.toLocaleString()}`);
-                doc.text(`Rejected: KES ${summary.rejectedExpenses.toLocaleString()}`);
-                doc.moveDown();
+                doc.fontSize(10).font('Helvetica-Bold');
+                doc.text('SUMMARY BY CATEGORY', 30, y);
+                y += 20;
+
+                if (reportData.byCategory) {
+                    reportData.byCategory.forEach(cat => {
+                        doc.fontSize(9).font('Helvetica');
+                        doc.text(`${cat.category}:`, 30, y);
+                        doc.text(`KES ${cat.totalAmount.toLocaleString()}`, 150, y);
+                        doc.text(`(${cat.count} txns)`, 250, y);
+                        y += 15;
+                    });
+                }
 
                 // Footer
                 this.addFooter(doc);
@@ -608,69 +666,131 @@ class PDFService {
     async generateCustomerSalesPDF(reportData) {
         return new Promise((resolve, reject) => {
             try {
-                const doc = new PDFDocument({ margin: 50, bufferPages: true });
+                // Use landscape layout for better table width
+                const doc = new PDFDocument({ margin: 30, bufferPages: true, layout: 'landscape' });
                 const chunks = [];
 
                 doc.on('data', chunk => chunks.push(chunk));
                 doc.on('end', () => resolve(Buffer.concat(chunks)));
                 doc.on('error', reject);
 
+                // Header
                 this.addHeader(doc, 'CUSTOMER SALES REPORT');
 
-                // Customer Info
-                if (reportData.customer) {
-                    doc.fontSize(12).font('Helvetica-Bold').text('Customer Information');
-                    doc.moveDown(0.5);
-                    doc.fontSize(10).font('Helvetica');
-                    doc.text(`Name: ${reportData.customer.name || 'N/A'}`);
-                    doc.text(`Phone: ${reportData.customer.phone || 'N/A'}`);
-                    doc.text(`Email: ${reportData.customer.email || 'N/A'}`);
-                    doc.moveDown();
-                }
+                // Customer Info & Period
+                doc.fontSize(10).font('Helvetica-Bold');
+                doc.text(`Customer: ${reportData.customer?.name || 'N/A'} (${reportData.customer?.phone || 'N/A'})`, 30, 95);
+                doc.text(`Period: ${reportData.startDate || ''} to ${reportData.endDate || ''}`, 30, 110);
 
-                // Summary moved to bottom
+                // Summary Box (Right aligned)
+                doc.fontSize(10).text(`Total Purchases: KES ${reportData.summary?.totalPurchases?.toLocaleString() || '0'}`, 550, 95);
+                doc.text(`Outstanding Credit: KES ${reportData.summary?.outstandingCredit?.toLocaleString() || '0'}`, 550, 110);
 
-                // Transactions
+                doc.moveDown();
+
+                // Table Configuration
+                const tableTop = 140;
+                const colX = {
+                    date: 30,
+                    receipt: 110,
+                    items: 200,
+                    amount: 550,
+                    payment: 630,
+                    status: 700
+                };
+
+                // Table Header
+                doc.fontSize(9).font('Helvetica-Bold');
+                doc.text('Date', colX.date, tableTop);
+                doc.text('Receipt #', colX.receipt, tableTop);
+                doc.text('Items', colX.items, tableTop);
+                doc.text('Amount', colX.amount, tableTop);
+                doc.text('Payment', colX.payment, tableTop);
+                doc.text('Status', colX.status, tableTop);
+
+                doc.moveTo(30, tableTop + 15)
+                    .lineTo(770, tableTop + 15)
+                    .stroke();
+
+                let y = tableTop + 25;
+                doc.font('Helvetica');
+
+                // Transactions Loop
                 if (reportData.transactions && reportData.transactions.length > 0) {
-                    doc.addPage();
-                    doc.fontSize(14).font('Helvetica-Bold').text('Transaction History');
-                    doc.moveDown(0.5);
-
-                    const tableTop = doc.y;
-                    doc.fontSize(10).font('Helvetica-Bold');
-                    doc.text('Date', 50, tableTop);
-                    doc.text('Receipt', 150, tableTop);
-                    doc.text('Amount', 300, tableTop);
-                    doc.text('Payment', 450, tableTop);
-
-                    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-
-                    let y = tableTop + 20;
-                    doc.font('Helvetica');
-                    reportData.transactions.slice(0, 30).forEach(txn => {
-                        if (y > 700) {
+                    reportData.transactions.forEach((txn, index) => {
+                        if (y > 500) {
                             doc.addPage();
                             y = 50;
+                            // Re-draw header on new page
+                            doc.fontSize(9).font('Helvetica-Bold');
+                            doc.text('Date', colX.date, y);
+                            doc.text('Receipt #', colX.receipt, y);
+                            doc.text('Items', colX.items, y);
+                            doc.text('Amount', colX.amount, y);
+                            doc.text('Payment', colX.payment, y);
+                            doc.text('Status', colX.status, y);
+                            doc.moveTo(30, y + 15).lineTo(770, y + 15).stroke();
+                            y += 25;
+                            doc.font('Helvetica');
                         }
-                        doc.text(new Date(txn.saleDate).toLocaleDateString(), 50, y);
-                        doc.text(txn.receiptNumber, 150, y);
-                        doc.text(`KES ${txn.grandTotal.toLocaleString()}`, 300, y);
-                        doc.text(txn.paymentMethod, 450, y);
+
+                        // Format Items List
+                        let itemsText = "";
+                        if (txn.items && Array.isArray(txn.items)) {
+                            itemsText = txn.items.map(i => `${i.quantity}x ${i.productName}`).join(', ');
+                        } else {
+                            itemsText = "N/A";
+                        }
+
+                        // Truncate long item lists
+                        if (itemsText.length > 60) itemsText = itemsText.substring(0, 60) + "...";
+
+                        // Zebra striping for rows
+                        if (index % 2 === 0) {
+                            doc.fillColor('#f9fafb');
+                            doc.rect(30, y - 5, 740, 20).fill();
+                            doc.fillColor('black');
+                        }
+
+                        // Date Formatting
+                        const dateStr = new Date(txn.saleDate?._seconds * 1000 || txn.saleDate).toLocaleDateString();
+                        const timeStr = new Date(txn.saleDate?._seconds * 1000 || txn.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        doc.fontSize(8);
+                        doc.text(`${dateStr} ${timeStr}`, colX.date, y);
+                        doc.text(txn.receiptNumber || '-', colX.receipt, y);
+                        doc.text(itemsText, colX.items, y, { width: 340 });
+                        doc.text(`KES ${txn.grandTotal?.toLocaleString() || '0'}`, colX.amount, y);
+                        doc.text(txn.paymentMethod || '-', colX.payment, y);
+
+                        // Status Color
+                        if (txn.paymentMethod === 'credit') {
+                            doc.fillColor('#d97706'); // Amber for credit
+                        } else {
+                            doc.fillColor('#059669'); // Emerald/Green for paid
+                        }
+                        doc.text(txn.paymentMethod === 'credit' ? 'Credit' : 'Paid', colX.status, y);
+                        doc.fillColor('black'); // Reset color
+
                         y += 20;
                     });
+                } else {
+                    doc.text("No transactions found for this period.", colX.date, y);
                 }
 
-                // Summary
-                doc.moveDown();
-                if (doc.y > 600) doc.addPage();
-                doc.fontSize(14).font('Helvetica-Bold').text('Summary');
-                doc.moveDown(0.5);
-                doc.fontSize(10).font('Helvetica');
-                doc.text(`Total Purchases: KES ${reportData.summary.totalPurchases.toLocaleString()}`);
-                doc.text(`Total Transactions: ${reportData.summary.totalTransactions}`);
-                doc.text(`Average Purchase: KES ${reportData.summary.averagePurchase.toLocaleString()}`);
-                doc.text(`Outstanding Credit: KES ${reportData.summary.outstandingCredit.toLocaleString()}`);
-                doc.moveDown();
+                // Final Summary at Bottom
+                y += 20;
+                doc.moveTo(30, y).lineTo(770, y).stroke();
+                y += 15;
+
+                doc.fontSize(10).font('Helvetica-Bold');
+                doc.text('SUMMARY', 30, y);
+                y += 20;
+                doc.fontSize(9).font('Helvetica');
+                doc.text(`Total Transactions: ${reportData.summary?.totalTransactions || 0}`, 30, y);
+                doc.text(`Total Purchases: KES ${reportData.summary?.totalPurchases?.toLocaleString() || 0}`, 200, y);
+                doc.text(`Total Paid: KES ${reportData.summary?.totalPaid?.toLocaleString() || 0}`, 400, y);
+                doc.text(`Outstanding Credit: KES ${reportData.summary?.outstandingCredit?.toLocaleString() || 0}`, 600, y);
 
                 this.addFooter(doc);
                 doc.end();
@@ -1156,66 +1276,6 @@ class PDFService {
         });
     }
 
-    /**
-     * Generate Supplier Performance PDF
-     * @param {Object} reportData
-     * @returns {Promise<Buffer>}
-     */
-    async generateSupplierPerformancePDF(reportData) {
-        return new Promise((resolve, reject) => {
-            try {
-                const doc = new PDFDocument({ margin: 50, bufferPages: true });
-                const chunks = [];
-
-                doc.on('data', chunk => chunks.push(chunk));
-                doc.on('end', () => resolve(Buffer.concat(chunks)));
-                doc.on('error', reject);
-
-                this.addHeader(doc, 'SUPPLIER PERFORMANCE REPORT');
-
-                doc.fontSize(12).font('Helvetica-Bold')
-                    .text(`Period: ${reportData.period.startDate} to ${reportData.period.endDate}`);
-                doc.moveDown();
-
-                // Summary moved to bottom
-
-                // Suppliers
-                if (reportData.suppliers && reportData.suppliers.length > 0) {
-                    doc.addPage();
-                    doc.fontSize(14).font('Helvetica-Bold').text('Supplier Details');
-                    doc.moveDown(0.5);
-
-                    const tableTop = doc.y;
-                    doc.fontSize(10).font('Helvetica-Bold');
-                    doc.text('Supplier', 50, tableTop);
-                    doc.text('Products', 250, tableTop);
-                    doc.text('Purchases', 350, tableTop);
-                    doc.text('Value', 450, tableTop);
-
-                    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-
-                    let y = tableTop + 20;
-                    doc.font('Helvetica');
-                    reportData.suppliers.forEach(supplier => {
-                        if (y > 700) {
-                            doc.addPage();
-                            y = 50;
-                        }
-                        doc.text(supplier.supplierName.substring(0, 25), 50, y);
-                        doc.text(supplier.totalProducts.toString(), 250, y);
-                        doc.text(supplier.totalPurchases.toString(), 350, y);
-                        doc.text(`KES ${supplier.totalValue.toLocaleString()}`, 450, y);
-                        y += 20;
-                    });
-                }
-
-                this.addFooter(doc);
-                doc.end();
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
 }
 
 module.exports = new PDFService();

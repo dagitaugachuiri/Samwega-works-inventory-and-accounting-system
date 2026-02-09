@@ -32,29 +32,23 @@ class VehicleReportService {
     /**
      * Calculate total stock in hand for a vehicle inventory item using layers
      */
-    async calculateStockInHand(item) {
+    /**
+     * Calculate total stock in hand for a vehicle inventory item using layers
+     */
+    calculateStockInHand(item, packagingStructure) {
         if (item.stock !== undefined && item.stock !== null) return item.stock; // Legacy or simple stock support
 
         // If layers exist, calculate from layers
         if (item.layers && item.layers.length > 0) {
             // Need packaging structure to calculate totals
-            // Retrieve from inventory collection
-            try {
-                const invDoc = await this.db.collection('inventory').doc(item.inventoryId).get();
-                if (!invDoc.exists) return 0;
+            if (!packagingStructure) return 0;
 
-                const structure = invDoc.data().packagingStructure;
-                let totalStock = 0;
-
-                for (const layer of item.layers) {
-                    const multiplier = this.calculateMultiplier(structure, layer.layerIndex);
-                    totalStock += (layer.quantity || 0) * multiplier;
-                }
-                return totalStock;
-            } catch (err) {
-                console.error('Error calculating stock from layers:', err);
-                return 0;
+            let totalStock = 0;
+            for (const layer of item.layers) {
+                const multiplier = this.calculateMultiplier(packagingStructure, layer.layerIndex);
+                totalStock += (layer.quantity || 0) * multiplier;
             }
+            return totalStock;
         }
         return 0;
     }
@@ -66,10 +60,18 @@ class VehicleReportService {
      */
     async getVehicleInventoryReport(filters = {}) {
         try {
-            const { vehicleId, startDate, endDate } = filters;
-            console.log('Generating Vehicle Inventory Report with filters:', filters);
+            const { vehicleId } = filters;
+            console.log('Generating optimized Vehicle Inventory Report with filters:', filters);
 
-            // 1. Fetch Vehicles
+            // 1. Fetch ALL Inventory (Global Cache for performance)
+            // This avoids fetching inventory doc for every single item inside the loops
+            const allInvSnapshot = await this.db.collection('inventory').get();
+            const invMap = new Map();
+            allInvSnapshot.forEach(doc => {
+                invMap.set(doc.id, { id: doc.id, ...doc.data() });
+            });
+
+            // 2. Fetch Vehicles
             let vehiclesQuery = this.db.collection('vehicles').where('isActive', '==', true);
             if (vehicleId) {
                 vehiclesQuery = vehiclesQuery.where('__name__', '==', vehicleId);
@@ -78,7 +80,7 @@ class VehicleReportService {
             const vehiclesSnapshot = await vehiclesQuery.get();
             const vehicles = serializeDocs(vehiclesSnapshot);
 
-            // 2. Process each vehicle
+            // 3. Process each vehicle
             const reportRows = [];
 
             for (const vehicle of vehicles) {
@@ -93,103 +95,93 @@ class VehicleReportService {
                     continue; // Skip vehicles with no inventory
                 }
 
+                // Batch Fetch Transfers (for this vehicle) - Optimized
+                // Instead of querying per item, get all transfers for vehicle and process in memory
+                const activeStatuses = ['approved', 'collected', 'partially_collected', 'completed'];
+                const transfersSnapshot = await this.db.collection('stock_transfers')
+                    .where('vehicleId', '==', vehicle.id)
+                    .where('status', 'in', activeStatuses)
+                    .orderBy('createdAt', 'desc')
+                    .get();
+
+                const vehicleTransfers = serializeDocs(transfersSnapshot);
+
+                // Batch Fetch Sales (for this vehicle) - Optimized
+                const salesSnapshot = await this.db.collection('sales')
+                    .where('vehicleId', '==', vehicle.id)
+                    .where('status', '==', 'completed')
+                    .get();
+
+                const vehicleSales = serializeDocs(salesSnapshot);
+
                 // Process each inventory item
                 for (const item of vehicleInventory) {
-                    // Calculate TRUE remaining stock from layers
-                    const quantityRemaining = await this.calculateStockInHand(item);
+                    // Get Inventory Details from Map
+                    const invDetail = invMap.get(item.inventoryId);
 
-                    // Determine Vehicle Status (based on valid stock)
+                    // Calculate TRUE remaining stock from layers (Sync now)
+                    const quantityRemaining = this.calculateStockInHand(item, invDetail?.packagingStructure);
+
+                    // Determine Vehicle Status
                     let vehicleStatus = 'At Warehouse';
                     if (vehicle.assignedUserId && quantityRemaining > 0) {
                         vehicleStatus = 'On Route';
                     }
 
-                    // Find last transfer for this item to this vehicle
-                    // Note: 'type' field might not exist on transfers, so we rely on structure.
-                    // We check for statuses that imply the item is on the vehicle.
-                    let transferQuery = this.db.collection('stock_transfers')
-                        .where('vehicleId', '==', vehicle.id)
-                        .where('status', 'in', ['approved', 'collected', 'partially_collected', 'completed']) // Include all valid active statuses
-                        .orderBy('createdAt', 'desc');
-
-                    const allTransfersSnapshot = await transferQuery.get();
-
-                    // Filter in memory for the specific inventory item since Firestore array-contains is limited for objects
-                    let lastTransfer = null;
-                    // We need to find the most recent transfer that contained this item
-                    for (const doc of allTransfersSnapshot.docs) {
-                        const tData = doc.data();
-                        const hasItem = tData.items && tData.items.some(i => i.inventoryId === item.inventoryId);
-                        if (hasItem) {
-                            lastTransfer = serializeDoc(doc);
-                            break;
-                        }
-                    }
-
-                    let quantityLoaded = quantityRemaining; // Default to current stock if no sales history
-                    let loadedDate = new Date(0); // Default to beginning of time if no transfer found (capture all sales)
-                    let unitCost = 0;
-                    let sellingPrice = item.sellingPrice || 0;
+                    // Find last transfer date for this item (In Memory)
+                    let loadedDate = new Date(0); // Default start time
+                    const lastTransfer = vehicleTransfers.find(t =>
+                        t.items && t.items.some(ti => ti.inventoryId === item.inventoryId)
+                    );
 
                     if (lastTransfer) {
                         loadedDate = new Date(lastTransfer.createdAt);
-                        // We rely on Reverse Calculation below
                     }
 
-                    // Calculate Sold: Sum of sales since loadedDate
+                    // Calculate Sold: Sum of sales since loadedDate (In Memory)
                     let quantitySold = 0;
                     let valueSold = 0;
-                    const salesSnapshot = await this.db.collection('sales')
-                        .where('vehicleId', '==', vehicle.id)
-                        .where('status', '==', 'completed')
-                        .where('saleDate', '>=', loadedDate)
-                        .get();
 
-                    salesSnapshot.forEach(doc => {
-                        const sale = doc.data();
-                        const saleItem = sale.items.find(i => i.inventoryId === item.inventoryId);
-                        if (saleItem) {
-                            quantitySold += saleItem.quantity;
-                            // Accumulate actual value sold (from POS input)
-                            // saleItem should have 'subTotal' (qty * price) or we calculate it
-                            const itemTotal = saleItem.subTotal || (saleItem.quantity * saleItem.unitPrice) || 0;
-                            valueSold += itemTotal;
+                    vehicleSales.forEach(sale => {
+                        const saleDate = sale.saleDate ? new Date(sale.saleDate) : new Date(sale.createdAt);
+                        if (saleDate >= loadedDate) {
+                            const saleItem = sale.items.find(i => i.inventoryId === item.inventoryId);
+                            if (saleItem) {
+                                quantitySold += saleItem.quantity || 0;
+                                const itemTotal = saleItem.subTotal || ((saleItem.quantity || 0) * (saleItem.unitPrice || 0));
+                                valueSold += itemTotal;
+                            }
                         }
                     });
 
                     // Recalculate Loaded: Loaded = Remaining + Sold
-                    quantityLoaded = quantityRemaining + quantitySold;
+                    const quantityLoaded = quantityRemaining + quantitySold;
 
-                    // Fetch Unit Cost, Selling Price, and Minimum Price if needed (from main inventory)
-                    let minimumPrice = 0;
-                    if (unitCost === 0 || minimumPrice === 0 || sellingPrice === 0) {
-                        const mainInvDoc = await this.db.collection('inventory').doc(item.inventoryId).get();
-                        if (mainInvDoc.exists) {
-                            const data = mainInvDoc.data();
-                            unitCost = unitCost || data.buyingPrice || 0;
-                            minimumPrice = data.minimumPrice || 0;
-                            sellingPrice = sellingPrice || data.sellingPrice || 0;
-                        }
-                    }
+                    // Get Prices from Map
+                    const unitCost = invDetail?.buyingPrice || 0;
+                    const minimumPrice = invDetail?.minimumPrice || 0;
+                    const sellingPrice = invDetail?.sellingPrice || 0;
+                    const itemName = invDetail?.name || item.productName || 'Unknown Item';
+                    const itemCategory = invDetail?.category || item.category || 'General';
 
                     const row = {
                         vehicleId: vehicle.id,
                         vehicleName: vehicle.vehicleName,
-                        registrationNumber: vehicle.vehicleNumber, // Note: Schema calls it vehicleNumber
+                        registrationNumber: vehicle.vehicleNumber,
                         vehicleStatus,
                         stockLoadedDate: loadedDate,
-                        itemName: item.productName,
-                        itemCategory: item.category || 'General',
+                        itemName,
+                        itemCategory,
                         quantityLoaded,
                         quantitySold,
                         quantityRemaining,
                         unitCost,
                         unitSellingPrice: sellingPrice,
                         minimumPrice,
-                        totalValueLoaded: quantityLoaded * unitCost, // Loaded usually valued at Cost
-                        // Update: Remaining Stock valued at Minimum Selling Price (as requested)
+                        totalValueLoaded: quantityLoaded * unitCost,
+                        // Value remaining at Minimum Price
                         totalValueRemaining: quantityRemaining * minimumPrice,
-                        // Update: Sold Stock valued at Actual Sales Amount
+                        // Value sold at Actual Sales Amount
                         totalValueSold: valueSold,
                         salesRepresentative: vehicle.assignedUserName || 'Unassigned'
                     };
@@ -198,14 +190,13 @@ class VehicleReportService {
                 }
             }
 
-            // 3. Sorting (Default by Vehicle Name then Item Name)
+            // 4. Sorting (Default by Vehicle Name then Item Name)
             reportRows.sort((a, b) => {
                 if (a.vehicleName !== b.vehicleName) return a.vehicleName.localeCompare(b.vehicleName);
                 return a.itemName.localeCompare(b.itemName);
             });
 
-            // 4. Summary Metrics
-            // These should be filtered if the UI has filters, but here we return summary of the returned rows
+            // 5. Summary Metrics
             const summary = {
                 totalVehiclesTracked: new Set(reportRows.map(r => r.vehicleId)).size,
                 totalValueLoadedStock: reportRows.reduce((sum, r) => sum + r.totalValueLoaded, 0),

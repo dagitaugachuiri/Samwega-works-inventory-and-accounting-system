@@ -401,6 +401,33 @@ class APIClient {
         return this.request(`/reports/vehicle-inventory?${query}`);
     }
 
+    async getStockMovementReport(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/reports/stock-movement?${query}`);
+    }
+
+    async getSupplierPerformanceReport(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/reports/supplier-performance?${query}`);
+    }
+
+    async getInventoryTurnoverReport(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/reports/inventory-turnover?${query}`);
+    }
+
+    async getProfitLossReport(startDate, endDate) {
+        return this.request(`/reports/profit-loss?startDate=${startDate}&endDate=${endDate}`);
+    }
+
+    async getExpenseReport(startDate, endDate) {
+        return this.request(`/reports/expense?startDate=${startDate}&endDate=${endDate}`);
+    }
+
+    async getCreditSalesReport(startDate, endDate) {
+        return this.request(`/reports/credit-sales?startDate=${startDate}&endDate=${endDate}`);
+    }
+
     // PDF Generation - Helper for blob downloads
     async pdfRequest(endpoint, body = {}) {
         const token = this.getToken();
@@ -564,6 +591,44 @@ class APIClient {
             method: 'PATCH',
             body: JSON.stringify({ vehicleId }),
         });
+    }
+
+    // ==================== CUSTOMERS ====================
+    async getCustomers(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/customers${query ? `?${query}` : ''}`);
+    }
+
+    async searchCustomers(q) {
+        return this.request(`/customers/search?q=${encodeURIComponent(q)}`);
+    }
+
+    async getCustomerById(id) {
+        return this.request(`/customers/${id}`);
+    }
+
+    async createCustomer(data) {
+        return this.request('/customers', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateCustomer(id, data) {
+        return this.request(`/customers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteCustomer(id) {
+        return this.request(`/customers/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getCustomerSalesReport(customerPhone, startDate, endDate) {
+        return this.request(`/reports/customer-sales?customerPhone=${encodeURIComponent(customerPhone)}&startDate=${startDate}&endDate=${endDate}`);
     }
 
     // ==================== SUPPLIERS ====================

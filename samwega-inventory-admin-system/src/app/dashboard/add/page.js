@@ -237,47 +237,19 @@ export default function BulkAddItemPage() {
     setSaving(true);
 
     try {
-      // Get the selected invoice details to find supplier
       const selectedInvoice = invoices.find(i => i.id === formData.invoiceId);
       const supplierName = selectedInvoice?.supplierName || "Unknown Supplier";
 
-      // Process each item
-      const promises = formData.items.map(item => {
-        const payload = {
-          productName: item.productName,
-          category: item.category,
-          invoiceId: formData.invoiceId,
-          supplier: supplierName,
+      const selectedWarehouse = warehouses.find(w => w.id === formData.warehouseId);
+      const warehouseName = selectedWarehouse ? selectedWarehouse.name : '';
 
-          // Price & Stock
-          buyingPrice: parseFloat(item.buyingPrice),
-          buyingPricePerUnit: parseFloat(item.buyingPrice),
-          sellingPrice: parseFloat(item.sellingPrice),
-          sellingPricePerPiece: parseFloat(item.sellingPrice),
-          stock: parseInt(item.quantity),
-          stockInSupplierUnits: parseInt(item.quantity),
-          unit: item.unit,
-          supplierUnit: item.unit,
-          supplierUnitQuantity: parseInt(item.quantity), // Simplification: 1:1
+      // Process each item sequentially
 
-          // Defaults for required fields
-          lowStockAlert: 10,
-          warehouseId: formData.warehouseId
-        };
-
-        if (item.isExisting && item.existingId) {
-          return api.updateInventoryItem(item.existingId, {
-            ...payload,
-          });
-        }
-
-        return api.createInventoryItem(payload);
-      });
       // Legacy execute
       for (const item of formData.items) {
         if (item.isExisting && item.existingId) {
           await api.replenishItem(item.existingId, {
-            quantityAdded: parseInt(item.quantity),
+            quantity: parseInt(item.quantity),
             buyingPrice: parseFloat(item.buyingPrice),
             sellingPrice: parseFloat(item.sellingPrice),
             invoiceId: formData.invoiceId,
@@ -292,6 +264,7 @@ export default function BulkAddItemPage() {
             invoiceId: formData.invoiceId,
             supplier: supplierName,
             warehouseId: formData.warehouseId,
+            warehouseName: warehouseName,
             packagingStructure: [{
               qty: 1,
               unit: item.unit,

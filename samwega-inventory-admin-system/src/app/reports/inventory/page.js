@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Download, Search, RefreshCw } from "lucide-react";
+import { FileText, Download, Search, RefreshCw, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
+import ReportLayout from "@/components/reports/ReportLayout";
+import KPICard from "@/components/reports/KPICard";
 
 export default function InventoryReportPage() {
     const [items, setItems] = useState([]);
@@ -11,9 +13,24 @@ export default function InventoryReportPage() {
     const [generatingPdf, setGeneratingPdf] = useState(false);
     const [error, setError] = useState(null);
 
+    const [warehouses, setWarehouses] = useState([]);
+    const [selectedWarehouse, setSelectedWarehouse] = useState("");
+
     useEffect(() => {
         fetchInventory();
+        fetchWarehouses();
     }, []);
+
+    const fetchWarehouses = async () => {
+        try {
+            const response = await api.getStoreLocations();
+            if (response.success) {
+                setWarehouses(response.data || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch warehouses:", error);
+        }
+    };
 
     const fetchInventory = async () => {
         try {
@@ -40,31 +57,69 @@ export default function InventoryReportPage() {
 
             const doc = new jsPDF();
 
-            // Header
-            doc.setFontSize(20);
-            doc.text("Inventory Report", 14, 22);
+            // Header - Minimal Design
+            doc.setFontSize(18);
+            doc.text("Warehouse Inventory", 14, 20);
+
             doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 30);
+            doc.setTextColor(100);
+            doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
+            if (selectedWarehouse) {
+                const whName = warehouses.find(w => w.id === selectedWarehouse)?.name;
+                doc.text(`Warehouse: ${whName}`, 14, 34);
+            }
+
+            // Draw a subtle line under header
+            doc.setDrawColor(230, 230, 230);
+            doc.line(14, 38, 196, 38);
 
             // Table Data
-            const tableColumn = ["Item Name", "Quantity", "Warehouse", "Unit Price", "Supplier"];
+            const tableColumn = ["Item Name", "Quantity", "Warehouse", "Buying Price", "Supplier"];
             const tableRows = filteredItems.map(item => [
                 item.productName,
-                item.stock,
-                item.warehouseName || "N/A",
-                item.sellingPricePerPiece || item.sellingPrice || "0",
-                item.supplier || "N/A"
+                `${item.stock} ${item.unit || ''}`,
+                item.warehouseName || item.location || "N/A",
+                parseFloat(item.buyingPricePerUnit || item.buyingPrice || 0).toLocaleString(),
+                item.supplier || "-"
             ]);
 
             autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
-                startY: 40,
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [41, 128, 185] },
+                startY: 42,
+                theme: 'plain', // Minimal theme
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3,
+                    textColor: 40,
+                    lineColor: 230,
+                    lineWidth: 0.1
+                },
+                headStyles: {
+                    fillColor: [248, 250, 252], // Very light gray bg
+                    textColor: 60,
+                    fontStyle: 'bold',
+                    lineWidth: 0 // No border for header
+                },
+                alternateRowStyles: {
+                    fillColor: 255 // White background only (no stripes for minimal)
+                },
+                columnStyles: {
+                    0: { cellWidth: 'auto', fontStyle: 'bold' },
+                    1: { cellWidth: 30, halign: 'right' },
+                    3: { cellWidth: 30, halign: 'right' },
+                },
+                didDrawPage: (data) => {
+                    // Footer
+                    const str = 'Page ' + doc.internal.getNumberOfPages();
+                    doc.setFontSize(8);
+                    const pageSize = doc.internal.pageSize;
+                    const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
+                    doc.text(str, data.settings.margin.left, pageHeight - 10);
+                }
             });
 
-            doc.save(`inventory-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+            doc.save(`warehouse-inventory-${new Date().toISOString().slice(0, 10)}.pdf`);
         } catch (error) {
             console.error("Failed to generate PDF:", error);
             setError("Failed to generate PDF report. Please try again.");
@@ -74,77 +129,114 @@ export default function InventoryReportPage() {
         }
     };
 
-    const filteredItems = items.filter(item =>
-        item.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.warehouseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredItems = items.filter(item => {
+        const matchesSearch = item.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.warehouseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesWarehouse = selectedWarehouse ? (item.warehouseId === selectedWarehouse || item.locationId === selectedWarehouse) : true;
+
+        return matchesSearch && matchesWarehouse;
+    });
+
+    // Calculate KPIs
+    const totalItems = items.length;
+    const totalStockValue = items.reduce((acc, item) => acc + (parseFloat(item.buyingPricePerUnit || item.buyingPrice || 0) * (item.stock || 0)), 0);
+    const potentialRevenue = items.reduce((acc, item) => acc + (parseFloat(item.sellingPricePerPiece || item.sellingPrice || 0) * (item.stock || 0)), 0);
+    const lowStockCount = items.filter(item => (item.stock || 0) <= (item.lowStockAlert || 5)).length;
+
+    const kpiCards = (
+        <>
+            <KPICard
+                title="Total Stock Value"
+                value={`KES ${totalStockValue.toLocaleString()}`}
+                icon={BarChart3}
+                color="sky"
+            />
+            <KPICard
+                title="Potential Revenue"
+                value={`KES ${potentialRevenue.toLocaleString()}`}
+                icon={TrendingUp}
+                color="emerald"
+            />
+            <KPICard
+                title="Low Stock Items"
+                value={lowStockCount}
+                icon={AlertTriangle}
+                color={lowStockCount > 0 ? "rose" : "emerald"}
+            />
+        </>
+    );
+
+    const filters = (
+        <div className="flex flex-wrap gap-4 w-full">
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+            </div>
+
+            <div className="w-full md:w-64">
+                <select
+                    value={selectedWarehouse}
+                    onChange={(e) => setSelectedWarehouse(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                    <option value="">All Warehouses</option>
+                    {warehouses.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                </select>
+            </div>
+        </div>
+    );
+
+    const actions = (
+        <button
+            onClick={handleDownloadPDF}
+            disabled={generatingPdf || loading || items.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+            {generatingPdf ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+                <Download size={18} />
+            )}
+            Download PDF
+        </button>
     );
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <ReportLayout
+            title="Inventory Valuation Report"
+            description="Comprehensive view of inventory assets, stock levels, and potential revenue."
+            loading={loading}
+            onRefresh={fetchInventory}
+            filters={filters}
+            actions={actions}
+            kpiCards={kpiCards}
+        >
             {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 mx-6 mt-6">
                     <span className="font-semibold">Error:</span> {error}
                 </div>
             )}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FileText className="text-blue-600" />
-                        Inventory Report
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">
-                        comprehensive view of all inventory items and their locations.
-                    </p>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={fetchInventory}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Refresh Data"
-                    >
-                        <RefreshCw size={20} />
-                    </button>
-                    <button
-                        onClick={handleDownloadPDF}
-                        disabled={generatingPdf || loading || items.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {generatingPdf ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        ) : (
-                            <Download size={18} />
-                        )}
-                        Download PDF
-                    </button>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="mb-6">
-                <div className="relative max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search items, warehouses, or suppliers..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
-            </div>
-
-            {/* Preview Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {/* Data Table */}
+            <div className="min-w-full inline-block align-middle">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                                 <th className="px-6 py-4 font-semibold text-gray-700">Item Name</th>
                                 <th className="px-6 py-4 font-semibold text-gray-700">Quantity</th>
                                 <th className="px-6 py-4 font-semibold text-gray-700">Warehouse</th>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Unit Price</th>
+                                <th className="px-6 py-4 font-semibold text-gray-700">Buying Price</th>
                                 <th className="px-6 py-4 font-semibold text-gray-700">Supplier</th>
                             </tr>
                         </thead>
@@ -174,17 +266,17 @@ export default function InventoryReportPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">
-                                            {item.warehouseName ? (
+                                            {item.warehouseName || item.location ? (
                                                 <span className="flex items-center gap-1.5">
                                                     <span className="w-2 h-2 rounded-full bg-purple-500" />
-                                                    {item.warehouseName}
+                                                    {item.warehouseName || item.location}
                                                 </span>
                                             ) : (
                                                 <span className="text-gray-400 italic">Unassigned</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600">
-                                            KES {parseFloat(item.sellingPricePerPiece || item.sellingPrice || 0).toLocaleString()}
+                                        <td className="px-6 py-4 text-gray-600 font-medium">
+                                            KES {parseFloat(item.buyingPricePerUnit || item.buyingPrice || 0).toLocaleString()}
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{item.supplier || '-'}</td>
                                     </tr>
@@ -193,13 +285,7 @@ export default function InventoryReportPage() {
                         </tbody>
                     </table>
                 </div>
-                {!loading && filteredItems.length > 0 && (
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 text-xs text-gray-500 flex justify-between">
-                        <span>Showing {filteredItems.length} items</span>
-                        <span>Total Items: {items.length}</span>
-                    </div>
-                )}
             </div>
-        </div>
+        </ReportLayout>
     );
 }

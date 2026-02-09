@@ -28,6 +28,24 @@ const getVehicleInventoryReport = async (req, res, next) => {
 };
 
 
+
+
+
+
+
+/**
+ * Get Stock Movement Report
+ */
+const getStockMovementReport = async (req, res, next) => {
+    try {
+        const report = await reportsService.getStockMovementReport(req.query);
+        res.json(successResponse(report, 'Stock movement report retrieved successfully'));
+    } catch (error) {
+        logger.error('Get stock movement report controller error:', error);
+        next(error);
+    }
+};
+
 /**
  * Get sales report
  */
@@ -179,6 +197,20 @@ const generateCreditSalesPDF = async (req, res, next) => {
 };
 
 /**
+ * Get Customer Sales Report (JSON)
+ */
+const getCustomerSalesReport = async (req, res, next) => {
+    try {
+        const { customerPhone, startDate, endDate } = req.query;
+        const report = await reportsService.generateCustomerSalesReport(customerPhone, startDate, endDate);
+        res.json(successResponse(report, 'Customer sales report retrieved successfully'));
+    } catch (error) {
+        logger.error('Get customer sales report controller error:', error);
+        next(error);
+    }
+};
+
+/**
  * Generate Customer Sales PDF
  */
 const generateCustomerSalesPDF = async (req, res, next) => {
@@ -277,18 +309,45 @@ const generateEnhancedVehicleInventoryPDF = async (req, res, next) => {
 /**
  * Generate Supplier Performance PDF
  */
-const generateSupplierPerformancePDF = async (req, res, next) => {
+
+
+const getInventoryTurnoverReport = async (req, res, next) => {
     try {
-        const { startDate, endDate } = req.body;
-        const reportData = await reportsService.generateSupplierPerformanceReport(startDate, endDate);
-        const pdfBuffer = await pdfService.generateSupplierPerformancePDF(reportData);
-        const reportName = `supplier-performance-${startDate}-${endDate}-${Date.now()}.pdf`;
-        sendPDFDownload(res, pdfBuffer, reportName);
+        const { startDate, endDate } = req.query;
+        const report = await reportsService.generateInventoryTurnoverReport(startDate, endDate);
+        res.json(successResponse(report, 'Inventory turnover report retrieved successfully'));
     } catch (error) {
-        logger.error('Generate supplier performance PDF error:', error);
+        logger.error('Get inventory turnover report controller error:', error);
         next(error);
     }
 };
+
+/**
+ * Get Profit & Loss Report (JSON)
+ */
+const getProfitLossReport = async (req, res, next) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const report = await reportsService.generateProfitLossReport(startDate, endDate);
+        res.json(successResponse(report, 'Profit & Loss report retrieved successfully'));
+    } catch (error) {
+        logger.error('Get profit & loss report controller error:', error);
+        next(error);
+    }
+};
+
+const getExpenseReport = async (req, res, next) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const report = await reportsService.generateExpenseReport(startDate, endDate);
+        res.json(successResponse(report, 'Expense report retrieved successfully'));
+    } catch (error) {
+        logger.error('Get expense report controller error:', error);
+        next(error);
+    }
+};
+
+
 
 module.exports = {
     getSalesReport,
@@ -306,7 +365,10 @@ module.exports = {
     generateStockMovementPDF,
     generateInventoryTurnoverPDF,
     generateEnhancedVehicleInventoryPDF,
-    generateEnhancedVehicleInventoryPDF,
-    generateSupplierPerformancePDF,
-    getVehicleInventoryReport
+    getVehicleInventoryReport,
+    getStockMovementReport,
+    getInventoryTurnoverReport,
+    getCustomerSalesReport,
+    getProfitLossReport,
+    getExpenseReport
 };

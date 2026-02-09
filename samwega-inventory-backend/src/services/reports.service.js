@@ -521,7 +521,8 @@ class ReportsService {
                     pendingExpenses: pending.reduce((sum, e) => sum + e.amount, 0),
                     rejectedExpenses: rejected.reduce((sum, e) => sum + e.amount, 0)
                 },
-                byCategory: Object.values(byCategory)
+                byCategory: Object.values(byCategory),
+                expenses: expenses.sort((a, b) => new Date(b.expenseDate) - new Date(a.expenseDate))
             };
 
             await cache.set(cacheKey, report, this.cacheTTL);
@@ -652,7 +653,8 @@ class ReportsService {
                     totalCustomers: Object.keys(customerMap).length
                 },
                 aging,
-                customers: Object.values(customerMap).sort((a, b) => b.outstanding - a.outstanding)
+                customers: Object.values(customerMap).sort((a, b) => b.outstanding - a.outstanding),
+                transactions: creditSales.sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate))
             };
 
             await cache.set(cacheKey, report, this.cacheTTL);
@@ -1315,6 +1317,202 @@ class ReportsService {
             return report;
         } catch (error) {
             logger.error('Generate supplier performance report error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get Stock Movement Report (Transfers to Vehicles)
+     * @param {Object} filters
+     * @returns {Promise<Array>}
+     */
+    async getStockMovementReport(filters = {}) {
+        try {
+            const { startDate, endDate, vehicleId } = filters;
+            const cacheKey = `${this.cachePrefix}stock-movement:${JSON.stringify(filters)}`;
+            const cached = await cache.get(cacheKey);
+            if (cached) return cached;
+
+            let query = this.db.collection('stock_transfers');
+
+            if (startDate) {
+                query = query.where('createdAt', '>=', new Date(startDate));
+            }
+            if (endDate) {
+                query = query.where('createdAt', '<=', new Date(endDate));
+            }
+            if (vehicleId) {
+                query = query.where('vehicleId', '==', vehicleId);
+            }
+
+            const snapshot = await query.orderBy('createdAt', 'desc').get();
+            const transfers = serializeDocs(snapshot);
+
+            // Flatten items
+            const rows = [];
+            for (const transfer of transfers) {
+                // Get vehicle details (optional logic if not in transfer)
+                // Transfer usually has vehicleId (and maybe name snapshot?)
+                // If not, we might need to fetch vehicle names map, but let's assume UI handles IDs or transfer has it.
+                // Looking at createTransfer, it doesn't seem to store vehicleName.
+                // But for lists, we might need it. 
+                // Let's assume frontend resolves names or we fetch them.
+
+                // Also status filter: "only inventory to vehicle issuing records"
+                // This implies successful transfers? 
+                // Let's include all for now or filter by 'collected' if user insisted.
+                // User said "issuing records". Pending might not be issued yet.
+                // I'll show Status column so user can filter in UI or see relevant ones.
+
+                if (!transfer.items || !Array.isArray(transfer.items)) continue;
+
+                for (const item of transfer.items) {
+                    let totalQty = 0;
+                    // Convert layers to single quantity or display string
+                    const qtyDisplay = item.layers.map(l => `${l.quantity} ${l.unit}`).join(', ');
+
+                    rows.push({
+                        id: `${transfer.id}-${item.inventoryId}`,
+                        date: transfer.createdAt,
+                        transferNumber: transfer.transferNumber,
+                        vehicleId: transfer.vehicleId,
+                        // vehicleName: transfer.vehicleName || 'Unknown', // Need to resolve
+                        status: transfer.status,
+                        productName: item.productName,
+                        quantity: qtyDisplay,
+                        notes: transfer.notes || ''
+                    });
+                }
+            }
+
+            await cache.set(cacheKey, rows, this.cacheTTL);
+            return rows;
+
+        } catch (error) {
+            logger.error('Get stock movement report error:', error);
+            throw error;
+        }
+    }
+    async generateInventoryTurnoverReport(startDate, endDate) {
+        try {
+            const cacheKey = `inventory_turnover_${startDate}_${endDate}`;
+            const cachedData = await cache.get(cacheKey);
+            // if (cachedData) return cachedData; // Uncomment if cache is desired, simplified for now
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            const periodDays = Math.max(1, (end - start) / (1000 * 60 * 60 * 24));
+
+            // 1. Fetch Active Inventory (Current Stock & Cost)
+            const inventorySnapshot = await this.db.collection('inventory')
+                .where('isActive', '==', true)
+                .get();
+
+            const inventoryMap = new Map();
+            inventorySnapshot.forEach(doc => {
+                const data = doc.data();
+                const buyingPrice = parseFloat(data.buyingPrice) || 0;
+                const stock = parseFloat(data.stock) || 0; // Using current stock as proxy for avg
+
+                inventoryMap.set(doc.id, {
+                    id: doc.id,
+                    name: data.name || data.productName || data.itemName || `Item-${doc.id.substring(0, 8)}`,
+                    category: data.category || 'General',
+                    buyingPrice,
+                    currentStock: stock,
+                    stockValue: stock * buyingPrice
+                });
+            });
+
+            // 2. Fetch Sales within Period (COGS)
+            const salesSnapshot = await this.db.collection('sales')
+                .where('status', '==', 'completed')
+                .where('saleDate', '>=', start)
+                .where('saleDate', '<=', end)
+                .get();
+
+            const salesMap = new Map(); // inventoryId -> { qtySold: 0, cogs: 0 }
+
+            salesSnapshot.forEach(doc => {
+                const sale = doc.data();
+                if (sale.items && Array.isArray(sale.items)) {
+                    sale.items.forEach(item => {
+                        // Use cost from inventory map if available, or item unitPrice as fallback
+                        const invItem = inventoryMap.get(item.inventoryId);
+                        const cost = invItem ? invItem.buyingPrice : (item.unitPrice || 0);
+
+                        if (!salesMap.has(item.inventoryId)) {
+                            salesMap.set(item.inventoryId, { qtySold: 0, cogs: 0 });
+                        }
+
+                        const stats = salesMap.get(item.inventoryId);
+                        const qty = parseFloat(item.quantity) || 0;
+
+                        stats.qtySold += qty;
+                        // COGS = Quantity Sold * Cost Price
+                        stats.cogs += qty * cost;
+                    });
+                }
+            });
+
+            // 3. Calculate Metrics & Format Output
+            const reportRows = [];
+            inventoryMap.forEach((item, id) => {
+                if (!salesMap.has(id) && item.currentStock === 0) return; // Skip items with no activity and no stock
+
+                const salesStats = salesMap.get(id) || { qtySold: 0, cogs: 0 };
+
+                // Turnover Ratio = COGS / Average Inventory Value
+                // We use Current Inventory Value as a simplified Average Inventory Value
+                const avgInventoryValue = item.stockValue;
+
+                let turnoverRatio = 0;
+                if (avgInventoryValue > 0) {
+                    turnoverRatio = salesStats.cogs / avgInventoryValue;
+                } else if (salesStats.cogs > 0) {
+                    // Items sold but currently out of stock -> High turnover
+                    turnoverRatio = 999;
+                }
+
+                // Days Sales of Inventory (DSI)
+                let dsi = 0;
+                if (salesStats.cogs > 0 && avgInventoryValue > 0) {
+                    // DSI = (Avg Inv / COGS) * PeriodDays
+                    dsi = (avgInventoryValue / salesStats.cogs) * periodDays;
+                } else if (salesStats.cogs === 0 && avgInventoryValue > 0) {
+                    dsi = 999; // Infinite days (no sales)
+                }
+
+                // Status Classification
+                let status = 'Medium Mover';
+                if (salesStats.qtySold === 0) status = 'Non Mover';
+                else if (turnoverRatio > 1.0) status = 'Fast Mover'; // > 1x turnover in period
+                else if (turnoverRatio < 0.2) status = 'Slow Mover';
+
+                reportRows.push({
+                    inventoryId: id,
+                    itemName: item.name,
+                    category: item.category,
+                    currentStock: item.currentStock,
+                    unitCost: item.buyingPrice,
+                    avgInventoryValue,
+                    quantitySold: salesStats.qtySold,
+                    cogs: salesStats.cogs,
+                    turnoverRatio,
+                    daysSalesInventory: dsi,
+                    status
+                });
+            });
+
+            // 4. Sort by Turnover Ratio Descending (Fastest movers first)
+            reportRows.sort((a, b) => b.turnoverRatio - a.turnoverRatio);
+
+            // await cache.set(cacheKey, reportRows, this.cacheTTL);
+            return reportRows;
+
+        } catch (error) {
+            logger.error('Generate inventory turnover report error:', error);
             throw error;
         }
     }

@@ -64,6 +64,44 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/reports/customer-sales
+ * @desc    Get customer sales report (JSON)
+ * @access  All verified users
+ */
+router.get(
+    '/customer-sales',
+    verifyToken,
+    requireVerified,
+    reportsController.getCustomerSalesReport
+);
+
+/**
+ * @route   GET /api/v1/reports/profit-loss
+ * @desc    Get profit & loss report (JSON)
+ * @access  Admin only
+ */
+router.get(
+    '/profit-loss',
+    verifyToken,
+    requireRole('admin'),
+    reportsController.getProfitLossReport
+);
+
+/**
+ * @route   GET /api/v1/reports/expense
+ * @desc    Get expense report (JSON)
+ * @access  Admin, Store Manager
+ */
+router.get(
+    '/expense',
+    verifyToken,
+    requireRole('admin', 'store_manager'),
+    reportsController.getExpenseReport
+);
+
+
+
+/**
  * @route   POST /api/v1/reports/generate/sales-pdf
  * @desc    Generate sales report PDF
  * @access  Admin, Store Manager
@@ -184,6 +222,18 @@ router.post(
 );
 
 /**
+ * @route   GET /api/v1/reports/stock-movement
+ * @desc    Get stock movement report (Live View)
+ * @access  Admin, Store Manager
+ */
+router.get(
+    '/stock-movement',
+    verifyToken,
+    requireRole('admin', 'store_manager'),
+    reportsController.getStockMovementReport
+);
+
+/**
  * @route   POST /api/v1/reports/generate/inventory-turnover-pdf
  * @desc    Generate inventory turnover PDF
  * @access  Admin, Store Manager
@@ -193,6 +243,18 @@ router.post(
     verifyToken,
     requireRole('admin', 'store_manager'),
     reportsController.generateInventoryTurnoverPDF
+);
+
+/**
+ * @route   GET /api/v1/reports/inventory-turnover
+ * @desc    Get inventory turnover report (Live View)
+ * @access  Admin, Store Manager
+ */
+router.get(
+    '/inventory-turnover',
+    verifyToken,
+    requireRole('admin', 'store_manager'),
+    reportsController.getInventoryTurnoverReport
 );
 
 /**
@@ -207,16 +269,6 @@ router.post(
     reportsController.generateEnhancedVehicleInventoryPDF
 );
 
-/**
- * @route   POST /api/v1/reports/generate/supplier-performance-pdf
- * @desc    Generate supplier performance PDF
- * @access  Admin only
- */
-router.post(
-    '/generate/supplier-performance-pdf',
-    verifyToken,
-    requireRole('admin'),
-    reportsController.generateSupplierPerformancePDF
-);
+
 
 module.exports = router;

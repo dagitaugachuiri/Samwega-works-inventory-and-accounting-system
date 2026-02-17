@@ -411,7 +411,6 @@ export default function VehicleDetailsDashboard() {
                 <th className="px-4 py-3 w-32">Transfer</th>
                 <th className="px-4 py-3">Item</th>
                 <th className="px-4 py-3 w-24">Quantity</th>
-                <th className="px-4 py-3 w-32 text-right">Total Value</th>
                 <th className="px-4 py-3 w-24 text-center">Status</th>
               </tr>
             </thead>
@@ -468,9 +467,6 @@ export default function VehicleDetailsDashboard() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-slate-900 align-top">
-                        KSh {transferTotal.toLocaleString()}
-                      </td>
                       <td className="px-4 py-3 text-center align-top">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize
                           ${transfer.status === 'collected' ? 'bg-emerald-100 text-emerald-700' :
@@ -484,7 +480,7 @@ export default function VehicleDetailsDashboard() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                     <Package className="mx-auto mb-3 text-slate-300" size={32} />
                     <p>No transfers found.</p>
                   </td>

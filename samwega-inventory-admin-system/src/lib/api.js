@@ -466,8 +466,8 @@ class APIClient {
         return { success: true, data: { pdfUrl, reportName, isBlob: true } };
     }
 
-    async generateSalesPDF(startDate, endDate) {
-        return this.pdfRequest('/reports/generate/sales-pdf', { startDate, endDate });
+    async generateSalesPDF(startDate, endDate, vehicleId) {
+        return this.pdfRequest('/reports/generate/sales-pdf', { startDate, endDate, vehicleId });
     }
 
     async generateInventoryPDF() {
@@ -486,9 +486,7 @@ class APIClient {
         return this.pdfRequest('/reports/generate/credit-sales-pdf', { startDate, endDate });
     }
 
-    async generateCustomerSalesPDF(customerPhone, startDate, endDate) {
-        return this.pdfRequest('/reports/generate/customer-sales-pdf', { customerPhone, startDate, endDate });
-    }
+
 
     async generateTripSalesPDF(vehicleId, tripDate) {
         return this.pdfRequest('/reports/generate/trip-sales-pdf', { vehicleId, tripDate });
@@ -634,9 +632,7 @@ class APIClient {
         });
     }
 
-    async getCustomerSalesReport(customerPhone, startDate, endDate) {
-        return this.request(`/reports/customer-sales?customerPhone=${encodeURIComponent(customerPhone)}&startDate=${startDate}&endDate=${endDate}`);
-    }
+
 
     // ==================== SUPPLIERS ====================
     async getSuppliers(filters = {}) {

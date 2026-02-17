@@ -106,7 +106,7 @@ const getPaymentMethodReport = async (req, res, next) => {
  */
 const generateSalesPDF = async (req, res, next) => {
     try {
-        const { startDate, endDate, type } = { ...req.body, ...req.query };
+        const { startDate, endDate, type, vehicleId } = { ...req.body, ...req.query };
 
         let pdfBuffer;
         if (type === 'detailed') {
@@ -121,7 +121,7 @@ const generateSalesPDF = async (req, res, next) => {
             };
             pdfBuffer = await pdfService.generateDetailedSalesReportPDF(reportData);
         } else {
-            const reportData = await reportsService.generateComprehensiveSalesReport(startDate, endDate);
+            const reportData = await reportsService.generateComprehensiveSalesReport(startDate, endDate, vehicleId);
             pdfBuffer = await pdfService.generateSalesReportPDF(reportData);
         }
 

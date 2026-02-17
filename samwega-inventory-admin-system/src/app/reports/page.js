@@ -16,7 +16,7 @@ const REPORT_TYPES = [
         category: "Sales Reports",
         reports: [
             { id: "sales", name: "Sales Report", description: "Comprehensive sales analysis", needsDate: true },
-            { id: "customer-sales", name: "Customer Sales", description: "Customer purchase history", needsCustomer: true, needsDate: true },
+
         ]
     },
     {
@@ -84,7 +84,7 @@ export default function ReportsPage() {
                     response = await api.generateStockMovementPDF(startDate, endDate);
                     break;
                 case "sales":
-                    response = await api.generateSalesPDF(startDate, endDate);
+                    response = await api.generateSalesPDF(startDate, endDate, vehicleId);
                     break;
                 case "trip-sales":
                     response = await api.generateTripSalesPDF(vehicleId, tripDate);
@@ -102,6 +102,13 @@ export default function ReportsPage() {
 
             if (response.success && response.data?.pdfUrl) {
                 setGeneratedPDF(response.data);
+                // Automatically download
+                const link = document.createElement('a');
+                link.href = response.data.pdfUrl;
+                link.download = response.data.reportName || "report.pdf";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
         } catch (error) {
             console.error("Failed to generate report:", error);
@@ -186,13 +193,10 @@ export default function ReportsPage() {
                                                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicleName}</option>)}
                                             </select>
                                         </div>
-                                        <div className="pt-2 flex gap-3">
-                                            <a href="/reports/vehicle-inventory" className="flex-1 py-2.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 font-medium text-sm text-center">
+                                        <div className="pt-2">
+                                            <a href="/reports/vehicle-inventory" className="block w-full py-2.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 font-medium text-sm text-center">
                                                 View Online
                                             </a>
-                                            <button onClick={generateReport} disabled={loading || !vehicleId} className="flex-1 py-2.5 bg-slate-900 text-white rounded hover:bg-slate-800 font-medium text-sm transition-colors disabled:opacity-50">
-                                                {loading ? 'Generating...' : 'Download PDF'}
-                                            </button>
                                         </div>
                                     </div>
                                 ) : (
@@ -224,31 +228,19 @@ export default function ReportsPage() {
                                         {/* Dynamic Links based on type */}
                                         {selectedReport.id === 'sales' && (
                                             <div className="pt-1">
-                                                <a href="/reports/sales" className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-4">
-                                                    <FileText size={14} /> Go to Sales Dashboard
-                                                </a>
+                                                <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase">Select Vehicle (Optional)</label>
+                                                <select
+                                                    value={vehicleId}
+                                                    onChange={(e) => setVehicleId(e.target.value)}
+                                                    className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
+                                                >
+                                                    <option value="">-- All Vehicles --</option>
+                                                    {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicleName}</option>)}
+                                                </select>
                                             </div>
                                         )}
 
-                                        {selectedReport.id === 'customer-sales' && (
-                                            <div className="space-y-4">
-                                                {/* ... existing customer search logic simplified ... */}
-                                                <div>
-                                                    <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase">Customer (Optional)</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Search customer name or phone..."
-                                                        className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
-                                                        value={searchQuery}
-                                                        onChange={(e) => {
-                                                            setSearchQuery(e.target.value);
-                                                            if (e.target.value !== customerPhone) setCustomerPhone("");
-                                                        }}
-                                                    />
-                                                    {/* Search results list would go here - omitted for brevity but logic remains same in state */}
-                                                </div>
-                                            </div>
-                                        )}
+
 
                                         <button
                                             onClick={generateReport}
@@ -257,8 +249,8 @@ export default function ReportsPage() {
                                         >
                                             {loading ? 'Processing...' : (
                                                 <>
-                                                    {selectedReport.id === 'customer-sales' ? <FileText size={16} /> : <Download size={16} />}
-                                                    {selectedReport.id === 'customer-sales' ? 'View Online Report' : 'Generate PDF Report'}
+                                                    <Download size={16} />
+                                                    Generate PDF Report
                                                 </>
                                             )}
                                         </button>

@@ -59,7 +59,7 @@ router.get(
 router.get(
     '/vehicle-inventory',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'sales_rep'),
     reportsController.getVehicleInventoryReport
 );
 

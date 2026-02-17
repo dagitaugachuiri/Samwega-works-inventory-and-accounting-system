@@ -85,14 +85,17 @@ class ReportsService {
      * @param {number} limit
      * @returns {Promise<Object>}
      */
-    async getProductPerformance(startDate, endDate, limit = 20) {
+    async getProductPerformance(startDate, endDate, limit = 20, vehicleId = null) {
         try {
-            const cacheKey = `${this.cachePrefix}products:${startDate}:${endDate}:${limit}`;
+            const cacheKey = `${this.cachePrefix}products:${startDate}:${endDate}:${limit}:${vehicleId || 'all'}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
             let query = this.db.collection('sales').where('status', '==', 'completed');
 
+            if (vehicleId) {
+                query = query.where('vehicleId', '==', vehicleId);
+            }
             if (startDate) {
                 query = query.where('saleDate', '>=', new Date(startDate));
             }
@@ -157,14 +160,17 @@ class ReportsService {
      * @param {string} endDate
      * @returns {Promise<Object>}
      */
-    async getSalesRepPerformance(startDate, endDate) {
+    async getSalesRepPerformance(startDate, endDate, vehicleId = null) {
         try {
-            const cacheKey = `${this.cachePrefix}salesreps:${startDate}:${endDate}`;
+            const cacheKey = `${this.cachePrefix}salesreps:${startDate}:${endDate}:${vehicleId || 'all'}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
             let query = this.db.collection('sales').where('status', '==', 'completed');
 
+            if (vehicleId) {
+                query = query.where('vehicleId', '==', vehicleId);
+            }
             if (startDate) {
                 query = query.where('saleDate', '>=', new Date(startDate));
             }
@@ -231,14 +237,17 @@ class ReportsService {
      * @param {string} endDate
      * @returns {Promise<Object>}
      */
-    async getPaymentMethodReport(startDate, endDate) {
+    async getPaymentMethodReport(startDate, endDate, vehicleId = null) {
         try {
-            const cacheKey = `${this.cachePrefix}payments:${startDate}:${endDate}`;
+            const cacheKey = `${this.cachePrefix}payments:${startDate}:${endDate}:${vehicleId || 'all'}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
             let query = this.db.collection('sales').where('status', '==', 'completed');
 
+            if (vehicleId) {
+                query = query.where('vehicleId', '==', vehicleId);
+            }
             if (startDate) {
                 query = query.where('saleDate', '>=', new Date(startDate));
             }
@@ -442,24 +451,25 @@ class ReportsService {
      * @param {string} endDate
      * @returns {Promise<Object>}
      */
-    async generateComprehensiveSalesReport(startDate, endDate) {
+    async generateComprehensiveSalesReport(startDate, endDate, vehicleId) {
         try {
-            const cacheKey = `${this.cachePrefix}comprehensive:${startDate}:${endDate}`;
+            const cacheKey = `${this.cachePrefix}comprehensive:${startDate}:${endDate}:${vehicleId || 'all'}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
-            // Get all reports
+            // Get all reports with vehicle filter
             const [salesReport, productReport, salesRepReport, paymentReport] = await Promise.all([
-                this.getSalesReport({ startDate, endDate }),
-                this.getProductPerformance(startDate, endDate),
-                this.getSalesRepPerformance(startDate, endDate),
-                this.getPaymentMethodReport(startDate, endDate)
+                this.getSalesReport({ startDate, endDate, vehicleId }),
+                this.getProductPerformance(startDate, endDate, 20, vehicleId),
+                this.getSalesRepPerformance(startDate, endDate, vehicleId),
+                this.getPaymentMethodReport(startDate, endDate, vehicleId)
             ]);
 
             const report = {
                 reportType: 'comprehensive-sales',
                 startDate,
                 endDate,
+                vehicleId,
                 summary: salesReport.summary,
                 topProducts: productReport.topProducts,
                 salesRepPerformance: salesRepReport.salesReps,
@@ -952,7 +962,8 @@ class ReportsService {
                 }
             });
 
-            // 2. Get Sales (Sold to Customer)
+            // 2. Get Sales (Sold to Customer) - REMOVED per user request (Stock Movement should only be Warehouse <-> Vehicle)
+            /*
             let salesQuery = this.db.collection('sales').where('status', '==', 'completed');
             if (startDate) salesQuery = salesQuery.where('saleDate', '>=', start);
             if (endDate) salesQuery = salesQuery.where('saleDate', '<=', end);
@@ -983,6 +994,7 @@ class ReportsService {
                     });
                 }
             });
+            */
 
             // 3. Get Supplier Receipts (Received from Supplier)
             // Source: 'inventory' collection -> replenishmentHistory array
@@ -1038,28 +1050,29 @@ class ReportsService {
             if (endDate) adjQuery = adjQuery.where('createdAt', '<=', end);
 
             const adjSnapshot = await adjQuery.get();
-            adjSnapshot.forEach(doc => {
-                const adj = doc.data();
+            const adjustments = serializeDocs(adjSnapshot);
+
+            adjustments.forEach(adj => {
                 if (!productId || adj.inventoryId === productId) {
-                    if (adj.reason === 'return') {
+                    if (adj.reason === 'return' || adj.reason === 'Return') {
+                        // Safely handle date - serializeDocs usually converts to Date object or ISO string
+                        // If it's a string from serialization, new Date() works.
                         movements.push({
-                            id: doc.id,
-                            date: adj.createdAt,
+                            id: adj.id,
+                            date: adj.createdAt || new Date(),
                             type: 'Returned to Warehouse',
                             itemName: adj.productName,
                             itemCategory: 'General',
-                            quantity: adj.adjustment, // Assuming positive for return to warehouse
-                            unitCost: adj.buyingPrice || 0,
-                            totalValue: (adj.adjustment) * (adj.buyingPrice || 0),
-                            origin: 'Vehicle', // Assumption
+                            quantity: adj.adjustment,
+                            unitCost: 0, // Removed cost/value per request (set to 0)
+                            totalValue: 0,
+                            origin: adj.vehicleName ? `${adj.vehicleName}` : 'Vehicle',
                             destination: 'Warehouse',
-                            vehicle: null,
+                            vehicle: adj.vehicleName || null,
                             reference: 'Adjustment',
-                            recordedBy: 'Admin'
+                            recordedBy: adj.performedBy || 'Admin'
                         });
                     }
-                    // We can also catch new 'purchase' records from stock_adjustments here if we switch over completely
-                    // But for now replenishmentHistory covers us.
                 }
             });
 

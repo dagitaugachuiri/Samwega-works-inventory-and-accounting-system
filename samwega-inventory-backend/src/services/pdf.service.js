@@ -19,9 +19,10 @@ class PDFService {
             .text(this.companyName, 50, 50, { align: 'center' });
 
         doc.fontSize(10)
-            .font('Helvetica')
-            .text(this.companyAddress, { align: 'center' })
-            .text(`Tel: ${this.companyPhone}`, { align: 'center' });
+            .font('Helvetica');
+        // Removed Address and Phone as requested
+        // .text(this.companyAddress, { align: 'center' })
+        // .text(`Tel: ${this.companyPhone}`, { align: 'center' });
 
         doc.moveDown();
         doc.fontSize(16)
@@ -227,70 +228,113 @@ class PDFService {
                     .text(`Period: ${reportData.startDate} to ${reportData.endDate}`);
                 doc.moveDown();
 
-                // Top Products
-                if (reportData.topProducts && reportData.topProducts.length > 0) {
-                    doc.addPage();
+                // Sales Transactions Table
+                if (reportData.trend && reportData.trend.length > 0) {
+                    doc.moveDown(); // Add some space instead of a new page
                     doc.fontSize(14)
                         .font('Helvetica-Bold')
-                        .text('Top Products');
+                        .text('Sales Transactions');
                     doc.moveDown(0.5);
 
-                    // Table header
-                    const tableTop = doc.y;
-                    doc.fontSize(10).font('Helvetica-Bold');
-                    doc.text('Product', 50, tableTop);
-                    doc.text('Quantity', 250, tableTop);
-                    doc.text('Revenue', 350, tableTop);
-                    doc.text('Profit', 450, tableTop);
+                    let y = doc.y;
+                    doc.font('Helvetica').fontSize(9);
 
-                    doc.moveTo(50, tableTop + 15)
-                        .lineTo(550, tableTop + 15)
-                        .stroke();
+                    // Flatten sales if grouped, or use directly
+                    let allSales = [];
+                    if (reportData.trend[0] && reportData.trend[0].sales && Array.isArray(reportData.trend[0].sales)) {
+                        // It's grouped
+                        reportData.trend.forEach(group => {
+                            allSales = allSales.concat(group.sales);
+                        });
+                    } else {
+                        // It's flat
+                        allSales = reportData.trend;
+                    }
 
-                    // Table rows
-                    let y = tableTop + 20;
-                    doc.font('Helvetica');
-                    reportData.topProducts.slice(0, 20).forEach((product, i) => {
-                        if (y > 700) {
+                    // Sort by date desc
+                    allSales.sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate));
+
+                    allSales.forEach(sale => {
+                        // Check for page break space (need more space for header + items)
+                        // Estimate 30px for header + 15px per item + 20px padding
+                        const estimatedHeight = 30 + ((sale.items ? sale.items.length : 0) * 15) + 20;
+
+                        if (y + estimatedHeight > 700) {
                             doc.addPage();
                             y = 50;
+                            // Re-draw section header if new page
+                            doc.fontSize(14).font('Helvetica-Bold').text('Sales Transactions (Cont.)', 50, y);
+                            y += 30;
                         }
-                        doc.text(product.productName, 50, y);
-                        doc.text(product.quantity.toString(), 250, y);
-                        doc.text(`KES ${product.revenue.toLocaleString()}`, 350, y);
-                        doc.text(`KES ${product.profit.toLocaleString()}`, 450, y);
-                        y += 20;
+
+                        // Receipt Header Row
+                        doc.font('Helvetica-Bold').fontSize(10);
+                        const dateStr = new Date(sale.saleDate).toLocaleString(); // Date & Time
+
+                        let paymentMethodDisplay = sale.paymentMethod;
+                        if (sale.paymentMethod === 'mixed' && sale.paymentDetails) {
+                            // Format mixed payment details e.g. "Cash: 100, Mpesa: 200"
+                            const parts = [];
+                            if (sale.paymentDetails.cash > 0) parts.push(`Cash: ${sale.paymentDetails.cash}`);
+                            if (sale.paymentDetails.mpesa > 0) parts.push(`Mpesa: ${sale.paymentDetails.mpesa}`);
+                            if (sale.paymentDetails.bank > 0) parts.push(`Bank: ${sale.paymentDetails.bank}`);
+                            if (sale.paymentDetails.credit > 0) parts.push(`Credit: ${sale.paymentDetails.credit}`);
+                            paymentMethodDisplay = parts.join(', ');
+                        }
+
+                        const customerInfo = sale.customerName ? `${sale.customerName} (${paymentMethodDisplay})` : `Walk-in (${paymentMethodDisplay})`;
+
+                        // Background for header
+                        doc.rect(50, y, 500, 20).fill('#f0f0f0');
+                        doc.fillColor('black');
+
+                        doc.text(dateStr, 55, y + 5);
+                        doc.text(`#${sale.receiptNumber || 'N/A'}`, 200, y + 5);
+                        doc.text(customerInfo, 350, y + 5);
+
+                        y += 25;
+
+                        // Items Header (small)
+                        doc.font('Helvetica-Bold').fontSize(8).fillColor('#666666');
+                        doc.text('Item', 70, y);
+                        doc.text('Qty', 350, y);
+                        // Removed Price column as requested
+                        doc.text('Total', 450, y);
+                        y += 15;
+
+                        // Items List
+                        doc.font('Helvetica').fontSize(9).fillColor('black');
+                        if (sale.items && sale.items.length > 0) {
+                            sale.items.forEach(item => {
+                                doc.text(item.productName.substring(0, 45), 70, y);
+                                doc.text(item.quantity.toString(), 350, y);
+                                // Removed Price column
+                                doc.text((item.totalPrice || 0).toLocaleString(), 450, y);
+                                y += 15;
+                            });
+                        }
+
+                        // Receipt Total
+                        doc.font('Helvetica-Bold').fontSize(10);
+                        doc.text(`Total: KES ${sale.grandTotal.toLocaleString()}`, 400, y, { align: 'right', width: 100 });
+
+                        y += 25; // Space between receipts
+                        doc.moveTo(50, y - 10).lineTo(550, y - 10).strokeColor('#eeeeee').stroke().strokeColor('black'); // Divider
                     });
-                    doc.moveDown();
                 }
 
-                // Summary
-                doc.addPage();
-                doc.fontSize(14)
-                    .font('Helvetica-Bold')
-                    .text('Summary');
-                doc.moveDown(0.5);
-
-                doc.fontSize(10)
-                    .font('Helvetica');
-
-                const summary = reportData.summary;
-                doc.text(`Total Revenue: KES ${summary.totalRevenue.toLocaleString()}`);
-                doc.text(`Total Transactions: ${summary.totalTransactions}`);
-                doc.text(`Average Sale Value: KES ${summary.averageSaleValue.toLocaleString()}`);
-                doc.text(`Total Profit: KES ${summary.totalProfit.toLocaleString()}`);
-                doc.text(`Profit Margin: ${summary.profitMargin.toFixed(2)}%`);
-                doc.moveDown();
-
-                // Payment Methods
+                // Payment Methods (Moved to end)
                 if (reportData.paymentMethods) {
+                    doc.addPage(); // Start on new page for clean separation
+
                     doc.fontSize(14)
                         .font('Helvetica-Bold')
-                        .text('Payment Methods');
+                        .text('Payment Methods Summary');
                     doc.moveDown(0.5);
 
                     doc.fontSize(10).font('Helvetica');
-                    Object.entries(reportData.paymentMethods).forEach(([method, amount]) => {
+                    Object.entries(reportData.paymentMethods).forEach(([method, methodData]) => {
+                        const amount = methodData.total || 0;
                         doc.text(`${method.toUpperCase()}: KES ${amount.toLocaleString()}`);
                     });
                     doc.moveDown();
@@ -969,28 +1013,23 @@ class PDFService {
                     doc.moveDown();
                     const tableTop = doc.y;
 
-                    // Columns: Date, Item, Qty, Cost, Total, Origin, Dest, Veh, Ref, User
+                    // Columns: Date, Item, Qty, Origin, Dest, Veh, Ref, User
                     const col = {
                         date: 30,
-                        item: 100, // Shifted left to take up space
-                        qty: 300,
-                        cost: 340,
-                        val: 390,
-                        orig: 450,
-                        dest: 510,
+                        item: 100,
+                        qty: 320,
+                        orig: 370,
+                        dest: 470,
                         veh: 570,
-                        ref: 630,
-                        user: 690
+                        ref: 640,
+                        user: 710
                     };
 
                     doc.fontSize(8).font('Helvetica-Bold');
                     doc.text('Date & Time', col.date, tableTop);
-                    // Removed Type
                     doc.text('Item Name', col.item, tableTop);
-                    // Removed Cat
                     doc.text('Qty', col.qty, tableTop);
-                    doc.text('Cost', col.cost, tableTop);
-                    doc.text('Value', col.val, tableTop);
+                    // Removed Cost & Value
                     doc.text('Origin', col.orig, tableTop);
                     doc.text('Dest', col.dest, tableTop);
                     doc.text('Vehicle', col.veh, tableTop);
@@ -1009,12 +1048,9 @@ class PDFService {
                             // Header again
                             doc.fontSize(8).font('Helvetica-Bold');
                             doc.text('Date & Time', col.date, y);
-                            // Removed Type
                             doc.text('Item Name', col.item, y);
-                            // Removed Cat
                             doc.text('Qty', col.qty, y);
-                            doc.text('Cost', col.cost, y);
-                            doc.text('Value', col.val, y);
+                            // Removed Cost & Value
                             doc.text('Origin', col.orig, y);
                             doc.text('Dest', col.dest, y);
                             doc.text('Vehicle', col.veh, y);
@@ -1031,16 +1067,15 @@ class PDFService {
                         // y increment increased to 30 to prevent overwrite
                         doc.text(new Date(m.date).toLocaleString(), col.date, y, { width: 55 });
                         // Removed Type data
-                        doc.text(m.itemName, col.item, y, { width: 180 }); // Increased width for Item Name
+                        doc.text(m.itemName, col.item, y, { width: 200 }); // Increased width for Item Name
                         // Removed Cat data
                         doc.text(m.quantity.toString(), col.qty, y, { width: 35 });
-                        doc.text((m.unitCost || 0).toFixed(0), col.cost, y, { width: 45 });
-                        doc.text((m.totalValue || 0).toLocaleString(), col.val, y, { width: 55 });
-                        doc.text(m.origin || '-', col.orig, y, { width: 55 });
-                        doc.text(m.destination || '-', col.dest, y, { width: 55 });
-                        doc.text(m.vehicle || '-', col.veh, y, { width: 55 });
-                        doc.text(m.reference || '-', col.ref, y, { width: 55 });
-                        doc.text(m.recordedBy || '-', col.user, y, { width: 70 });
+                        // Removed Cost & Value data
+                        doc.text(m.origin || '-', col.orig, y, { width: 90 });
+                        doc.text(m.destination || '-', col.dest, y, { width: 90 });
+                        doc.text(m.vehicle || '-', col.veh, y, { width: 60 });
+                        doc.text(m.reference || '-', col.ref, y, { width: 60 });
+                        doc.text(m.recordedBy || '-', col.user, y, { width: 60 });
 
                         // Line separator (positioned lower)
                         doc.moveTo(30, y + 25).lineTo(770, y + 25).lineWidth(0.1).stroke();
@@ -1188,18 +1223,16 @@ class PDFService {
                     // Column positions
                     const col = {
                         item: 30,
-                        sold: 340,
-                        rem: 420,
-                        price: 500,
-                        valRem: 610
+                        loaded: 300,
+                        sold: 380,
+                        rem: 460
                     };
 
                     doc.fontSize(9).font('Helvetica-Bold');
                     doc.text('Item', col.item, tableTop);
+                    doc.text('Loaded', col.loaded, tableTop);
                     doc.text('Sold', col.sold, tableTop);
-                    doc.text('Rem', col.rem, tableTop);
-                    doc.text('Min Price', col.price, tableTop);
-                    doc.text('Val Rem', col.valRem, tableTop);
+                    doc.text('Rem.', col.rem, tableTop);
 
                     doc.moveTo(30, tableTop + 15).lineTo(770, tableTop + 15).stroke();
 
@@ -1213,10 +1246,9 @@ class PDFService {
                             // Re-draw header
                             doc.fontSize(9).font('Helvetica-Bold');
                             doc.text('Item', col.item, y);
+                            doc.text('Loaded', col.loaded, y);
                             doc.text('Sold', col.sold, y);
-                            doc.text('Rem', col.rem, y);
-                            doc.text('Min Price', col.price, y);
-                            doc.text('Val Rem', col.valRem, y);
+                            doc.text('Rem.', col.rem, y);
                             doc.moveTo(30, y + 15).lineTo(770, y + 15).stroke();
                             y += 20;
                             doc.font('Helvetica');
@@ -1224,10 +1256,9 @@ class PDFService {
 
                         doc.fontSize(8);
                         doc.text(row.itemName.substring(0, 40), col.item, y);
+                        doc.text((row.quantityLoaded || 0).toString(), col.loaded, y);
                         doc.text((row.quantitySold || 0).toString(), col.sold, y);
                         doc.text((row.quantityRemaining || 0).toString(), col.rem, y);
-                        doc.text((row.minimumPrice || 0).toLocaleString(), col.price, y);
-                        doc.text((row.totalValueRemaining || 0).toLocaleString(), col.valRem, y);
 
                         // Row separate line
                         doc.moveTo(30, y + 12).lineTo(770, y + 12).lineWidth(0.5).stroke();

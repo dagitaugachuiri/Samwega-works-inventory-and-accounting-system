@@ -789,6 +789,7 @@ class TransferService {
                         reason: 'return',
                         transferNumber: transferNumber,
                         vehicleId: vehicleId,
+                        vehicleName: `${vehicle.vehicleName} (${vehicle.registrationNumber || vehicle.vehicleNumber || ''})`,
                         notes: `Return from ${vehicle.vehicleName}`,
                         createdAt: admin.firestore.FieldValue.serverTimestamp()
                     });
@@ -807,7 +808,7 @@ class TransferService {
                 transaction.set(transferRef, {
                     transferNumber,
                     vehicleId,
-                    vehicleName: vehicle.vehicleName,
+                    vehicleName: `${vehicle.vehicleName} (${vehicle.registrationNumber || vehicle.vehicleNumber || ''})`,
                     fromLocation: vehicle.vehicleName,
                     toLocation: 'Main Store',
                     type: 'return',

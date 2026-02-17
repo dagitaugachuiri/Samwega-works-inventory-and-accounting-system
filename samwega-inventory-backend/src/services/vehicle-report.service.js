@@ -140,12 +140,31 @@ class VehicleReportService {
                     }
 
                     // Calculate Sold: Sum of sales since loadedDate (In Memory)
+                    // OR within Date Range if filters provided
                     let quantitySold = 0;
                     let valueSold = 0;
 
+                    const filterStartDate = filters.startDate ? new Date(filters.startDate) : null;
+                    const filterEndDate = filters.endDate ? new Date(filters.endDate) : null;
+                    // If filter end date is provided, set it to end of day
+                    if (filterEndDate) filterEndDate.setHours(23, 59, 59, 999);
+
                     vehicleSales.forEach(sale => {
                         const saleDate = sale.saleDate ? new Date(sale.saleDate) : new Date(sale.createdAt);
-                        if (saleDate >= loadedDate) {
+
+                        let includeSale = false;
+
+                        if (filterStartDate || filterEndDate) {
+                            // Date Range Filter Logic
+                            const afterStart = !filterStartDate || saleDate >= filterStartDate;
+                            const beforeEnd = !filterEndDate || saleDate <= filterEndDate;
+                            includeSale = afterStart && beforeEnd;
+                        } else {
+                            // Default Logic: Since last load
+                            includeSale = saleDate >= loadedDate;
+                        }
+
+                        if (includeSale) {
                             const saleItem = sale.items.find(i => i.inventoryId === item.inventoryId);
                             if (saleItem) {
                                 quantitySold += saleItem.quantity || 0;

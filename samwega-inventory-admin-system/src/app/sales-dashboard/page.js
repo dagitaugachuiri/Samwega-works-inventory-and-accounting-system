@@ -1,99 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
-    LayoutDashboard,
-    Calendar,
-    Truck,
-    CreditCard,
     Search,
     ArrowUpRight,
-    ArrowDownRight,
-    Banknote,
-    Smartphone,
-    Landmark,
-    Clock,
     Trash2,
-    Sparkles
+    BarChart2,
+    List,
+    ChevronDown,
+    X
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "../../lib/api";
-
 import DeleteSaleModal from "../../components/KKCalcModal";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const convertTimestamp = (ts) => {
+    if (!ts) return null;
+    if (ts._seconds) return new Date(ts._seconds * 1000);
+    if (ts instanceof Date) return ts;
+    if (typeof ts === "string") return new Date(ts);
+    return null;
+};
+
+const fmt = (n) => Number(n || 0).toLocaleString("en-KE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtInt = (n) => Number(n || 0).toLocaleString();
+
+const getLast30Days = () => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    return {
+        start: start.toISOString().split("T")[0],
+        end: end.toISOString().split("T")[0],
+    };
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const StatCard = ({ title, value, subValue }) => (
+    <div className="bg-white p-4 rounded-lg border border-slate-200">
+        <h3 className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">{title}</h3>
+        <div className="flex items-baseline justify-between">
+            <p className="text-2xl font-semibold text-slate-900">{value}</p>
+            {subValue && (
+                <span className="text-xs font-medium text-emerald-600 flex items-center gap-0.5">
+                    <ArrowUpRight size={12} />
+                    {subValue}
+                </span>
+            )}
+        </div>
+    </div>
+);
+
+const PaymentBadge = ({ method }) => {
+    const styles = {
+        cash: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        mpesa: "bg-violet-50 text-violet-700 border-violet-100",
+        bank: "bg-blue-50 text-blue-700 border-blue-100",
+        credit: "bg-amber-50 text-amber-700 border-amber-100",
+    };
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize border ${styles[method] || "bg-slate-50 text-slate-700 border-slate-100"}`}>
+            {method}
+        </span>
+    );
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function SalesDashboard() {
     const router = useRouter();
+
+    // Data
     const [stats, setStats] = useState(null);
     const [sales, setSales] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Table mode: "transactions" | "pnl"
+    const [tableMode, setTableMode] = useState("transactions");
+
+    // Filters (shared between both views)
+    const [selectedVehicle, setSelectedVehicle] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [search, setSearch] = useState(""); // searches receipt#, customer, items
+
+    // Transactions-mode specific
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedSales, setSelectedSales] = useState([]);
 
-    // Filters
-    const [selectedVehicle, setSelectedVehicle] = useState("");
+    // ── Fetch ────────────────────────────────────────────────────────────────
 
-    // Date range filter (default last 30 days)
-    const getLast30Days = () => {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - 30);
-        return {
-            start: start.toISOString().split('T')[0],
-            end: end.toISOString().split('T')[0]
-        };
-    };
-
-    const defaultRange = getLast30Days();
-    // Default to All Time (empty dates)
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
-
-
-    useEffect(() => {
-        fetchVehicles();
-    }, []);
-
-    useEffect(() => {
-        fetchData();
-    }, [selectedVehicle, startDate, endDate]);
+    useEffect(() => { fetchVehicles(); }, []);
+    useEffect(() => { fetchData(); }, [selectedVehicle, startDate, endDate]);
 
     const fetchVehicles = async () => {
         try {
-            const response = await api.getVehicles();
-            // Backend returns { success: true, data: { vehicles: [...], pagination: {...} } }
-            if (response.success && response.data && Array.isArray(response.data.vehicles)) {
-                setVehicles(response.data.vehicles);
-            } else if (response.success && Array.isArray(response.data)) {
-                // Fallback in case structure changes
-                setVehicles(response.data);
-            } else {
-                setVehicles([]);
-            }
-        } catch (err) {
-            console.error("Error fetching vehicles:", err);
-            setVehicles([]);
-        }
-    };
-
-    // Helper function to convert Firestore timestamp to Date
-    const convertTimestamp = (timestamp) => {
-        if (!timestamp) return null;
-        // Handle Firestore Timestamp object
-        if (timestamp._seconds) {
-            return new Date(timestamp._seconds * 1000);
-        }
-        // Handle already converted date
-        if (timestamp instanceof Date) {
-            return timestamp;
-        }
-        // Handle string dates
-        if (typeof timestamp === 'string') {
-            return new Date(timestamp);
-        }
-        return null;
+            const res = await api.getVehicles();
+            if (res.success && res.data?.vehicles) setVehicles(res.data.vehicles);
+            else if (res.success && Array.isArray(res.data)) setVehicles(res.data);
+        } catch (e) { console.error(e); }
     };
 
     const fetchData = async () => {
@@ -103,325 +112,441 @@ export default function SalesDashboard() {
             if (startDate && endDate) {
                 filters.startDate = startDate;
                 filters.endDate = endDate;
-                filters.type = 'custom';
+                filters.type = "custom";
             } else {
-                filters.type = 'all';
+                filters.type = "all";
             }
-
             if (selectedVehicle) filters.vehicleId = selectedVehicle;
 
-            // For stats, we need to aggregate all vehicles if no specific vehicle selected
-            // The backend expects vehicleId, so we'll fetch stats for the first vehicle or handle differently
-            let statsPromise;
-            if (selectedVehicle) {
-                statsPromise = api.getSalesStats(filters);
-            } else {
-                // When no vehicle selected, try to get stats without vehicleId filter
-                // or aggregate from all sales
-                statsPromise = api.getSalesStats(filters);
-            }
-
             const [statsData, salesData] = await Promise.all([
-                statsPromise,
-                api.getSales({ ...filters, limit: 50 })
+                api.getSalesStats(filters),
+                api.getSales({ ...filters, limit: 200 }),
             ]);
 
-            console.log('=== STATS DEBUG ===');
-            console.log('Stats API Response:', statsData);
-            console.log('Stats Data:', statsData?.data);
-            console.log('Sales API Response:', salesData);
-            console.log('Number of sales returned:', salesData?.data?.sales?.length);
-            if (salesData?.data?.sales?.length > 0) {
-                console.log('First sale date:', salesData.data.sales[0].saleDate);
-                console.log('First sale grandTotal:', salesData.data.sales[0].grandTotal);
-                console.log('First sale paymentMethod:', salesData.data.sales[0].paymentMethod);
-            }
-
             if (statsData.success && statsData.data) {
-                console.log('Setting stats to:', statsData.data);
                 setStats(statsData.data);
             } else {
-                console.warn('Stats API failed, using defaults');
-                // Set default stats if API fails
-                setStats({
-                    totalRevenue: 0,
-                    totalTransactions: 0,
-                    totalItemsSold: 0,
-                    paymentMethods: { cash: 0, mpesa: 0, bank: 0, credit: 0, mixed: 0 }
-                });
+                setStats({ totalRevenue: 0, totalTransactions: 0, totalItemsSold: 0, paymentMethods: {} });
             }
 
-
-            if (salesData.success && salesData.data && Array.isArray(salesData.data.sales)) {
+            if (salesData.success && Array.isArray(salesData.data?.sales)) {
                 setSales(salesData.data.sales);
             } else if (salesData.success && Array.isArray(salesData.data)) {
-                // Fallback in case structure changes
                 setSales(salesData.data);
             } else {
                 setSales([]);
             }
-        } catch (err) {
-            console.error("Error fetching dashboard data:", err);
-            // Check if it's a token expiration error
-
+        } catch (e) {
+            console.error(e);
             setSales([]);
         } finally {
             setLoading(false);
         }
     };
 
-    const toggleSaleSelection = (saleId) => {
-        setSelectedSales(prev =>
-            prev.includes(saleId)
-                ? prev.filter(id => id !== saleId)
-                : [...prev, saleId]
-        );
-    };
+    const handleDeleteSuccess = () => { setSelectedSales([]); fetchData(); };
+    const toggleSaleSelection = (id) =>
+        setSelectedSales((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+    const toggleSelectAll = () =>
+        setSelectedSales(selectedSales.length === sales.length ? [] : sales.map((s) => s.id));
 
-    const toggleSelectAll = () => {
-        if (selectedSales.length === sales.length) {
-            setSelectedSales([]);
-        } else {
-            setSelectedSales(sales.map(s => s.id));
+    // ── Derived: P&L rows ─────────────────────────────────────────────────────
+    // Flatten each sale's items into individual rows, applying search filter
+    const pnlRows = useMemo(() => {
+        const rows = [];
+        for (const sale of sales) {
+            const vehicle = vehicles.find((v) => v.id === sale.vehicleId);
+            const customerName = sale.customerName || sale.customer?.name || "Walk-in";
+            const receiptNumber = sale.receiptNumber || `#${sale.id?.substring(0, 8)}`;
+            const date = convertTimestamp(sale.saleDate);
+
+            for (const item of sale.items || []) {
+                const qty = Number(item.quantity || item.qty || 0);
+                const buyingPrice = Number(item.buyingPrice || item.costPrice || item.cost || 0);
+                const sellingPrice = Number(item.sellingPrice || item.unitPrice || item.price || 0);
+                const totalCost = buyingPrice * qty;
+                const totalIncome = sellingPrice * qty;
+                const margin = totalIncome - totalCost;
+
+                rows.push({
+                    saleId: sale.id,
+                    date,
+                    vehicleName: vehicle?.vehicleName || "-",
+                    customerName,
+                    receiptNumber,
+                    productName: item.productName || item.name || "-",
+                    qty,
+                    buyingPrice,
+                    totalCost,
+                    sellingPrice,
+                    totalIncome,
+                    margin,
+                });
+            }
         }
+        return rows;
+    }, [sales, vehicles]);
+
+    const filteredPnlRows = useMemo(() => {
+        if (!search.trim()) return pnlRows;
+        const q = search.toLowerCase();
+        return pnlRows.filter(
+            (r) =>
+                r.productName.toLowerCase().includes(q) ||
+                r.customerName.toLowerCase().includes(q) ||
+                r.receiptNumber.toLowerCase().includes(q)
+        );
+    }, [pnlRows, search]);
+
+    // ── Derived: transactions search ──────────────────────────────────────────
+    const filteredSales = useMemo(() => {
+        if (!search.trim()) return sales;
+        const q = search.toLowerCase();
+        return sales.filter(
+            (s) =>
+                (s.receiptNumber || "").toLowerCase().includes(q) ||
+                (s.customerName || "").toLowerCase().includes(q) ||
+                (s.customer?.name || "").toLowerCase().includes(q) ||
+                (s.items || []).some((i) => (i.productName || "").toLowerCase().includes(q))
+        );
+    }, [sales, search]);
+
+    // ── P&L Totals ────────────────────────────────────────────────────────────
+    const pnlTotals = useMemo(() => {
+        return filteredPnlRows.reduce(
+            (acc, r) => ({
+                totalCost: acc.totalCost + r.totalCost,
+                totalIncome: acc.totalIncome + r.totalIncome,
+                totalMargin: acc.totalMargin + r.margin,
+            }),
+            { totalCost: 0, totalIncome: 0, totalMargin: 0 }
+        );
+    }, [filteredPnlRows]);
+
+    const resetFilters = () => {
+        setSelectedVehicle("");
+        setStartDate("");
+        setEndDate("");
+        setSearch("");
     };
 
-    const handleDeleteSuccess = () => {
-        setSelectedSales([]);
-        fetchData();
-    };
-
-    const StatCard = ({ title, value, subValue }) => (
-        <div className="bg-white p-4 rounded-lg border border-slate-200">
-            <h3 className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">{title}</h3>
-            <div className="flex items-baseline justify-between">
-                <p className="text-2xl font-semibold text-slate-900">{value}</p>
-                {subValue && (
-                    <span className="text-xs font-medium text-emerald-600 flex items-center gap-0.5">
-                        <ArrowUpRight size={12} />
-                        {subValue}
-                    </span>
-                )}
-            </div>
-        </div>
-    );
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans">
+            <div className="p-4 lg:p-6">
+                <div className="mx-auto max-w-[1700px] space-y-5">
 
-            <div className="p-6">
-                <div className="mx-auto max-w-[1600px] space-y-6">
-
-                    {/* Header */}
+                    {/* ── Header ── */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-                                Sales Dashboard
-                            </h1>
+                            <h1 className="text-2xl font-semibold text-slate-900">Sales Dashboard</h1>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                                {loading ? "Loading..." : `${sales.length} transactions`}
+                                {selectedVehicle && ` · ${vehicles.find(v => v.id === selectedVehicle)?.vehicleName}`}
+                            </p>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                disabled={selectedSales.length === 0}
-                                className="flex items-center gap-2 bg-white text-rose-600 px-3 py-1.5 rounded border border-rose-200 text-sm font-medium hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <Trash2 size={14} />
-                                Delete {selectedSales.length > 0 ? `(${selectedSales.length})` : ''}
-                            </button>
+                        {/* Controls */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Delete button (only in transactions mode) */}
+                            {tableMode === "transactions" && (
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(true)}
+                                    disabled={selectedSales.length === 0}
+                                    className="flex items-center gap-2 bg-white text-rose-600 px-3 py-1.5 rounded border border-rose-200 text-sm font-medium hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <Trash2 size={14} />
+                                    Delete {selectedSales.length > 0 ? `(${selectedSales.length})` : ""}
+                                </button>
+                            )}
 
-                            <div className="flex items-center gap-2 bg-white px-2 py-1.5 rounded border border-slate-200">
-                                <div className="relative">
-                                    <select
-                                        value={selectedVehicle}
-                                        onChange={(e) => setSelectedVehicle(e.target.value)}
-                                        className="py-1 bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer"
-                                    >
-                                        <option value="">All Vehicles</option>
-                                        {vehicles.map(v => (
-                                            <option key={v.id} value={v.id}>{v.vehicleName}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="h-4 w-px bg-slate-200"></div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className="py-1 bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer w-32"
-                                    />
-                                    <span className="text-slate-400 text-xs">-</span>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className="py-1 bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer w-32"
-                                    />
-                                </div>
-                                {(selectedVehicle || startDate || endDate) && (
-                                    <button
-                                        onClick={() => {
-                                            setSelectedVehicle("");
-                                            const reset = getLast30Days();
-                                            setStartDate(reset.start);
-                                            setEndDate(reset.end);
-                                        }}
-                                        className="text-xs text-rose-500 font-medium hover:text-rose-700 px-2"
-                                    >
-                                        Reset
+                            {/* Vehicle filter */}
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5">
+                                <ChevronDown size={14} className="text-slate-400" />
+                                <select
+                                    value={selectedVehicle}
+                                    onChange={(e) => setSelectedVehicle(e.target.value)}
+                                    className="bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer"
+                                >
+                                    <option value="">All Vehicles</option>
+                                    {vehicles.map((v) => (
+                                        <option key={v.id} value={v.id}>{v.vehicleName || v.registrationNumber}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Date range */}
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-sm">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="bg-transparent border-none text-slate-700 focus:ring-0 cursor-pointer w-32"
+                                />
+                                <span className="text-slate-300">–</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="bg-transparent border-none text-slate-700 focus:ring-0 cursor-pointer w-32"
+                                />
+                            </div>
+
+                            {(selectedVehicle || startDate || endDate || search) && (
+                                <button
+                                    onClick={resetFilters}
+                                    className="flex items-center gap-1 text-xs text-rose-500 font-medium hover:text-rose-700 bg-white border border-rose-200 rounded px-2 py-1.5"
+                                >
+                                    <X size={12} /> Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── Stats ── */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <StatCard title="Total Revenue" value={`KSh ${stats?.totalRevenue?.toLocaleString() || 0}`} subValue={`${stats?.totalTransactions || 0} sales`} />
+                        <StatCard title="Cash Sales" value={`KSh ${stats?.paymentMethods?.cash?.toLocaleString() || 0}`} />
+                        <StatCard title="M-Pesa Sales" value={`KSh ${stats?.paymentMethods?.mpesa?.toLocaleString() || 0}`} />
+                        <StatCard title="Bank Sales" value={`KSh ${stats?.paymentMethods?.bank?.toLocaleString() || 0}`} />
+                        <StatCard title="Debt Sales" value={`KSh ${stats?.paymentMethods?.credit?.toLocaleString() || 0}`} />
+                    </div>
+
+                    {/* ── Table Panel ── */}
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden mt-6">
+
+                        {/* Panel header with mode switch + search */}
+                        <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            {/* Mode Toggle */}
+                            <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1 w-fit">
+                                <button
+                                    onClick={() => setTableMode("transactions")}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tableMode === "transactions"
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-700"
+                                        }`}
+                                >
+                                    <List size={15} />
+                                    Transactions
+                                </button>
+                                <button
+                                    onClick={() => setTableMode("pnl")}
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${tableMode === "pnl"
+                                        ? "bg-white text-slate-900 shadow-sm"
+                                        : "text-slate-500 hover:text-slate-700"
+                                        }`}
+                                >
+                                    <BarChart2 size={15} />
+                                    Profit &amp; Loss
+                                </button>
+                            </div>
+
+                            {/* Search */}
+                            <div className="relative w-full sm:w-72">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder={tableMode === "pnl" ? "Search item, customer, receipt…" : "Search receipt, customer, item…"}
+                                    className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-sky-400"
+                                />
+                                {search && (
+                                    <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                                        <X size={14} />
                                     </button>
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <StatCard
-                            title="Total Revenue"
-                            value={`KSh ${stats?.totalRevenue?.toLocaleString() || 0}`}
-                            subValue={`${stats?.totalTransactions || 0} sales`}
-                        />
-                        <StatCard
-                            title="Cash Sales"
-                            value={`KSh ${stats?.paymentMethods?.cash?.toLocaleString() || 0}`}
-                        />
-                        <StatCard
-                            title="M-Pesa Sales"
-                            value={`KSh ${stats?.paymentMethods?.mpesa?.toLocaleString() || 0}`}
-                        />
-                        <StatCard
-                            title="Bank Sales"
-                            value={`KSh ${stats?.paymentMethods?.bank?.toLocaleString() || 0}`}
-                        />
-                        <StatCard
-                            title="Debt Sales"
-                            value={`KSh ${stats?.paymentMethods?.credit?.toLocaleString() || 0}`}
-                        />
-                    </div>
-
-                    {/* Sales Table */}
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden mt-6">
-                        <div className="p-4 border-b border-slate-200 flex justify-between items-center">
-                            <h2 className="text-base font-semibold text-slate-900">Recent Transactions</h2>
-                            <div className="relative w-64">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Search sales..."
-                                    className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:border-slate-400"
-                                />
+                        {/* ── TRANSACTIONS TABLE ── */}
+                        {tableMode === "transactions" && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                                        <tr>
+                                            <th className="px-5 py-3 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedSales.length === sales.length && sales.length > 0}
+                                                    onChange={toggleSelectAll}
+                                                    className="w-4 h-4 rounded border-slate-300 text-slate-600 cursor-pointer"
+                                                />
+                                            </th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Receipt</th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Date</th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Vehicle</th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Customer</th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Items</th>
+                                            <th className="px-5 py-3 whitespace-nowrap">Payment</th>
+                                            <th className="px-5 py-3 text-right whitespace-nowrap">Amount (KSh)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan={8} className="px-5 py-12 text-center text-slate-400">
+                                                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500 mb-2" />
+                                                    Loading sales…
+                                                </td>
+                                            </tr>
+                                        ) : filteredSales.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={8} className="px-5 py-12 text-center text-slate-400">No transactions found.</td>
+                                            </tr>
+                                        ) : (
+                                            filteredSales.map((sale) => {
+                                                const vehicle = vehicles.find((v) => v.id === sale.vehicleId);
+                                                const isSelected = selectedSales.includes(sale.id);
+                                                const date = convertTimestamp(sale.saleDate);
+                                                return (
+                                                    <tr
+                                                        key={sale.id}
+                                                        className={`hover:bg-slate-50 transition-colors cursor-pointer ${isSelected ? "bg-sky-50/60" : ""}`}
+                                                    >
+                                                        <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => toggleSaleSelection(sale.id)}
+                                                                className="w-4 h-4 rounded border-slate-300 text-slate-600 cursor-pointer"
+                                                            />
+                                                        </td>
+                                                        <td className="px-5 py-3 font-mono text-slate-500 text-xs whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            {sale.receiptNumber || `#${sale.id?.substring(0, 8)}`}
+                                                        </td>
+                                                        <td className="px-5 py-3 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            <div className="text-slate-800">{date?.toLocaleDateString() || "—"}</div>
+                                                            <div className="text-xs text-slate-400">{date?.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) || ""}</div>
+                                                        </td>
+                                                        <td className="px-5 py-3 text-slate-700 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            {vehicle?.vehicleName || "—"}
+                                                        </td>
+                                                        <td className="px-5 py-3 text-slate-700 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            {sale.customerName || sale.customer?.name || "Walk-in"}
+                                                        </td>
+                                                        <td className="px-5 py-3 max-w-[200px]" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            <div className="text-slate-700 truncate" title={(sale.items || []).map((i) => i.productName).join(", ")}>
+                                                                {sale.items?.[0]?.productName}
+                                                                {sale.items?.length > 1 && <span className="ml-1 text-slate-400 text-xs">+{sale.items.length - 1}</span>}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-5 py-3" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            <PaymentBadge method={sale.paymentMethod} />
+                                                        </td>
+                                                        <td className="px-5 py-3 text-right font-semibold text-slate-900 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
+                                                            {fmt(sale.grandTotal)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                        </div>
+                        )}
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
-                                    <tr>
-                                        <th className="px-6 py-3 w-12">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedSales.length === sales.length && sales.length > 0}
-                                                onChange={toggleSelectAll}
-                                                className="w-4 h-4 text-slate-600 border-slate-300 rounded focus:ring-slate-500 cursor-pointer"
-                                            />
-                                        </th>
-                                        <th className="px-6 py-3 font-medium">Receipt</th>
-                                        <th className="px-6 py-3 font-medium">Date</th>
-                                        <th className="px-6 py-3 font-medium">Vehicle</th>
-                                        <th className="px-6 py-3 font-medium">Items</th>
-                                        <th className="px-6 py-3 font-medium">Payment</th>
-                                        <th className="px-6 py-3 text-right font-medium">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                                Loading...
-                                            </td>
-                                        </tr>
-                                    ) : sales.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
-                                                No sales found.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        sales.map((sale) => {
-                                            const vehicle = vehicles.find(v => v.id === sale.vehicleId);
-                                            const isSelected = selectedSales.includes(sale.id);
-                                            return (
-                                                <tr
-                                                    key={sale.id}
-                                                    className={`hover:bg-slate-50 transition-colors ${isSelected ? 'bg-slate-50' : ''}`}
-                                                >
-                                                    <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isSelected}
-                                                            onChange={() => toggleSaleSelection(sale.id)}
-                                                            className="w-4 h-4 text-slate-600 border-slate-300 rounded focus:ring-slate-500 cursor-pointer"
-                                                        />
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 font-mono text-slate-600 cursor-pointer text-xs"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        {sale.receiptNumber || `#${sale.id.substring(0, 8)}`}
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 text-slate-900 cursor-pointer"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        <div className="text-sm">
-                                                            {convertTimestamp(sale.saleDate)?.toLocaleDateString() || 'N/A'}
-                                                        </div>
-                                                        <div className="text-xs text-slate-400">
-                                                            {convertTimestamp(sale.saleDate)?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || ''}
-                                                        </div>
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 cursor-pointer"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        <span className="text-slate-700">
-                                                            {vehicle ? vehicle.vehicleName : '-'}
-                                                        </span>
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 cursor-pointer"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        <div className="text-slate-700 truncate max-w-[200px]" title={sale.items.map(i => i.productName).join(', ')}>
-                                                            {sale.items[0]?.productName} {sale.items.length > 1 && <span className="text-slate-400 text-xs">+{sale.items.length - 1}</span>}
-                                                        </div>
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 cursor-pointer"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize border
-                                                        ${sale.paymentMethod === 'cash' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                                                sale.paymentMethod === 'mpesa' ? 'bg-violet-50 text-violet-700 border-violet-100' :
-                                                                    'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                                                            {sale.paymentMethod}
-                                                        </span>
-                                                    </td>
-                                                    <td
-                                                        className="px-6 py-3 text-right font-medium text-slate-900 cursor-pointer"
-                                                        onClick={() => router.push(`/sales/${sale.id}`)}
-                                                    >
-                                                        {parseFloat(sale.grandTotal).toLocaleString()}
+                        {/* ── PROFIT & LOSS TABLE ── */}
+                        {tableMode === "pnl" && (
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                                            <tr>
+                                                <th className="px-4 py-3 whitespace-nowrap">Date</th>
+                                                <th className="px-4 py-3 whitespace-nowrap">Vehicle</th>
+                                                <th className="px-4 py-3 whitespace-nowrap">Customer</th>
+                                                <th className="px-4 py-3 whitespace-nowrap">Receipt #</th>
+                                                <th className="px-4 py-3 whitespace-nowrap">Product</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Qty</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Buy Price</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Total Cost</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Sell Price</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Total Income</th>
+                                                <th className="px-4 py-3 text-right whitespace-nowrap">Margin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {loading ? (
+                                                <tr>
+                                                    <td colSpan={11} className="px-4 py-12 text-center text-slate-400">
+                                                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500 mb-2" />
+                                                        Loading…
                                                     </td>
                                                 </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                            ) : filteredPnlRows.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={11} className="px-4 py-12 text-center text-slate-400">No data found.</td>
+                                                </tr>
+                                            ) : (
+                                                filteredPnlRows.map((row, idx) => (
+                                                    <tr
+                                                        key={`${row.saleId}-${idx}`}
+                                                        className="hover:bg-slate-50 transition-colors cursor-pointer"
+                                                        onClick={() => router.push(`/sales/${row.saleId}`)}
+                                                    >
+                                                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-600 text-xs">
+                                                            {row.date?.toLocaleDateString() || "—"}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-700">
+                                                            {row.vehicleName}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-700 max-w-[140px] truncate">
+                                                            {row.customerName}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 whitespace-nowrap font-mono text-slate-500 text-xs">
+                                                            {row.receiptNumber}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-slate-900 font-medium max-w-[180px] truncate" title={row.productName}>
+                                                            {row.productName}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmtInt(row.qty)}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmt(row.buyingPrice)}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmt(row.totalCost)}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmt(row.sellingPrice)}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmt(row.totalIncome)}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                                            {fmt(row.margin)}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* P&L Summary Footer */}
+                                {!loading && filteredPnlRows.length > 0 && (
+                                    <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 flex flex-wrap items-center gap-6">
+                                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                            Totals ({filteredPnlRows.length} items)
+                                        </span>
+                                        <div className="flex items-center gap-1 text-sm">
+                                            <span className="text-slate-500">Total Cost:</span>
+                                            <span className="font-semibold text-slate-700">KSh {fmt(pnlTotals.totalCost)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-sm">
+                                            <span className="text-slate-500">Total Income:</span>
+                                            <span className="font-semibold text-slate-700">KSh {fmt(pnlTotals.totalIncome)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+                                            Net Margin: KSh {fmt(pnlTotals.totalMargin)}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
 

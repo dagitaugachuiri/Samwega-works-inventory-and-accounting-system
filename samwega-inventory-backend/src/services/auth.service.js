@@ -392,20 +392,36 @@ class AuthService {
             const allowedFields = ['username', 'fullName', 'phone', 'phoneNumber', 'role'];
             const updates = {};
 
+            // Handle standard fields
             for (const field of allowedFields) {
                 if (updateData[field] !== undefined) {
                     updates[field] = updateData[field];
-                    // Sync username with fullName and phone with phoneNumber
+                    // Sync username with fullName and phone with phoneNumber for compatibility
                     if (field === 'username') updates.fullName = updateData[field];
                     if (field === 'phone') updates.phoneNumber = updateData[field];
                 }
             }
 
-            updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+            // Handle password update
+            if (updateData.password) {
+                // Update Firebase Auth password
+                await this.auth.updateUser(userId, {
+                    password: updateData.password
+                });
 
-            await this.db.collection('users').doc(userId).update(updates);
+                // Update hashed password in Firestore (for backup/reference)
+                const hashedPassword = await bcrypt.hash(updateData.password, 10);
+                updates.hashedPassword = hashedPassword;
 
-            logger.info(`User updated: ${userId}`, updates);
+                logger.info(`Password updated for user: ${userId}`);
+            }
+
+            // If we have any updates to apply
+            if (Object.keys(updates).length > 0) {
+                updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+                await this.db.collection('users').doc(userId).update(updates);
+                logger.info(`User updated: ${userId}`, Object.keys(updates));
+            }
 
             return await this.getUserById(userId);
         } catch (error) {

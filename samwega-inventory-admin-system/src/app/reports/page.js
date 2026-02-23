@@ -22,6 +22,7 @@ const REPORT_TYPES = [
     {
         category: "Financial Reports",
         reports: [
+            { id: "profit-loss", name: "Profit & Loss Report", description: "Item-level cost, income & margin breakdown", needsDate: false, href: "/reports/profit-loss" },
             { id: "expense", name: "Expenses Report", description: "All expenses by category", needsDate: true },
         ]
     }
@@ -178,6 +179,20 @@ export default function ReportsPage() {
                                                 {loading ? 'Generating...' : <><Download size={16} /> Download PDF Summary</>}
                                             </button>
                                         </div>
+                                    </div>
+                                ) : selectedReport.href ? (
+                                    // Reports with a dedicated full page
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-slate-600">{selectedReport.description}</p>
+                                        <div className="bg-blue-50 text-blue-800 p-3 rounded text-sm">
+                                            This report has an interactive view with filters, search, and PDF download.
+                                        </div>
+                                        <a
+                                            href={selectedReport.href}
+                                            className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-900 text-white rounded hover:bg-slate-800 font-medium text-sm transition-colors"
+                                        >
+                                            <FileText size={16} /> Open Report
+                                        </a>
                                     </div>
                                 ) : selectedReport.id === 'vehicle-inventory' ? (
                                     <div className="space-y-4">

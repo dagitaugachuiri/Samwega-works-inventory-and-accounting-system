@@ -102,7 +102,14 @@ const updateUserSchema = Joi.object({
 
     role: Joi.string()
         .valid('admin', 'store_manager', 'sales_rep', 'accountant')
+        .optional(),
+
+    password: Joi.string()
+        .min(6)
         .optional()
+        .messages({
+            'string.min': 'Password must be at least 6 characters long'
+        })
 }).min(1); // At least one field must be provided
 
 /**

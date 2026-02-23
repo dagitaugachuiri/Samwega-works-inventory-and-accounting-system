@@ -573,7 +573,7 @@ class APIClient {
 
     async updateUser(id, data) {
         return this.request(`/auth/users/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             body: JSON.stringify(data),
         });
     }

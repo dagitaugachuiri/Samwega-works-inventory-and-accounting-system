@@ -271,7 +271,14 @@ function SalesTab({ sales }) {
         {sales.length > 0 ? sales.map(s => (
           <tr key={s.id} className="hover:bg-slate-50">
             <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{new Date(s.createdAt).toLocaleDateString()}</td>
-            <td className="px-6 py-4 font-mono font-medium text-slate-900 whitespace-nowrap">{s.receiptNumber || s.id.substring(0, 8)}</td>
+            <td className="px-6 py-4 font-mono font-medium text-slate-900 whitespace-nowrap">
+              <div className="flex flex-col">
+                <span>{s.receiptNumber || s.id.substring(0, 8)}</span>
+                {s.isEtr && (
+                  <span className="text-[9px] bg-sky-100 text-sky-700 font-bold px-1.5 py-0.5 rounded w-fit mt-1 uppercase">ETR COMPLIANT</span>
+                )}
+              </div>
+            </td>
             <td className="px-6 py-4 text-slate-700 whitespace-nowrap">{s.customerName || "Walk-in"}</td>
             <td className="px-6 py-4 text-slate-600">
               {s.items && s.items.length > 0 ? (

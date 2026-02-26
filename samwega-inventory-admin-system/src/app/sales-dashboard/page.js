@@ -436,7 +436,10 @@ export default function SalesDashboard() {
                                                             />
                                                         </td>
                                                         <td className="px-5 py-3 font-mono text-slate-500 text-xs whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
-                                                            {sale.receiptNumber || `#${sale.id?.substring(0, 8)}`}
+                                                            <div>{sale.receiptNumber || `#${sale.id?.substring(0, 8)}`}</div>
+                                                            {sale.isEtr && (
+                                                                <div className="text-[9px] bg-sky-100 text-sky-700 font-bold px-1.5 py-0.5 rounded w-fit mt-1 uppercase tracking-tight">ETR COMPLIANT</div>
+                                                            )}
                                                         </td>
                                                         <td className="px-5 py-3 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
                                                             <div className="text-slate-800">{date?.toLocaleDateString() || "—"}</div>
@@ -518,7 +521,10 @@ export default function SalesDashboard() {
                                                             {row.customerName}
                                                         </td>
                                                         <td className="px-4 py-2.5 whitespace-nowrap font-mono text-slate-500 text-xs">
-                                                            {row.receiptNumber}
+                                                            <div>{row.receiptNumber}</div>
+                                                            {sales.find(s => s.id === row.saleId)?.isEtr && (
+                                                                <div className="text-[8px] bg-sky-50 text-sky-600 font-bold px-1 rounded w-fit mt-0.5 uppercase">ETR</div>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-2.5 text-slate-900 font-medium max-w-[180px] truncate" title={row.productName}>
                                                             {row.productName}

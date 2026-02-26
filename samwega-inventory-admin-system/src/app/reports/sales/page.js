@@ -203,12 +203,13 @@ export default function SalesReportPage() {
             const dateStr = new Date(sale.saleDate?._seconds * 1000 || sale.saleDate).toLocaleDateString();
             const timeStr = new Date(sale.saleDate?._seconds * 1000 || sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const receipt = sale.receiptNumber || (sale.id ? sale.id.substring(0, 8).toUpperCase() : 'N/A');
+            const etrMarker = sale.isEtr ? " [ETR]" : "";
             const customer = sale.customerName || 'Walk-in';
             const payment = sale.paymentMethod;
 
             // Header Row for Sale
             tableRows.push([
-                { content: `${dateStr} ${timeStr}\n#${receipt}`, colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+                { content: `${dateStr} ${timeStr}\n#${receipt}${etrMarker}`, colSpan: 2, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
                 { content: `${customer} (${payment})`, colSpan: 4, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
             ]);
 
@@ -319,7 +320,12 @@ export default function SalesReportPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
-                                            {sale.receiptNumber || (sale.id ? sale.id.slice(0, 8) : 'N/A')}
+                                            <div>{sale.receiptNumber || (sale.id ? sale.id.slice(0, 8) : 'N/A')}</div>
+                                            {sale.isEtr && (
+                                                <div className="text-[9px] bg-sky-100 text-sky-700 font-extrabold px-1.5 py-0.5 rounded w-fit mt-0.5 uppercase tracking-tighter">
+                                                    ETR COMPLIANT
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <div className="flex flex-col">

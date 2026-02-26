@@ -261,6 +261,13 @@ const createSaleSchema = Joi.object({
         .default('completed')
         .messages({
             'any.only': 'Status must be draft or completed'
+        }),
+
+    isEtr: Joi.boolean()
+        .default(false)
+        .optional()
+        .messages({
+            'boolean.base': 'isEtr must be a boolean'
         })
 });
 
@@ -280,7 +287,8 @@ const updateSaleSchema = Joi.object({
     discountAmount: Joi.number().min(0).optional(),
     grandTotal: Joi.number().positive().optional(),
     notes: Joi.string().max(500).optional(),
-    status: Joi.string().valid('draft', 'completed').optional()
+    status: Joi.string().valid('draft', 'completed').optional(),
+    isEtr: Joi.boolean().optional()
 }).min(1); // At least one field must be provided
 
 /**

@@ -117,6 +117,13 @@ class APIClient {
         return this.request('/auth/me');
     }
 
+    async updateProfile(userData) {
+        return this.request('/auth/me', {
+            method: 'PATCH',
+            body: JSON.stringify(userData),
+        });
+    }
+
     // ==================== INVENTORY ====================
     async getInventory(filters = {}) {
         const query = new URLSearchParams(filters).toString();
@@ -733,6 +740,12 @@ class APIClient {
             method: 'POST',
             body: JSON.stringify({ saleIds }),
         });
+    }
+
+    // ==================== ACTIVITY LOGS ====================
+    async getActivityLogs(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/activity-logs${query ? `?${query}` : ''}`);
     }
 }
 

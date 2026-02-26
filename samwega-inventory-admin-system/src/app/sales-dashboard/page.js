@@ -78,6 +78,7 @@ export default function SalesDashboard() {
     const [sales, setSales] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
 
     // Table mode: "transactions" | "pnl"
     const [tableMode, setTableMode] = useState("transactions");
@@ -135,6 +136,11 @@ export default function SalesDashboard() {
                 setSales(salesData.data);
             } else {
                 setSales([]);
+            }
+
+            const userRes = await api.getCurrentUser();
+            if (userRes.success) {
+                setUser(userRes.data);
             }
         } catch (e) {
             console.error(e);
@@ -250,7 +256,7 @@ export default function SalesDashboard() {
                         {/* Controls */}
                         <div className="flex flex-wrap items-center gap-2">
                             {/* Delete button (only in transactions mode) */}
-                            {tableMode === "transactions" && (
+                            {tableMode === "transactions" && user?.role !== 'accountant' && (
                                 <button
                                     onClick={() => setIsDeleteModalOpen(true)}
                                     disabled={selectedSales.length === 0}
@@ -306,11 +312,27 @@ export default function SalesDashboard() {
 
                     {/* ── Stats ── */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <StatCard title="Total Revenue" value={`KSh ${stats?.totalRevenue?.toLocaleString() || 0}`} subValue={`${stats?.totalTransactions || 0} sales`} />
-                        <StatCard title="Cash Sales" value={`KSh ${stats?.paymentMethods?.cash?.toLocaleString() || 0}`} />
-                        <StatCard title="M-Pesa Sales" value={`KSh ${stats?.paymentMethods?.mpesa?.toLocaleString() || 0}`} />
-                        <StatCard title="Bank Sales" value={`KSh ${stats?.paymentMethods?.bank?.toLocaleString() || 0}`} />
-                        <StatCard title="Debt Sales" value={`KSh ${stats?.paymentMethods?.credit?.toLocaleString() || 0}`} />
+                        <StatCard
+                            title="Total Revenue"
+                            value={`KSh ${stats?.totalRevenue?.toLocaleString() || 0}`}
+                            subValue={`${stats?.totalTransactions || 0} sales`}
+                        />
+                        <StatCard
+                            title="Cash Sales"
+                            value={`KSh ${(typeof stats?.paymentMethods?.cash === 'object' ? stats.paymentMethods.cash.amount : (stats?.paymentMethods?.cash || 0)).toLocaleString()}`}
+                        />
+                        <StatCard
+                            title="M-Pesa Sales"
+                            value={`KSh ${(typeof stats?.paymentMethods?.mpesa === 'object' ? stats.paymentMethods.mpesa.amount : (stats?.paymentMethods?.mpesa || 0)).toLocaleString()}`}
+                        />
+                        <StatCard
+                            title="Bank Sales"
+                            value={`KSh ${(typeof stats?.paymentMethods?.bank === 'object' ? stats.paymentMethods.bank.amount : (stats?.paymentMethods?.bank || 0)).toLocaleString()}`}
+                        />
+                        <StatCard
+                            title="Debt Sales"
+                            value={`KSh ${(typeof stats?.paymentMethods?.credit === 'object' ? stats.paymentMethods.credit.amount : (stats?.paymentMethods?.credit || 0)).toLocaleString()}`}
+                        />
                     </div>
 
                     {/* ── Table Panel ── */}

@@ -183,7 +183,7 @@ class ExpenseService {
             if (vehicleId) {
                 logger.info('[ExpenseService] Querying by vehicleId:', vehicleId);
                 query = query.where('vehicleId', '==', vehicleId);
-            } else if (userRole !== 'admin' && userRole !== 'store_manager') {
+            } else if (userRole !== 'admin' && userRole !== 'store_manager' && userRole !== 'accountant') {
                 logger.info('[ExpenseService] Querying by submittedBy (sales rep):', userId);
                 query = query.where('submittedBy', '==', userId);
             } else if (submittedBy) {

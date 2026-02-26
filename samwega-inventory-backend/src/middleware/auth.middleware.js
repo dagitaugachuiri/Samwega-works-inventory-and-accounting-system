@@ -147,10 +147,66 @@ const requireVehicle = (req, res, next) => {
     next();
 };
 
+/**
+ * Log specific actions to activity_logs collection
+ * @param {string} action - Action type (CREATE, UPDATE, DELETE, etc.)
+ * @param {string} resource - Resource name
+ */
+const logActivity = (action, resource) => {
+    return async (req, res, next) => {
+        // We log after the request is successful
+        res.on('finish', async () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                try {
+                    const activityLogService = require('../services/activity-log.service');
+
+                    // Try to find resource ID from params or body
+                    const resourceId = req.params.id || req.body.id || null;
+
+                    // Extract a helpful identifier from the request body
+                    let identifier = '';
+                    if (req.body) {
+                        identifier = req.body.vehicleName ||
+                            req.body.registrationNumber ||
+                            req.body.name ||
+                            req.body.fullName ||
+                            req.body.username ||
+                            req.body.invoiceNumber ||
+                            req.body.saleId ||
+                            '';
+                    }
+
+                    const description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${req.user.username || req.user.email}`;
+
+                    await activityLogService.log({
+                        userId: req.user.uid,
+                        username: req.user.username || req.user.email,
+                        action,
+                        resource,
+                        resourceId,
+                        description,
+                        details: {
+                            method: req.method,
+                            url: req.originalUrl,
+                            params: req.params,
+                            identifier: identifier || null
+                            // body: req.body // Be careful with sensitive data
+                        }
+                    });
+                } catch (error) {
+                    logger.error('Failed to log activity in middleware:', error);
+                }
+            }
+        });
+        next();
+    };
+};
+
 module.exports = {
     verifyToken,
     optionalAuth,
     requireRole,
     requireVerified,
-    requireVehicle
+    requireVehicle,
+    logActivity
 };

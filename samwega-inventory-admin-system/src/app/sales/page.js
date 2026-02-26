@@ -14,10 +14,12 @@ export default function SalesPage() {
     });
     const [vehicles, setVehicles] = useState([]);
     const [selectedSale, setSelectedSale] = useState(null);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
         fetchSales();
         fetchVehicles();
+        fetchUser();
 
         // Set default dates
         const now = new Date();
@@ -28,6 +30,17 @@ export default function SalesPage() {
             endDate: now.toISOString().split('T')[0]
         }));
     }, []);
+
+    const fetchUser = async () => {
+        try {
+            const res = await api.getCurrentUser();
+            if (res.success) {
+                setUser(res.data);
+            }
+        } catch (error) {
+            console.error("Error fetching user:", error);
+        }
+    };
 
     const fetchSales = async () => {
         try {
@@ -168,7 +181,16 @@ export default function SalesPage() {
                         <tbody className="divide-y divide-slate-100">
                             {sales.map((sale) => (
                                 <tr key={sale.id} className="hover:bg-slate-50">
-                                    <td className="px-4 py-3 text-sm font-mono text-slate-900">{sale.receiptNumber}</td>
+                                    <td className="px-4 py-3 text-sm font-mono text-slate-900">
+                                        <div className="flex flex-col">
+                                            <span>{sale.receiptNumber}</span>
+                                            {sale.isEtr && (
+                                                <span className="text-[10px] bg-sky-100 text-sky-700 font-bold px-1.5 py-0.5 rounded w-fit mt-1">
+                                                    ETR COMPLIANT
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3 text-sm text-slate-900">
                                         {new Date(sale.saleDate).toLocaleDateString()}
                                     </td>
@@ -185,8 +207,8 @@ export default function SalesPage() {
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`text-xs px-2 py-1 rounded ${sale.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                                                sale.status === "voided" ? "bg-rose-100 text-rose-800" :
-                                                    "bg-amber-100 text-amber-800"
+                                            sale.status === "voided" ? "bg-rose-100 text-rose-800" :
+                                                "bg-amber-100 text-amber-800"
                                             }`}>
                                             {sale.status}
                                         </span>
@@ -199,10 +221,11 @@ export default function SalesPage() {
                                             >
                                                 <Eye size={14} />
                                             </button>
-                                            {sale.status === "completed" && (
+                                            {sale.status === "completed" && user?.role !== 'accountant' && (
                                                 <button
                                                     onClick={() => handleVoidSale(sale.id)}
                                                     className="text-rose-600 hover:text-rose-700 text-xs"
+                                                    title="Void Sale"
                                                 >
                                                     <XCircle size={14} />
                                                 </button>
@@ -225,7 +248,14 @@ export default function SalesPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-xs text-slate-500">Receipt Number</p>
-                                    <p className="font-mono font-semibold">{selectedSale.receiptNumber}</p>
+                                    <p className="font-mono font-semibold flex items-center gap-2">
+                                        {selectedSale.receiptNumber}
+                                        {selectedSale.isEtr && (
+                                            <span className="text-[9px] bg-sky-100 text-sky-700 font-bold px-1.5 py-0.5 rounded">
+                                                ETR
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500">Date</p>

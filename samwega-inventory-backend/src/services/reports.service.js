@@ -1382,7 +1382,9 @@ class ReportsService {
                 for (const item of transfer.items) {
                     let totalQty = 0;
                     // Convert layers to single quantity or display string
-                    const qtyDisplay = item.layers.map(l => `${l.quantity} ${l.unit}`).join(', ');
+                    const qtyDisplay = (item.layers && Array.isArray(item.layers) && item.layers.length > 0)
+                        ? item.layers.map(l => `${l.quantity} ${l.unit}`).join(', ')
+                        : (item.quantity || 0).toString();
 
                     rows.push({
                         id: `${transfer.id}-${item.inventoryId}`,

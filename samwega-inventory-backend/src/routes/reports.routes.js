@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const reportsController = require('../controllers/reports.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 
 /**
  * @route   GET /api/v1/reports/sales
@@ -23,7 +23,7 @@ router.get(
 router.get(
     '/products',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getProductPerformance
 );
 
@@ -35,7 +35,7 @@ router.get(
 router.get(
     '/salesreps',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getSalesRepPerformance
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.get(
     '/payments',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getPaymentMethodReport
 );
 
@@ -59,7 +59,7 @@ router.get(
 router.get(
     '/vehicle-inventory',
     verifyToken,
-    requireRole('admin', 'store_manager', 'sales_rep'),
+    requireRole('admin', 'store_manager', 'sales_rep', 'accountant'),
     reportsController.getVehicleInventoryReport
 );
 
@@ -83,7 +83,7 @@ router.get(
 router.get(
     '/profit-loss',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
     reportsController.getProfitLossReport
 );
 
@@ -95,7 +95,7 @@ router.get(
 router.get(
     '/expense',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getExpenseReport
 );
 
@@ -109,7 +109,8 @@ router.get(
 router.post(
     '/generate/sales-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('GENERATE_REPORT', 'sales_pdf'),
     reportsController.generateSalesPDF
 );
 
@@ -133,7 +134,8 @@ router.get(
 router.post(
     '/generate/inventory-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('GENERATE_REPORT', 'inventory_pdf'),
     reportsController.generateInventoryPDF
 );
 
@@ -145,7 +147,8 @@ router.post(
 router.post(
     '/generate/profit-loss-pdf',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
+    logActivity('GENERATE_REPORT', 'profit_loss_pdf'),
     reportsController.generateProfitLossPDF
 );
 
@@ -157,7 +160,8 @@ router.post(
 router.post(
     '/generate/expense-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('GENERATE_REPORT', 'expense_pdf'),
     reportsController.generateExpensePDF
 );
 
@@ -169,7 +173,7 @@ router.post(
 router.post(
     '/generate/credit-sales-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateCreditSalesPDF
 );
 
@@ -181,7 +185,7 @@ router.post(
 router.post(
     '/generate/customer-sales-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateCustomerSalesPDF
 );
 
@@ -193,7 +197,7 @@ router.post(
 router.post(
     '/generate/trip-sales-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateTripSalesPDF
 );
 
@@ -205,7 +209,7 @@ router.post(
 router.post(
     '/generate/vehicle-trip-history-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateVehicleTripHistoryPDF
 );
 
@@ -217,7 +221,7 @@ router.post(
 router.post(
     '/generate/stock-movement-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateStockMovementPDF
 );
 
@@ -229,7 +233,7 @@ router.post(
 router.get(
     '/stock-movement',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getStockMovementReport
 );
 
@@ -241,7 +245,7 @@ router.get(
 router.post(
     '/generate/inventory-turnover-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateInventoryTurnoverPDF
 );
 
@@ -253,7 +257,7 @@ router.post(
 router.get(
     '/inventory-turnover',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.getInventoryTurnoverReport
 );
 
@@ -265,7 +269,7 @@ router.get(
 router.post(
     '/generate/vehicle-inventory-pdf',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reportsController.generateEnhancedVehicleInventoryPDF
 );
 

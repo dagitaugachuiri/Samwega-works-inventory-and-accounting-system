@@ -173,9 +173,20 @@ class VehicleReportService {
                             }
                         }
                     });
+                    // Calculate Returned: Sum of 'returned' transfers
+                    let quantityReturned = 0;
+                    vehicleTransfers.forEach(transfer => {
+                        if (transfer.status === 'returned') {
+                            const returnItem = transfer.items?.find(i => i.inventoryId === item.inventoryId);
+                            if (returnItem) {
+                                const multiplier = this.calculateMultiplier(invDetail?.packagingStructure, returnItem.layerIndex || 0);
+                                quantityReturned += (returnItem.quantity || 0) * multiplier;
+                            }
+                        }
+                    });
 
-                    // Recalculate Loaded: Loaded = Remaining + Sold
-                    const quantityLoaded = quantityRemaining + quantitySold;
+                    // Recalculate Loaded: Loaded = Remaining + Sold + Returned
+                    const quantityLoaded = quantityRemaining + quantitySold + quantityReturned;
 
                     // Get Prices from Map
                     const unitCost = invDetail?.buyingPrice || 0;
@@ -194,6 +205,7 @@ class VehicleReportService {
                         itemCategory,
                         quantityLoaded,
                         quantitySold,
+                        quantityReturned,
                         quantityRemaining,
                         unitCost,
                         unitSellingPrice: sellingPrice,

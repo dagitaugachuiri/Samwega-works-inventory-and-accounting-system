@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Download, Search, RefreshCw, BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
+import { Search, Download, RefreshCw, Filter, Warehouse } from "lucide-react";
 import api from "@/lib/api";
 import ReportLayout from "@/components/reports/ReportLayout";
 import KPICard from "@/components/reports/KPICard";
@@ -23,9 +23,10 @@ export default function InventoryReportPage() {
 
     const fetchWarehouses = async () => {
         try {
-            const response = await api.getStoreLocations();
+            const response = await api.getWarehouses();
             if (response.success) {
-                setWarehouses(response.data || []);
+                const data = response.data.warehouses || response.data;
+                setWarehouses(Array.isArray(data) ? data : []);
             }
         } catch (error) {
             console.error("Failed to fetch warehouses:", error);
@@ -146,38 +147,23 @@ export default function InventoryReportPage() {
     const lowStockCount = items.filter(item => (item.stock || 0) <= (item.lowStockAlert || 5)).length;
 
     const kpiCards = (
-        <>
-            <KPICard
-                title="Total Stock Value"
-                value={`KES ${totalStockValue.toLocaleString()}`}
-                icon={BarChart3}
-                color="sky"
-            />
-            <KPICard
-                title="Potential Revenue"
-                value={`KES ${potentialRevenue.toLocaleString()}`}
-                icon={TrendingUp}
-                color="emerald"
-            />
-            <KPICard
-                title="Low Stock Items"
-                value={lowStockCount}
-                icon={AlertTriangle}
-                color={lowStockCount > 0 ? "rose" : "emerald"}
-            />
-        </>
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
+            <Warehouse size={16} className="text-slate-500" />
+            <span className="text-sm font-medium text-slate-600">Total Items:</span>
+            <span className="text-sm font-bold text-slate-900">{items.length}</span>
+        </div>
     );
 
     const filters = (
         <div className="flex flex-wrap gap-4 w-full">
             <div className="relative flex-1 min-w-[200px] max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
                     type="text"
-                    placeholder="Search items..."
+                    placeholder="Search by product or supplier..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-slate-400 outline-none text-sm text-slate-700 transition-all placeholder:text-slate-400"
                 />
             </div>
 
@@ -185,9 +171,9 @@ export default function InventoryReportPage() {
                 <select
                     value={selectedWarehouse}
                     onChange={(e) => setSelectedWarehouse(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-slate-400 bg-white text-sm text-slate-700 outline-none transition-all"
                 >
-                    <option value="">All Warehouses</option>
+                    <option value="">All Locations</option>
                     {warehouses.map(w => (
                         <option key={w.id} value={w.id}>{w.name}</option>
                     ))}
@@ -200,12 +186,12 @@ export default function InventoryReportPage() {
         <button
             onClick={handleDownloadPDF}
             disabled={generatingPdf || loading || items.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm font-medium"
         >
             {generatingPdf ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-                <Download size={18} />
+                <Download size={16} />
             )}
             Download PDF
         </button>
@@ -231,13 +217,13 @@ export default function InventoryReportPage() {
             <div className="min-w-full inline-block align-middle">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Item Name</th>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Quantity</th>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Warehouse</th>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Buying Price</th>
-                                <th className="px-6 py-4 font-semibold text-gray-700">Supplier</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Product Description</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Level</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Location</th>
+                                <th className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Unit Cost</th>
+                                <th className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Source</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -255,30 +241,31 @@ export default function InventoryReportPage() {
                                 </tr>
                             ) : (
                                 filteredItems.map((item) => (
-                                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-gray-900">{item.productName}</td>
-                                        <td className="px-6 py-4 text-gray-600">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.stock <= (item.lowStockAlert || 5)
-                                                ? 'bg-red-100 text-red-700'
-                                                : 'bg-green-100 text-green-700'
+                                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                                        <td className="px-6 py-3.5 text-sm font-semibold text-slate-800">{item.productName}</td>
+                                        <td className="px-6 py-3.5">
+                                            <span className={`text-xs font-bold ${item.stock <= (item.lowStockAlert || 5)
+                                                ? 'text-rose-600'
+                                                : 'text-slate-600'
                                                 }`}>
-                                                {item.stock} {item.unit || 'PCS'}
+                                                {item.stock} <span className="text-[10px] text-slate-400 font-normal uppercase">{item.unit || 'PCS'}</span>
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600">
+                                        <td className="px-6 py-3.5">
                                             {item.warehouseName || item.location ? (
-                                                <span className="flex items-center gap-1.5">
-                                                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                                <span className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
+                                                    <Warehouse size={12} className="text-slate-400" />
                                                     {item.warehouseName || item.location}
                                                 </span>
                                             ) : (
-                                                <span className="text-gray-400 italic">Unassigned</span>
+                                                <span className="text-xs text-slate-400 italic">Unassigned</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">
-                                            KES {parseFloat(item.buyingPricePerUnit || item.buyingPrice || 0).toLocaleString()}
+                                        <td className="px-6 py-3.5 text-right text-sm font-bold text-slate-900">
+                                            <span className="text-[10px] text-slate-400 font-normal mr-1">KES</span>
+                                            {parseFloat(item.buyingPricePerUnit || item.buyingPrice || 0).toLocaleString()}
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600">{item.supplier || '-'}</td>
+                                        <td className="px-6 py-3.5 text-xs text-slate-500">{item.supplier || '-'}</td>
                                     </tr>
                                 ))
                             )}

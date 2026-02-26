@@ -48,10 +48,11 @@ const analyticsRoutes = require('./analytics.routes');
 const notificationsRoutes = require('./notifications.routes');
 const expenseRoutes = require('./expense.routes');
 const storeLocationRoutes = require('./storeLocation.routes');
-
 const warehouseRoutes = require('./warehouse.routes');
+
 const customerRoutes = require('./customer.routes');
 const posRoutes = require('./pos.routes');
+const activityLogRoutes = require('./activity-log.routes');
 
 // Mount routes
 router.use(`/${API_VERSION}/auth`, authRoutes);
@@ -72,5 +73,6 @@ router.use(`/${API_VERSION}/store-locations`, storeLocationRoutes);
 router.use(`/${API_VERSION}/warehouses`, warehouseRoutes);
 router.use(`/${API_VERSION}/customers`, customerRoutes);
 router.use(`/${API_VERSION}/pos`, posRoutes);
+router.use(`/${API_VERSION}/activity-logs`, activityLogRoutes);
 
 module.exports = router;

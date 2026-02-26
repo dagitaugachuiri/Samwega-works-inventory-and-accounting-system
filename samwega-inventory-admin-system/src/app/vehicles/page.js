@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, TrendingUp, Truck, X, User, ArrowRight, ArrowLeft, FileText } from "lucide-react";
+import { Plus, Trash2, TrendingUp, Truck, X, User, ArrowRight, ArrowLeft, FileText, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import api from "../../lib/api";
 
@@ -11,29 +11,47 @@ export default function VehiclesPage() {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ vehicleName: "", vehicleNumber: "" });
     const [submitting, setSubmitting] = useState(false);
+    const [notification, setNotification] = useState(null);
+    const [user, setUser] = useState(null);
+
+    const fetchVehicles = async () => {
+        try {
+            const response = await api.getVehicles();
+            // Unified extraction logic
+            const vList = response?.data?.vehicles || response?.vehicles || (Array.isArray(response?.data) ? response.data : []);
+            setVehicles(Array.isArray(vList) ? vList : []);
+        } catch (err) {
+            console.error("Failed to fetch vehicles", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchUser = async () => {
+        try {
+            const res = await api.getCurrentUser();
+            if (res.success) {
+                setUser(res.data);
+            }
+        } catch (error) {
+            console.error("Error fetching user:", error);
+        }
+    };
 
     // Fetch vehicles
     useEffect(() => {
-        const fetchVehicles = async () => {
-            try {
-                const response = await api.getVehicles();
-                console.log("Raw API response:", response);
-                // Response is: { success, message, data: { vehicles: [...], pagination: {...} } }
-                const vList = response?.data?.vehicles || response?.vehicles || response?.data || [];
-                console.log("Extracted vehicles:", vList);
-                setVehicles(Array.isArray(vList) ? vList : []);
-            } catch (err) {
-                console.error("Failed to fetch vehicles", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchVehicles();
+        fetchUser();
     }, []);
+
+    const showNotification = (message) => {
+        setNotification(message);
+        setTimeout(() => setNotification(null), 3000);
+    };
 
     const handleAddVehicle = async (e) => {
         e.preventDefault();
-        alert("Form submitted with: " + formData.vehicleNumber);  // Debug
+
 
         if (!formData.vehicleNumber) {
             alert("Please enter a vehicle number");
@@ -42,21 +60,15 @@ export default function VehiclesPage() {
 
         setSubmitting(true);
         try {
-            console.log("Creating vehicle:", formData);
-            const newVehicle = await api.createVehicle({
-                vehicleName: formData.vehicleName || formData.vehicleNumber,
-                vehicleNumber: formData.vehicleNumber
+            await api.createVehicle({
+                vehicleName: (formData.vehicleName || formData.vehicleNumber).toUpperCase(),
+                vehicleNumber: formData.vehicleNumber.toUpperCase()
             });
-            console.log("Vehicle created:", newVehicle);
-            alert("Vehicle created successfully!");
+
+            showNotification("Vehicle created successfully!");
 
             // Refresh vehicles list
-            const data = await api.getVehicles();
-            console.log("Fetched vehicles data:", data);
-            const vList = data?.vehicles || data?.data || data || [];
-            console.log("Extracted vehicles list:", vList);
-            alert("Fetched " + vList.length + " vehicles");
-            setVehicles(Array.isArray(vList) ? vList : []);
+            await fetchVehicles();
             setFormData({ vehicleName: "", vehicleNumber: "" });
             setShowModal(false);
         } catch (err) {
@@ -80,57 +92,64 @@ export default function VehiclesPage() {
 
     return (
         <>
+            {/* Notification Toast */}
+            {notification && (
+                <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 duration-300">
+                    <div className="bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-800">
+                        <CheckCircle size={18} className="text-emerald-400" />
+                        <span className="text-sm font-medium">{notification}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between gap-4 text-slate-900">
                 <div>
                     <h1 className="text-2xl font-semibold text-slate-900">Sales Vehicles</h1>
                     <p className="text-sm text-slate-500">Manage your fleet and track stock issuances</p>
                 </div>
-                <div className="hidden items-center gap-2 md:flex">
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="ml-2 btn-primary text-xs shadow-lg shadow-sky-200 hover:shadow-sky-300 transition-all"
-                    >
-                        <Plus size={14} className="mr-1" />
-                        Add Vehicle
-                    </button>
-                </div>
+                {user?.role !== 'accountant' && (
+                    <div className="hidden items-center gap-2 md:flex">
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="ml-2 btn-primary text-xs shadow-lg shadow-sky-200 hover:shadow-sky-300 transition-all"
+                        >
+                            <Plus size={14} className="mr-1" />
+                            Add Vehicle
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Vehicles Grid */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {vehicles.map((vehicle) => (
-                    <div key={vehicle.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-all duration-300">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-sm">
-                                    <Truck size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-slate-900">{vehicle.vehicleName || "Vehicle"}</h3>
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                                        {vehicle.vehicleNumber}
-                                    </span>
-                                </div>
+                    <div key={vehicle.id} className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all duration-200">
+                        {/* Card Header */}
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100">
+                            <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center">
+                                <Truck size={16} className="text-slate-500" />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-sm text-slate-900 truncate">{vehicle.vehicleName || vehicle.vehicleNumber}</h3>
+                                <p className="text-xs text-slate-400 font-mono">{vehicle.vehicleNumber}</p>
                             </div>
                         </div>
 
-                        {/* Driver Info */}
-                        <div className="space-y-3 mb-4">
-                            <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                <User size={14} className="text-slate-400" />
-                                <span className="truncate">{vehicle.assignedUserName || "No driver assigned"}</span>
-                            </div>
+                        {/* Driver */}
+                        <div className="px-4 py-3 flex items-center gap-2 text-sm text-slate-600">
+                            <User size={13} className="text-slate-400 shrink-0" />
+                            <span className="truncate text-xs">{vehicle.assignedUserName || "No driver assigned"}</span>
                         </div>
 
-                        {/* Footer Action */}
-                        <div className="border-t border-slate-100 pt-3 mt-3">
+                        {/* Footer */}
+                        <div className="px-4 pb-3">
                             <Link
                                 href={`/vehicles/${vehicle.id}`}
-                                className="flex items-center justify-center w-full px-4 py-2 bg-sky-50 hover:bg-sky-100 rounded-lg text-sm font-medium text-sky-700 transition-colors border border-sky-100"
+                                className="flex items-center justify-between w-full px-3 py-1.5 bg-slate-50 hover:bg-sky-50 hover:text-sky-700 rounded-md text-xs font-medium text-slate-600 transition-colors border border-slate-100"
                             >
-                                <span>View Issue History</span>
-                                <ArrowRight size={16} className="ml-2" />
+                                <span>View Details</span>
+                                <ArrowRight size={13} />
                             </Link>
                         </div>
                     </div>
@@ -142,13 +161,15 @@ export default function VehiclesPage() {
                         <Truck size={48} className="mb-4 opacity-50" />
                         <p className="text-lg font-medium text-slate-600">No vehicles found</p>
                         <p className="text-sm mb-6">Get started by adding your first vehicle</p>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="btn-primary text-sm"
-                        >
-                            <Plus size={18} className="mr-2" />
-                            Add Vehicle
-                        </button>
+                        {user?.role !== 'accountant' && (
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="btn-primary text-sm"
+                            >
+                                <Plus size={18} className="mr-2" />
+                                Add Vehicle
+                            </button>
+                        )}
                     </div>
                 )}
             </div>
@@ -176,8 +197,8 @@ export default function VehiclesPage() {
                                     type="text"
                                     placeholder="e.g. Van A"
                                     value={formData.vehicleName}
-                                    onChange={(e) => setFormData({ ...formData, vehicleName: e.target.value })}
-                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+                                    onChange={(e) => setFormData({ ...formData, vehicleName: e.target.value.toUpperCase() })}
+                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all uppercase"
                                 />
                             </div>
 
@@ -189,8 +210,8 @@ export default function VehiclesPage() {
                                     type="text"
                                     placeholder="e.g. KDV 123B"
                                     value={formData.vehicleNumber}
-                                    onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value })}
-                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all"
+                                    onChange={(e) => setFormData({ ...formData, vehicleNumber: e.target.value.toUpperCase() })}
+                                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all uppercase"
                                     required
                                     autoFocus
                                 />

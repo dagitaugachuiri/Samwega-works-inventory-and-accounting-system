@@ -12,6 +12,7 @@ import { PRODUCT_CATALOG } from '@/components/sections/ProductNameInput';
 
 export default function BulkAddItemPage() {
   const router = useRouter();
+  const [user, setUser] = useState(null);
 
   // -- State --
   const [step, setStep] = useState(1);
@@ -54,12 +55,21 @@ export default function BulkAddItemPage() {
 
   const fetchInitialData = async () => {
     try {
-      const [suppliersRes, warehousesRes, inventoryRes, invoicesRes] = await Promise.all([
+      const [suppliersRes, warehousesRes, inventoryRes, invoicesRes, userRes] = await Promise.all([
         api.getSuppliers(),
         api.getWarehouses(),
         api.getInventory(),
-        api.getInvoices({ limit: 50 })
+        api.getInvoices({ limit: 50 }),
+        api.getCurrentUser()
       ]);
+
+      if (userRes.success) {
+        if (userRes.data.role === 'accountant') {
+          router.push('/dashboard');
+          return;
+        }
+        setUser(userRes.data);
+      }
 
       // Suppliers
       const supplierData = suppliersRes.success && suppliersRes.data

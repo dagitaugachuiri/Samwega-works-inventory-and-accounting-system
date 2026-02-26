@@ -4,6 +4,7 @@ import { Plus, Search, Edit, Trash2, Package, AlertTriangle, TrendingUp, LogIn, 
 import Link from "next/link";
 import api from "../../lib/api";
 import ReplenishModal from "../../components/ReplenishModal";
+import InventoryItemModal from "../../components/InventoryItemModal";
 
 export default function Dashboard() {
   const fetchedRef = useRef(false);
@@ -13,9 +14,11 @@ export default function Dashboard() {
   const [stockFilter, setStockFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(false);
+  const [user, setUser] = useState(null);
 
-  // Replenish modal state
+  // Modal states
   const [replenishModal, setReplenishModal] = useState({ open: false, item: null });
+  const [editModal, setEditModal] = useState({ open: false, item: null });
 
   // Fetch inventory from backend
   useEffect(() => {
@@ -24,8 +27,20 @@ export default function Dashboard() {
     fetchedRef.current = true;
 
     fetchInventory();
+    fetchUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const res = await api.getCurrentUser();
+      if (res.success) {
+        setUser(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -96,11 +111,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="glass-panel px-10 py-8 text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
-          <p className="text-sm text-slate-300">Loading inventory…</p>
-        </div>
+      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-3">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-800" />
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Loading Inventory</p>
       </div>
     );
   }
@@ -201,8 +214,8 @@ export default function Dashboard() {
                   <th className="px-4 py-3 text-left">Product</th>
                   <th className="px-4 py-3 text-left">Stock</th>
                   <th className="px-4 py-3 text-right">Buying Price</th>
-                  <th className="px-4 py-3 text-right">Selling Price</th>
-                  <th className="px-4 py-3 text-right">Profit</th>
+                  <th className="px-4 py-3 text-right">Minimum Selling Price</th>
+                  {/* <th className="px-4 py-3 text-right">Profit</th> */}
                   <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -223,7 +236,7 @@ export default function Dashboard() {
                         <td className="px-4 py-3 align-top">
                           <div className="mb-1 text-sm font-semibold text-slate-900">{item.productName}</div>
                           <div className="flex items-center gap-2 mt-1">
-                            <div className="text-[11px] text-slate-400">{item.supplier}</div>
+                            <div className="text-[11px] text-slate-400">{item.warehouseName || 'No Warehouse'}</div>
                             {isOutOfStock && (
                               <span className="ml-1 text-[11px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded">Out of stock</span>
                             )}
@@ -248,26 +261,34 @@ export default function Dashboard() {
                           <div className="text-lg font-semibold text-emerald-700">KSh {item.sellingPrice.toLocaleString()}</div>
                         </td>
 
-                        {/* PROFIT */}
-                        <td className="px-4 py-3 align-top text-right">
+                        {/* <td className="px-4 py-3 align-top text-right">
                           <div className="text-lg font-semibold text-slate-900">KSh {profit.toFixed(2)}</div>
-                        </td>
+                        </td> */}
 
                         {/* ACTIONS */}
                         <td className="px-4 py-3 align-top text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Link
-                              href={`/dashboard/${item.id}/edit`}
-                              className="btn-ghost p-2 rounded"
-                            >
-                              <Edit size={14} />
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(item.id, item.productName)}
-                              className="btn-danger p-2 rounded"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {user?.role !== 'accountant' && (
+                              <>
+                                <button
+                                  onClick={() => setEditModal({ open: true, item })}
+                                  className="btn-ghost p-2 rounded hover:bg-slate-100 text-sky-600 transition-colors"
+                                  title="Edit item"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id, item.productName)}
+                                  className="btn-danger p-2 rounded"
+                                  title="Delete item"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                            {user?.role === 'accountant' && (
+                              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Read Only</span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -315,6 +336,14 @@ export default function Dashboard() {
           fetchInventory();
           setReplenishModal({ open: false, item: null });
         }}
+      />
+
+      {/* Edit Item Modal */}
+      <InventoryItemModal
+        isOpen={editModal.open}
+        onClose={() => setEditModal({ open: false, item: null })}
+        item={editModal.item}
+        onSuccess={fetchInventory}
       />
     </>
   );

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const invoiceController = require('../controllers/invoice.controller');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const {
     createInvoiceSchema,
@@ -34,7 +34,8 @@ router.get(
 router.post(
     '/',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('CREATE', 'invoice'),
     writeLimiter,
     validateBody(createInvoiceSchema),
     invoiceController.createInvoice
@@ -44,7 +45,8 @@ router.post(
 router.put(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('UPDATE', 'invoice'),
     writeLimiter,
     validateParams(invoiceIdSchema),
     validateBody(updateInvoiceSchema),
@@ -56,6 +58,7 @@ router.post(
     '/:id/payments',
     verifyToken,
     requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('RECORD_PAYMENT', 'invoice'),
     writeLimiter,
     validateParams(invoiceIdSchema),
     validateBody(recordPaymentSchema),
@@ -67,6 +70,7 @@ router.delete(
     '/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE', 'invoice'),
     validateParams(invoiceIdSchema),
     invoiceController.deleteInvoice
 );

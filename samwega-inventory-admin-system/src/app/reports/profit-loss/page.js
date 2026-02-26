@@ -269,30 +269,37 @@ export default function ProfitLossReportPage() {
 
     // ── Filter bar ────────────────────────────────────────────────────────────
     const filtersBar = (
-        <>
-            <div className="flex items-center gap-2">
-                <Calendar size={15} className="text-slate-400" />
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="input-field py-1.5 text-sm"
-                />
-                <span className="text-slate-400 text-xs">to</span>
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="input-field py-1.5 text-sm"
-                />
+        <div className="flex flex-wrap gap-4 w-full md:w-auto items-end">
+            <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Start Date</label>
+                <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
+                    />
+                </div>
             </div>
-
-            <div className="flex items-center gap-1">
-                <ChevronDown size={14} className="text-slate-400" />
+            <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">End Date</label>
+                <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
+                    />
+                </div>
+            </div>
+            <div className="w-full md:w-48">
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Vehicle</label>
                 <select
                     value={selectedVehicle}
                     onChange={(e) => setSelectedVehicle(e.target.value)}
-                    className="input-field py-1.5 text-sm min-w-[150px]"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 bg-white h-[40px] transition-all shadow-sm"
                 >
                     <option value="">All Vehicles</option>
                     {vehicles.map((v) => (
@@ -300,27 +307,31 @@ export default function ProfitLossReportPage() {
                     ))}
                 </select>
             </div>
-
-            <div className="relative">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search item, customer, receipt…"
-                    className="input-field py-1.5 pl-8 text-sm w-56"
-                />
-                {search && (
-                    <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        <X size={13} />
-                    </button>
-                )}
+            <div className="relative w-full md:w-64">
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Search</label>
+                <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Receipt, Item, Customer..."
+                        className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
+                    />
+                    {search && (
+                        <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
             </div>
-
-            <button onClick={fetchData} className="btn-ghost py-1.5 px-3 text-sm">
+            <button
+                onClick={fetchData}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors h-[40px]"
+            >
                 Apply
             </button>
-        </>
+        </div>
     );
 
     // ── Actions ───────────────────────────────────────────────────────────────
@@ -328,7 +339,7 @@ export default function ProfitLossReportPage() {
         <button
             onClick={downloadPDF}
             disabled={filteredRows.length === 0}
-            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm font-medium"
         >
             <Download size={16} />
             Download PDF
@@ -392,7 +403,7 @@ export default function ProfitLossReportPage() {
                             ].map((col, i) => (
                                 <th
                                     key={col}
-                                    className={`px-4 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap ${i >= 5 ? "text-right" : ""}`}
+                                    className={`px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${i >= 5 ? "text-right" : "text-left"}`}
                                 >
                                     {col}
                                 </th>
@@ -412,40 +423,40 @@ export default function ProfitLossReportPage() {
                                 const isProfit = row.margin > 0;
                                 const isLoss = row.margin < 0;
                                 return (
-                                    <tr key={`${row.saleId}-${idx}`} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-2.5 whitespace-nowrap text-xs text-slate-500">
+                                    <tr key={`${row.saleId}-${idx}`} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-[11px] font-medium text-slate-500">
                                             {row.date?.toLocaleDateString() || "—"}
                                         </td>
-                                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-700">
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-xs font-semibold text-slate-700">
                                             {row.vehicleName}
                                         </td>
-                                        <td className="px-4 py-2.5 whitespace-nowrap text-slate-700 max-w-[140px] truncate" title={row.customerName}>
+                                        <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-slate-600 max-w-[140px] truncate" title={row.customerName}>
                                             {row.customerName}
                                         </td>
-                                        <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs text-slate-500">
+                                        <td className="px-4 py-2.5 whitespace-nowrap font-bold text-[11px] text-blue-600 uppercase">
                                             {row.receiptNumber}
                                         </td>
-                                        <td className="px-4 py-2.5 text-slate-900 font-medium max-w-[200px] truncate" title={row.productName}>
+                                        <td className="px-4 py-2.5 text-xs text-slate-800 font-bold max-w-[180px] truncate" title={row.productName}>
                                             {row.productName}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-slate-700 font-mono">
+                                        <td className="px-4 py-2.5 text-right text-xs text-slate-700 font-bold">
                                             {fmtInt(row.qty)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-slate-600 font-mono">
+                                        <td className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">
                                             {fmt(row.buyingPrice)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-rose-600 font-mono font-medium">
+                                        <td className="px-4 py-2.5 text-right text-xs text-rose-600 font-bold">
                                             {fmt(row.totalCost)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-slate-600 font-mono">
+                                        <td className="px-4 py-2.5 text-right text-xs text-slate-500 font-medium">
                                             {fmt(row.sellingPrice)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right text-emerald-600 font-mono font-medium">
+                                        <td className="px-4 py-2.5 text-right text-xs text-emerald-600 font-bold">
                                             {fmt(row.totalIncome)}
                                         </td>
-                                        <td className="px-4 py-2.5 text-right font-mono font-semibold">
+                                        <td className="px-4 py-2.5 text-right font-bold text-xs">
                                             <span className={`inline-flex items-center gap-1 justify-end ${isProfit ? "text-emerald-700" : isLoss ? "text-rose-600" : "text-slate-400"}`}>
-                                                {isProfit ? <TrendingUp size={13} /> : isLoss ? <TrendingDown size={13} /> : <Minus size={13} />}
+                                                {isProfit ? <TrendingUp size={12} /> : isLoss ? <TrendingDown size={12} /> : <Minus size={12} />}
                                                 {fmt(row.margin)}
                                             </span>
                                         </td>
@@ -457,35 +468,35 @@ export default function ProfitLossReportPage() {
 
                     {/* Summary Footer */}
                     {filteredRows.length > 0 && (
-                        <tfoot className="border-t-2 border-slate-200 bg-slate-50">
+                        <tfoot className="border-t border-slate-200 bg-slate-50 font-bold text-slate-900">
                             <tr>
-                                <td colSpan={5} className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Totals — {filteredRows.length} line items
+                                <td colSpan={5} className="px-4 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    Totals (Filtered)
                                 </td>
-                                <td className="px-4 py-3 text-right font-bold text-slate-900 font-mono">
+                                <td className="px-4 py-3 text-right text-xs font-bold text-slate-900">
                                     {fmtInt(totals.qty)}
                                 </td>
                                 <td className="px-4 py-3" />
-                                <td className="px-4 py-3 text-right font-bold text-rose-600 font-mono">
+                                <td className="px-4 py-3 text-right text-xs font-bold text-rose-600">
                                     {fmt(totals.totalCost)}
                                 </td>
                                 <td className="px-4 py-3" />
-                                <td className="px-4 py-3 text-right font-bold text-emerald-600 font-mono">
+                                <td className="px-4 py-3 text-right text-xs font-bold text-emerald-600">
                                     {fmt(totals.totalIncome)}
                                 </td>
-                                <td className="px-4 py-3 text-right font-bold font-mono">
+                                <td className="px-4 py-3 text-right text-xs font-bold">
                                     <span className={`inline-flex items-center gap-1 justify-end ${totals.totalMargin >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-                                        {totals.totalMargin >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                                        {totals.totalMargin >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                                         {fmt(totals.totalMargin)}
                                     </span>
                                 </td>
                             </tr>
-                            <tr className="border-t border-slate-200">
+                            <tr className="border-t border-slate-100">
                                 <td colSpan={9} />
-                                <td className="px-4 py-2 text-right text-xs text-slate-500">
+                                <td className="px-4 py-2 text-right text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                                     Margin %
                                 </td>
-                                <td className={`px-4 py-2 text-right text-sm font-bold font-mono ${totals.totalMargin >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                                <td className={`px-4 py-2 text-right text-sm font-bold ${totals.totalMargin >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
                                     {marginPct}%
                                 </td>
                             </tr>

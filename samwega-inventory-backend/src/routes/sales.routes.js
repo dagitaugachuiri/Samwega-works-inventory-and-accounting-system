@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const salesController = require('../controllers/sales.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const logger = require('../utils/logger'); // Import logger
@@ -30,6 +30,7 @@ router.post(
     '/',
     verifyToken,
     requireVerified,
+    logActivity('CREATE', 'sale'),
     writeLimiter,
     validateBody(createSaleSchema),
     salesController.createSale
@@ -95,6 +96,7 @@ router.put(
     '/:id',
     verifyToken,
     requireVerified,
+    logActivity('UPDATE', 'sale'),
     writeLimiter,
     validateParams(saleIdSchema),
     validateBody(updateSaleSchema),
@@ -110,6 +112,7 @@ router.post(
     '/:id/void',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('VOID', 'sale'),
     writeLimiter,
     validateParams(saleIdSchema),
     validateBody(voidSaleSchema),
@@ -125,6 +128,7 @@ router.post(
     '/find-combination',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('FIND_COMBINATION', 'sale'),
     validateBody(require('../validators/sales.validator').findCombinationSchema),
     salesController.findCombination
 );
@@ -138,6 +142,7 @@ router.post(
     '/delete-batch',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE_BATCH', 'sale'),
     validateBody(require('../validators/sales.validator').deleteBatchSchema),
     salesController.deleteBatch
 );
@@ -151,6 +156,7 @@ router.delete(
     '/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE', 'sale'),
     validateParams(saleIdSchema),
     salesController.deleteSale
 );

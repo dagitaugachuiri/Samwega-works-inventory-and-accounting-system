@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, Clock, Package, Truck, Printer, Receipt, Calendar, TrendingUp, AlertCircle, FileText, Plus } from "lucide-react";
+import {
+  ArrowLeft, CheckCircle2, Clock, Package, Truck,
+  Printer, Receipt, Calendar, TrendingUp, AlertCircle,
+  FileText, Plus, Wallet, ShoppingCart, Info, List, User
+} from "lucide-react";
 import Link from "next/link";
 import api from "../../../lib/api";
 import CustomModal from "../../../components/ui/CustomModal";
@@ -11,9 +15,13 @@ export default function VehicleDetailsDashboard() {
   const [vehicle, setVehicle] = useState(null);
   const [transfers, setTransfers] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [vehicleInventory, setVehicleInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFilter, setDateFilter] = "";
+  const [dateFilter, setDateFilter] = useState("");
+  const [activeTab, setActiveTab] = useState("issuances");
 
   // Modal state
   const [modal, setModal] = useState({
@@ -25,43 +33,37 @@ export default function VehicleDetailsDashboard() {
     loading: false
   });
 
-  // Fetch vehicle, transfers, and inventory
+  // Fetch initial data
   useEffect(() => {
-    if (!vehicleId) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const id = urlParams.get('id') || window.location.pathname.split('/').pop();
-      setVehicleId(id);
-      return;
-    }
+    const id = window.location.pathname.split('/').pop();
+    setVehicleId(id);
+  }, []);
+
+  useEffect(() => {
+    if (!vehicleId) return;
 
     const fetchData = async () => {
       try {
-        // Fetch vehicle details
-        const vehicleRes = await api.request(`/vehicles/${vehicleId}`, { method: 'GET' });
-        const vehicleData = vehicleRes?.data || vehicleRes;
-        setVehicle(vehicleData);
+        setLoading(true);
+        const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
+          api.getVehicleById(vehicleId),
+          api.getTransfers({ vehicleId }),
+          api.getInventory(),
+          api.getSales({ vehicleId }),
+          api.getExpenses({ vehicleId }),
+          api.getVehicleInventoryReport({ vehicleId })
+        ]);
 
-        // Fetch transfers for this vehicle
-        try {
-          const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
-          const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
-          setTransfers(transfersList);
-        } catch (e) {
-          console.warn("Could not fetch transfers:", e);
-          setTransfers([]);
-        }
-
-        // Fetch inventory for pricing
-        try {
-          const inventoryRes = await api.getInventory();
-          const inventoryList = inventoryRes?.data || inventoryRes || [];
-          setInventory(Array.isArray(inventoryList) ? inventoryList : []);
-        } catch (e) {
-          console.warn("Could not fetch inventory:", e);
-          setInventory([]);
-        }
+        setVehicle(vehicleRes?.data || vehicleRes);
+        setTransfers(transfersRes?.data?.transfers || transfersRes?.transfers || []);
+        const invList = inventoryRes?.data || inventoryRes || [];
+        setInventory(Array.isArray(invList) ? invList : []);
+        setSales(salesRes?.data?.sales || salesRes?.sales || []);
+        setExpenses(expensesRes?.data?.expenses || expensesRes?.expenses || []);
+        const invData = vInventoryRes?.data?.data || vInventoryRes?.data || vInventoryRes || [];
+        setVehicleInventory(Array.isArray(invData) ? invData : []);
       } catch (err) {
-        console.error("Failed to fetch data", err);
+        console.error("Failed to fetch dashboard data", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -71,427 +73,131 @@ export default function VehicleDetailsDashboard() {
     fetchData();
   }, [vehicleId]);
 
-  const handleApproveTransfer = async (transferId) => {
-    setModal({
-      isOpen: true,
-      type: "confirm",
-      title: "Approve Transfer?",
-      message: "Stock will be deducted from main inventory and added to vehicle inventory. This action cannot be undone.",
-      onConfirm: async () => {
-        // Show loading state
-        setModal(prev => ({ ...prev, type: "loading", title: "Approving Transfer", message: "Please wait while we process the transfer..." }));
-
-        try {
-          await api.request(`/transfers/${transferId}/approve`, { method: 'POST' });
-
-          // Refresh transfers
-          const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
-          const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
-          setTransfers(transfersList);
-
-          // Show success
-          setModal({
-            isOpen: true,
-            type: "success",
-            title: "Transfer Approved!",
-            message: "Stock has been successfully deducted from inventory and added to the vehicle.",
-            onConfirm: null
-          });
-        } catch (err) {
-          console.error("Error approving transfer", err);
-
-          // Show error
-          setModal({
-            isOpen: true,
-            type: "error",
-            title: "Approval Failed",
-            message: err.response?.data?.error || err.message || "Failed to approve transfer. Please try again.",
-            onConfirm: null
-          });
-        }
-      },
-      loading: false
-    });
+  // Helper to calculate multiplier (matching backend logic)
+  const calculateMultiplier = (structure, layerIndex) => {
+    if (!structure) return 1;
+    if (Array.isArray(structure)) {
+      if (layerIndex >= structure.length) return 1;
+      let multiplier = 1;
+      for (let i = layerIndex + 1; i < structure.length; i++) {
+        multiplier *= (structure[i].qty || 1);
+      }
+      return multiplier;
+    }
+    // Legacy object format
+    if (layerIndex === 0) return (structure.cartonSize || 1) * (structure.packetSize || 1);
+    if (layerIndex === 1) return structure.packetSize || 1;
+    return 1;
   };
 
-  const handleConfirmTransfer = async (transferId) => {
-    setModal({
-      isOpen: true,
-      type: "confirm",
-      title: "Confirm Collection?",
-      message: "Mark this transfer as collected by the sales representative?",
-      onConfirm: async () => {
-        // Show loading state
-        setModal(prev => ({ ...prev, type: "loading", title: "Confirming Collection", message: "Please wait..." }));
+  // Filter transfers, sales, expenses by date
+  const filteredTransfers = transfers.filter(t => !dateFilter || new Date(t.createdAt).toISOString().split('T')[0] === dateFilter);
+  const filteredSales = sales.filter(s => !dateFilter || new Date(s.createdAt).toISOString().split('T')[0] === dateFilter);
+  const filteredExpenses = expenses.filter(e => !dateFilter || new Date(e.createdAt).toISOString().split('T')[0] === dateFilter);
 
-        try {
-          await api.request(`/transfers/${transferId}/confirm`, { method: 'POST' });
+  // Stats calculation
+  const stats = {
+    issued: filteredTransfers.reduce((acc, t) => {
+      const transferValue = (t.items || []).reduce((itemAcc, item) => {
+        const invItem = inventory.find(i => i.id === item.inventoryId || i.productName === item.productName);
+        if (!invItem) return itemAcc;
 
-          // Refresh transfers
-          const transfersRes = await api.request(`/transfers?vehicleId=${vehicleId}`, { method: 'GET' });
-          const transfersList = transfersRes?.data?.transfers || transfersRes?.transfers || [];
-          setTransfers(transfersList);
+        const buyingPrice = invItem.buyingPrice || 0;
+        const itemValue = (item.layers || []).reduce((layerAcc, layer) => {
+          const multiplier = calculateMultiplier(invItem.packagingStructure, layer.layerIndex);
+          return layerAcc + ((layer.quantity || 0) * multiplier * buyingPrice);
+        }, 0);
 
-          // Show success
-          setModal({
-            isOpen: true,
-            type: "success",
-            title: "Collection Confirmed!",
-            message: "Transfer has been marked as collected successfully.",
-            onConfirm: null
-          });
-        } catch (err) {
-          console.error("Error confirming transfer", err);
-
-          // Show error
-          setModal({
-            isOpen: true,
-            type: "error",
-            title: "Confirmation Failed",
-            message: err.response?.data?.error || err.message || "Failed to confirm collection. Please try again.",
-            onConfirm: null
-          });
-        }
-      },
-      loading: false
-    });
+        return itemAcc + itemValue;
+      }, 0);
+      return acc + transferValue;
+    }, 0),
+    collected: filteredSales.reduce((acc, s) => acc + (s.grandTotal || 0), 0),
+    expenses: filteredExpenses.reduce((acc, e) => acc + (e.amount || 0), 0),
+    profit: 0
   };
-
-  const getPrice = (item, layer) => {
-    // 1. Try finding by ID first
-    let inventoryItem = null;
-    if (item.inventoryId) {
-      inventoryItem = inventory.find(i => i.id === item.inventoryId || i._id === item.inventoryId);
-    }
-
-    // 2. Fallback to name
-    if (!inventoryItem && item.productName) {
-      inventoryItem = inventory.find(i => i.productName?.trim().toLowerCase() === item.productName?.trim().toLowerCase());
-    }
-
-    if (!inventoryItem) return 0;
-
-    // 3. Determine Base Price (Price Per Smallest Unit/Piece)
-    // Priority: sellingPricePerUnit -> sellingPrice (calc) -> buyingPricePerUnit -> buyingPrice (calc)
-    let basePrice = parseFloat(inventoryItem.sellingPricePerUnit) || 0;
-
-    // If no per-unit selling price, derive from Selling Price (Layer 0)
-    if (!basePrice && inventoryItem.sellingPrice > 0) {
-      const structure = inventoryItem.packagingStructure;
-      if (Array.isArray(structure) && structure.length > 0) {
-        let piecesInLayer0 = 1;
-        for (let i = 1; i < structure.length; i++) {
-          piecesInLayer0 *= (structure[i].qty || 1);
-        }
-        basePrice = inventoryItem.sellingPrice / piecesInLayer0;
-      } else {
-        basePrice = parseFloat(inventoryItem.sellingPrice) || 0;
-      }
-    }
-
-    // Fallback to Buying Price if Selling Price is 0/Missing
-    if (basePrice === 0) {
-      let costPrice = parseFloat(inventoryItem.buyingPricePerUnit) || 0;
-      if (!costPrice && inventoryItem.buyingPrice > 0) {
-        const structure = inventoryItem.packagingStructure;
-        if (Array.isArray(structure) && structure.length > 0) {
-          let piecesInLayer0 = 1;
-          for (let i = 1; i < structure.length; i++) {
-            piecesInLayer0 *= (structure[i].qty || 1);
-          }
-          costPrice = inventoryItem.buyingPrice / piecesInLayer0;
-        } else {
-          costPrice = parseFloat(inventoryItem.buyingPrice) || 0;
-        }
-      }
-      basePrice = costPrice;
-    }
-
-    // 4. Convert basePrice to requested unit
-    let multiplier = 1;
-    const structure = inventoryItem.packagingStructure;
-    const unit = layer.unit;
-    const layerIndex = layer.layerIndex;
-
-    // Helper for fuzzy unit matching
-    const normalize = (u) => {
-      if (!u) return "";
-      const s = u.toLowerCase().trim();
-      if (s === 'pcs' || s === 'piece' || s === 'pieces' || s === 'pc') return 'piece';
-      if (s === 'ctn' || s === 'carton' || s === 'box' || s === 'boxes') return 'carton';
-      return s;
-    };
-
-    if (Array.isArray(structure) && structure.length > 0) {
-      // Resolve layer index
-      let idx = layerIndex;
-
-      // If no valid numeric index, try matching by unit name
-      if ((typeof idx !== 'number' || idx < 0) && unit) {
-        // 1. Exact match
-        idx = structure.findIndex(l => l.unit?.toLowerCase() === unit?.toLowerCase());
-
-        // 2. Fuzzy match
-        if (idx === -1) {
-          const normUnit = normalize(unit);
-          idx = structure.findIndex(l => normalize(l.unit) === normUnit);
-        }
-      }
-
-      // 3. Fallback: If unit looks like "piece" but not found, assume Base Unit (last layer)
-      if ((idx === -1 || idx === undefined) && normalize(unit) === 'piece') {
-        idx = structure.length - 1;
-      }
-      // 4. Fallback: If unit looks like "carton" but not found, assume Top Layer (0)?
-      if ((idx === -1 || idx === undefined) && normalize(unit) === 'carton') {
-        idx = 0;
-      }
-
-      // If we found a valid layer index
-      if (typeof idx === 'number' && idx >= 0 && idx < structure.length) {
-        // Calculate pieces in this specific layer
-        let piecesInThisLayer = 1;
-        for (let i = idx + 1; i < structure.length; i++) {
-          piecesInThisLayer *= (structure[i].qty || 1);
-        }
-        multiplier = piecesInThisLayer;
-      }
-    }
-
-    return basePrice * multiplier;
-  };
-
-  // Filter and Stats Logic
-  const filteredTransfers = transfers.filter(t => {
-    if (!dateFilter) return true;
-    const transferDate = new Date(t.createdAt).toISOString().split('T')[0];
-    return transferDate === dateFilter;
-  });
-
-  const stats = filteredTransfers.reduce((acc, transfer) => {
-    if (transfer.items) {
-      transfer.items.forEach(item => {
-        if (item.layers && item.layers.length > 0) {
-          item.layers.forEach(layer => {
-            const price = getPrice(item, layer);
-            const total = price * layer.quantity;
-            acc.issued += total;
-            if (transfer.status === 'collected') {
-              acc.collected += total;
-            } else {
-              acc.pending += total;
-            }
-          });
-        }
-        // Fallback for items without layers
-        else if (item.quantity) {
-          const layer = { unit: item.unit || '', quantity: item.quantity, layerIndex: -1 };
-          const price = getPrice(item, layer);
-          const total = price * item.quantity;
-          acc.issued += total;
-          if (transfer.status === 'collected') {
-            acc.collected += total;
-          } else {
-            acc.pending += total;
-          }
-        }
-      });
-    }
-    return acc;
-  }, { issued: 0, collected: 0, pending: 0 });
+  stats.profit = stats.collected - stats.issued - stats.expenses;
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-300 border-t-sky-600" />
-          <p className="text-sm text-slate-500">Loading dashboard...</p>
-        </div>
+      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-3">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-800" />
+        <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Loading Vehicle Data</p>
       </div>
     );
   }
 
   if (error || !vehicle) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 gap-3">
-        <p className="text-sm font-medium text-rose-600">{error || "Vehicle not found"}</p>
-        <button
-          onClick={() => window.history.back()}
-          className="btn-ghost text-xs"
-        >
-          <ArrowLeft className="inline-block mr-2" size={14} />
-          Back
-        </button>
+      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-3">
+        <AlertCircle className="text-rose-500" size={32} />
+        <p className="text-sm font-medium text-slate-600">{error || "Vehicle not found"}</p>
+        <Link href="/vehicles" className="text-xs text-sky-600 hover:underline">Back to Fleet</Link>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="space-y-6">
-
-        {/* Standard Navigation Header */}
-        <div className="flex items-center justify-between gap-4 text-slate-900 mb-4 print:hidden">
+    <div className="   py-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4 pb-6">
+          <Link href="/vehicles" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+            <ArrowLeft size={20} />
+          </Link>
           <div>
-
-            <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
               {vehicle.vehicleName}
-              <span className="text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                {vehicle.vehicleNumber || vehicle.registrationNumber}
+              <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200 uppercase">
+                {vehicle.vehicleNumber}
               </span>
             </h1>
-            <p className="text-xs text-slate-500">Sales Rep: {vehicle.assignedUserName || vehicle.salesTeamMember || "N/A"}</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
-              />
-            </div>
-            {dateFilter && (
-              <button
-                onClick={() => setDateFilter("")}
-                className="text-xs text-slate-500 hover:text-rose-600 underline"
-              >
-                Clear
-              </button>
-            )}
-            <div className="h-8 w-px bg-slate-200 mx-2"></div>
-            <button onClick={() => window.print()} className="btn-ghost text-xs text-slate-600 hover:text-slate-900">
-              <Printer className="mr-2 h-4 w-4" />
-              Print
-            </button>
+            <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+              <User size={14} /> Assigned to: <span className="font-medium text-slate-700">{vehicle.assignedUserName || "No driver assigned"}</span>
+            </p>
           </div>
         </div>
-
-        {/* Stats Hero */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Issued</p>
-              <p className="text-2xl font-bold text-slate-900">KSh {stats.issued.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-full">
-              <Package size={24} />
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
+            />
           </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Collected</p>
-              <p className="text-2xl font-bold text-emerald-700">KSh {stats.collected.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full">
-              <CheckCircle2 size={24} />
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending Collection</p>
-              <p className="text-2xl font-bold text-amber-600">KSh {stats.pending.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-full">
-              <Clock size={24} />
-            </div>
-          </div>
-        </div>
-
-        {/* Transfers List (Table) */}
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
-              <tr>
-                <th className="px-4 py-3 w-32">Date</th>
-                <th className="px-4 py-3 w-32">Transfer</th>
-                <th className="px-4 py-3">Item</th>
-                <th className="px-4 py-3 w-24">Quantity</th>
-                <th className="px-4 py-3 w-24 text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredTransfers.length > 0 ? (
-                filteredTransfers.map((transfer) => {
-                  let transferTotal = 0;
-                  // Calculate total beforehand and prepare renderer
-                  if (transfer.items) {
-                    transfer.items.forEach(item => {
-                      if (item.layers && item.layers.length > 0) {
-                        item.layers.forEach((layer) => {
-                          const price = getPrice(item, layer);
-                          transferTotal += price * layer.quantity;
-                        });
-                      } else if (item.quantity) {
-                        // Fallback
-                        const layer = { unit: item.unit || '', quantity: item.quantity, layerIndex: -1 };
-                        const price = getPrice(item, layer);
-                        transferTotal += price * item.quantity;
-                      }
-                    });
-                  }
-
-                  return (
-                    <tr key={transfer.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-slate-600 align-top">
-                        <div className="font-medium text-slate-900">{new Date(transfer.createdAt).toLocaleDateString()}</div>
-                        <div className="text-xs text-slate-400">{new Date(transfer.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-500 align-top">
-                        {transfer.transferNumber || transfer.id?.substring(0, 8)}
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="space-y-1">
-                          {transfer.items?.map((item, idx) => (
-                            <div key={idx} className="text-xs text-slate-700 h-6 flex items-center">
-                              <span className="font-medium truncate">{item.productName}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <div className="space-y-1">
-                          {transfer.items?.map((item, idx) => (
-                            <div key={idx} className="text-xs text-slate-500 h-6 flex items-center">
-                              {item.layers && item.layers.length > 0 ? (
-                                item.layers.map(l => `${l.quantity} ${l.unit}`).join(', ')
-                              ) : (
-                                // Fallback display
-                                `${item.quantity || '-'} ${item.unit || ''}`
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center align-top">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium capitalize
-                          ${transfer.status === 'collected' ? 'bg-emerald-100 text-emerald-700' :
-                            transfer.status === 'approved' ? 'bg-blue-100 text-blue-700' :
-                              'bg-amber-100 text-amber-700'}`}>
-                          {transfer.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
-                    <Package className="mx-auto mb-3 text-slate-300" size={32} />
-                    <p>No transfers found.</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <button onClick={() => window.print()} className="btn-ghost flex items-center gap-2 text-xs">
+            <Printer size={14} /> Print
+          </button>
         </div>
       </div>
 
-      {/* Custom Modal */}
+      {/* Stats Hero */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Sales" value={stats.collected} icon={ShoppingCart} color="emerald" />
+        <StatCard title="Total Issued" value={stats.issued} icon={Package} color="blue" />
+        <StatCard title="Total Expenses" value={stats.expenses} icon={Wallet} color="rose" />
+        <StatCard title="Margin" value={stats.profit} icon={TrendingUp} color={stats.profit >= 0 ? "emerald" : "rose"} />
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto no-scrollbar">
+        <TabButton id="sales" label="Sales" icon={ShoppingCart} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <TabButton id="inventory" label="Vehicle Inventory" icon={Package} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <TabButton id="expenses" label="Expenses" icon={Wallet} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <TabButton id="issuances" label="Issuances" icon={List} activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
+
+      {/* Tab Content */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm min-h-[400px]">
+        {activeTab === "sales" && <SalesTab sales={filteredSales} />}
+        {activeTab === "inventory" && <InventoryTab inventory={vehicleInventory} />}
+        {activeTab === "expenses" && <ExpensesTab expenses={filteredExpenses} />}
+        {activeTab === "issuances" && <IssuancesTab transfers={filteredTransfers} />}
+      </div>
+
+      {/* Modal */}
       <CustomModal
         isOpen={modal.isOpen}
         onClose={() => setModal(prev => ({ ...prev, isOpen: false }))}
@@ -500,9 +206,272 @@ export default function VehicleDetailsDashboard() {
         message={modal.message}
         type={modal.type}
         loading={modal.loading}
-        confirmText="Approve"
-        cancelText="Cancel"
       />
-    </>
+    </div>
+  );
+}
+
+// --- Sub-components ---
+
+function StatCard({ title, value, icon: Icon, color }) {
+  const colors = {
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    rose: "bg-rose-50 text-rose-600 border-rose-100",
+    slate: "bg-slate-50 text-slate-600 border-slate-100",
+  };
+  return (
+    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+      <div className={`p-3 rounded-full border ${colors[color] || colors.slate}`}>
+        <Icon size={20} />
+      </div>
+      <div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+        <p className={`text-xl font-bold ${value < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+          KES {Math.abs(value).toLocaleString()}
+          {value < 0 && <span className="ml-1 text-sm font-normal">(Loss)</span>}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ id, label, icon: Icon, activeTab, setActiveTab }) {
+  const isActive = activeTab === id;
+  return (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`flex items-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 whitespace-nowrap ${isActive
+        ? "border-sky-600 text-sky-600 bg-sky-50/50"
+        : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+        }`}
+    >
+      <Icon size={14} />
+      {label}
+    </button>
+  );
+}
+
+function SalesTab({ sales }) {
+  return (
+    <table className="w-full text-left text-xs">
+      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+        <tr>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Date</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Receipt No.</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Customer</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Items Sold</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Qty</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-right">Sold At (Price)</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-right">Subtotal</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-right">Total Amount</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {sales.length > 0 ? sales.map(s => (
+          <tr key={s.id} className="hover:bg-slate-50">
+            <td className="px-6 py-4 text-slate-600 whitespace-nowrap">{new Date(s.createdAt).toLocaleDateString()}</td>
+            <td className="px-6 py-4 font-mono font-medium text-slate-900 whitespace-nowrap">{s.receiptNumber || s.id.substring(0, 8)}</td>
+            <td className="px-6 py-4 text-slate-700 whitespace-nowrap">{s.customerName || "Walk-in"}</td>
+            <td className="px-6 py-4 text-slate-600">
+              {s.items && s.items.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  {s.items.map((item, idx) => (
+                    <div key={idx} className="h-[2.5rem] flex items-center">
+                      <span className="font-medium text-slate-900">{item.productName}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-slate-400 italic text-[10px]">No items</span>
+              )}
+            </td>
+            <td className="px-6 py-4 text-center text-slate-600">
+              {s.items && s.items.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  {s.items.map((item, idx) => (
+                    <div key={idx} className="h-[2.5rem] flex items-center justify-center">
+                      <span className="font-mono font-bold text-sky-700">{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                "-"
+              )}
+            </td>
+            <td className="px-6 py-4 text-right text-slate-600">
+              {s.items && s.items.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  {s.items.map((item, idx) => (
+                    <div key={idx} className="h-[2.5rem] flex items-center justify-end">
+                      <span className="font-mono">KES {(item.unitPrice || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                "-"
+              )}
+            </td>
+            <td className="px-6 py-4 text-right text-slate-600">
+              {s.items && s.items.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  {s.items.map((item, idx) => (
+                    <div key={idx} className="h-[2.5rem] flex items-center justify-end">
+                      <span className="font-mono font-semibold text-slate-800">KES {((item.unitPrice || 0) * (item.quantity || 0)).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                "-"
+              )}
+            </td>
+            <td className="px-6 py-4 text-right font-bold text-slate-900">KES {s.grandTotal?.toLocaleString()}</td>
+          </tr>
+        )) : (
+          <tr><td colSpan={8} className="px-6 py-12 text-center text-slate-400">No sales records found.</td></tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+function InventoryTab({ inventory }) {
+  return (
+    <table className="w-full text-left text-xs">
+      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+        <tr>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Item Name</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Opening Stock</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Total Sold</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Current Stock</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {inventory.length > 0 ? inventory.map((item, index) => (
+          <tr key={index} className="hover:bg-slate-50">
+            <td className="px-6 py-4 font-bold text-slate-900">{item.itemName}</td>
+            <td className="px-6 py-4 text-center text-slate-600 font-mono">{item.quantityLoaded || 0}</td>
+            <td className="px-6 py-4 text-center text-slate-600 font-mono">{item.quantitySold || 0}</td>
+            <td className="px-6 py-4 text-center font-bold text-sky-700 font-mono">{item.quantityRemaining || 0}</td>
+          </tr>
+        )) : (
+          <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-400">No inventory found on vehicle.</td></tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+function ExpensesTab({ expenses }) {
+  return (
+    <table className="w-full text-left text-xs">
+      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+        <tr>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Date</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Description</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Category</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Status</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-right">Amount</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {expenses.length > 0 ? expenses.map(e => (
+          <tr key={e.id} className="hover:bg-slate-50">
+            <td className="px-6 py-4 text-slate-600">{new Date(e.createdAt).toLocaleDateString()}</td>
+            <td className="px-6 py-4 text-slate-700 font-medium">{e.description}</td>
+            <td className="px-6 py-4"><span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[10px] text-slate-500">{e.category}</span></td>
+            <td className="px-6 py-4 text-center">
+              <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${e.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                }`}>
+                {e.status}
+              </span>
+            </td>
+            <td className="px-6 py-4 text-right font-bold text-rose-600">KES {e.amount?.toLocaleString()}</td>
+          </tr>
+        )) : (
+          <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">No expense reports found.</td></tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+function IssuancesTab({ transfers }) {
+  return (
+    <table className="w-full text-left text-xs">
+      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+        <tr>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Date/Time</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Reference</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">Items Issued</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Qty</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Status</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {transfers.length > 0 ? transfers.map(t => {
+          // Flatten items and layers for display
+          const isReturn = t.type === 'return' || t.status === 'returned';
+          const displayItems = isReturn
+            ? (t.items || []).map(item => ({
+              name: `${item.productName} (${item.unit})`,
+              quantity: item.quantity,
+              isReturn: true
+            }))
+            : t.items?.flatMap(item =>
+              (item.layers || []).map(layer => ({
+                name: `${item.productName} (${layer.unit})`,
+                quantity: layer.quantity,
+                isReturn: false
+              }))
+            ) || [];
+
+          return (
+            <tr key={t.id} className="hover:bg-slate-50">
+              <td className="px-6 py-4 text-slate-600">
+                <div className="font-medium text-slate-900">{new Date(t.createdAt).toLocaleDateString()}</div>
+                <div className="text-[10px] text-slate-400">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              </td>
+              <td className="px-6 py-4 font-mono text-slate-500">{t.transferNumber || t.id.substring(0, 8)}</td>
+              <td className="px-6 py-4 text-slate-600">
+                {displayItems.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {displayItems.map((item, idx) => (
+                      <div key={idx} className="h-[2.5rem] flex items-center">
+                        <span className={`font-medium ${item.isReturn ? 'text-rose-600' : 'text-slate-900'}`}>{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic text-[10px]">No items</span>
+                )}
+              </td>
+              <td className="px-6 py-4 text-center text-slate-600">
+                {displayItems.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {displayItems.map((item, idx) => (
+                      <div key={idx} className="h-[2.5rem] flex items-center justify-center">
+                        <span className="font-mono font-bold text-sky-700">{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  "-"
+                )}
+              </td>
+              <td className="px-6 py-4 text-center">
+                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${t.status === 'collected' ? 'bg-emerald-50 text-emerald-600' :
+                  t.status === 'approved' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                  }`}>
+                  {t.status}
+                </span>
+              </td>
+            </tr>
+          );
+        }) : (
+          <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">No issuance records found.</td></tr>
+        )}
+      </tbody>
+    </table>
   );
 }

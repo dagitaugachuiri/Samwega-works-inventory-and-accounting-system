@@ -44,6 +44,14 @@ router.get(
     authController.getCurrentUser
 );
 
+// Update current user
+router.patch(
+    '/me',
+    verifyToken,
+    validateBody(updateUserSchema),
+    authController.updateCurrentUser
+);
+
 /**
  * User management routes (admin/store_manager only)
  */

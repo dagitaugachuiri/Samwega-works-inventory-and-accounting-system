@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventory.controller');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const {
     createInventorySchema,
@@ -60,6 +60,7 @@ router.post(
     '/',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('CREATE', 'inventory'),
     writeLimiter,
     validateBody(createInventorySchema),
     inventoryController.createItem
@@ -70,6 +71,7 @@ router.post(
     '/bulk-import',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('BULK_IMPORT', 'inventory'),
     validateBody(bulkImportSchema),
     inventoryController.bulkImport
 );
@@ -79,6 +81,7 @@ router.put(
     '/:id',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('UPDATE', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
     validateBody(updateInventorySchema),
@@ -90,6 +93,7 @@ router.patch(
     '/:id/adjust-stock',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('ADJUST_STOCK', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
     validateBody(stockAdjustmentSchema),
@@ -101,6 +105,7 @@ router.delete(
     '/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE', 'inventory'),
     validateParams(inventoryIdSchema),
     inventoryController.deleteItem
 );
@@ -110,6 +115,7 @@ router.post(
     '/:id/replenish',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('REPLENISH', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
     inventoryController.replenishItem

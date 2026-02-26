@@ -85,29 +85,37 @@ export default function SalesReportPage() {
 
     // Filters Component
     const filters = (
-        <>
-            <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-slate-400" />
-                <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="input-field py-1.5 text-sm"
-                />
-                <span className="text-slate-400">to</span>
-                <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="input-field py-1.5 text-sm"
-                />
+        <div className="flex flex-wrap gap-4 w-full md:w-auto items-end">
+            <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Start Date</label>
+                <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
+                    />
+                </div>
             </div>
-
-            <div className="flex items-center gap-2">
+            <div>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">End Date</label>
+                <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
+                    />
+                </div>
+            </div>
+            <div className="w-full md:w-48">
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Vehicle</label>
                 <select
                     value={selectedVehicle}
                     onChange={(e) => setSelectedVehicle(e.target.value)}
-                    className="input-field py-1.5 text-sm min-w-[150px]"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 bg-white h-[40px] transition-all"
                 >
                     <option value="">All Vehicles</option>
                     {Array.isArray(vehicles) && vehicles.map(v => (
@@ -117,11 +125,11 @@ export default function SalesReportPage() {
             </div>
             <button
                 onClick={fetchData}
-                className="btn-secondary py-1.5 px-3 text-sm"
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors h-[40px]"
             >
                 Apply
             </button>
-        </>
+        </div>
     );
 
     // Actions Component
@@ -256,10 +264,11 @@ export default function SalesReportPage() {
 
     const actions = (
         <button
-            className="btn-primary flex items-center gap-2"
             onClick={downloadPDF}
+            disabled={loading || sales.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm font-medium"
         >
-            <Download size={18} />
+            <Download size={16} />
             Download PDF
         </button>
     );
@@ -282,13 +291,13 @@ export default function SalesReportPage() {
             <div className="min-w-full inline-block align-middle">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receipt #</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer / Route</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
-                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (KES)</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date/Time</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Receipt #</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer / Route</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payment</th>
+                                <th scope="col" className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Amount (KES)</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -300,31 +309,33 @@ export default function SalesReportPage() {
                                 </tr>
                             ) : (
                                 sales.map((sale) => (
-                                    <tr key={sale.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {new Date(sale.saleDate?._seconds * 1000 || sale.saleDate).toLocaleDateString()}
-                                            <span className="text-gray-400 text-xs ml-2">
+                                    <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div className="text-slate-900 font-medium">
+                                                {new Date(sale.saleDate?._seconds * 1000 || sale.saleDate).toLocaleDateString()}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-medium uppercase">
                                                 {new Date(sale.saleDate?._seconds * 1000 || sale.saleDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                                            {sale.receiptNumber || (sale.id ? sale.id.slice(0, 8) : 'N/A')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <div className="flex flex-col">
-                                                <span>{sale.customerName || 'Walk-in Customer'}</span>
-                                                <span className="text-xs text-gray-400">{sale.vehicleName || sale.salesRepName || '-'}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
-                                                ${sale.paymentMethod === 'cash' ? 'bg-green-100 text-green-800' :
-                                                    sale.paymentMethod === 'mpesa' ? 'bg-emerald-100 text-emerald-800' :
-                                                        sale.paymentMethod === 'credit' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                                            {sale.receiptNumber || (sale.id ? sale.id.slice(0, 8) : 'N/A')}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-slate-800">{sale.customerName || 'Walk-in Customer'}</span>
+                                                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">{sale.vehicleName || sale.salesRepName || '-'}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                                ${sale.paymentMethod === 'cash' ? 'bg-slate-100 text-slate-700' :
+                                                    sale.paymentMethod === 'mpesa' ? 'bg-indigo-50 text-indigo-700' :
+                                                        sale.paymentMethod === 'credit' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-400'}`}>
                                                 {sale.paymentMethod === 'mpesa' ? 'M-Pesa' : sale.paymentMethod}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 text-right font-bold">
                                             {parseFloat(sale.grandTotal || 0).toLocaleString()}
                                         </td>
                                     </tr>
@@ -334,18 +345,18 @@ export default function SalesReportPage() {
 
                         {/* Table Footer Summary */}
                         {sales.length > 0 && summary && (
-                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                            <tfoot className="bg-slate-50 border-t border-slate-200 font-bold text-slate-900">
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-4 text-sm font-bold text-gray-900 text-right">
-                                        TOTAL SALES REVENUE:
+                                    <td colSpan="4" className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">
+                                        Total Sales Revenue:
                                     </td>
-                                    <td className="px-6 py-4 text-sm font-bold text-gray-900 text-right">
+                                    <td className="px-6 py-4 text-sm font-bold text-slate-900 text-right">
                                         KES {summary.totalSales?.toLocaleString()}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-2 text-xs text-gray-500 text-right">
-                                        Total Transactions: {summary.totalTransactions} | Avg. Sale: KES {Math.round(summary.averageSaleValue || 0).toLocaleString()}
+                                    <td colSpan="4" className="px-6 py-2 text-[10px] text-slate-400 text-right font-medium uppercase tracking-tight">
+                                        Transactions: {summary.totalTransactions} | Avg. Sale: KES {Math.round(summary.averageSaleValue || 0).toLocaleString()}
                                     </td>
                                     <td className="px-6 py-2"></td>
                                 </tr>

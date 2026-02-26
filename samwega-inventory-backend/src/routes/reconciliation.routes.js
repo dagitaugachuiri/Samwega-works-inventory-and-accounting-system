@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const reconciliationController = require('../controllers/reconciliation.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -20,6 +20,7 @@ router.post(
     '/',
     verifyToken,
     requireVerified,
+    logActivity('CREATE', 'reconciliation'),
     writeLimiter,
     validateBody(createReconciliationSchema),
     reconciliationController.createDailyReconciliation
@@ -46,7 +47,7 @@ router.get(
 router.get(
     '/report',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     reconciliationController.getReconciliationReport
 );
 
@@ -71,7 +72,8 @@ router.get(
 router.post(
     '/:id/approve',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('APPROVE', 'reconciliation'),
     writeLimiter,
     validateParams(reconciliationIdSchema),
     validateBody(approveReconciliationSchema),

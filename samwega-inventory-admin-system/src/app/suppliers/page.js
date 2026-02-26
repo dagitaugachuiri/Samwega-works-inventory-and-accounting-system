@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react";
-import { Search, Plus, Edit, Trash2, Building2, Phone, Mail, X, FileText } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Building2, X, FileText } from "lucide-react";
 import api from "../../lib/api";
 
 export default function SuppliersPage() {
@@ -13,10 +13,6 @@ export default function SuppliersPage() {
     const [editingSupplier, setEditingSupplier] = useState(null);
     const [form, setForm] = useState({
         name: "",
-        contactPerson: "",
-        email: "",
-        phone: "",
-        address: "",
         etrStatus: "non-etr",
     });
     const [saving, setSaving] = useState(false);
@@ -60,29 +56,21 @@ export default function SuppliersPage() {
             setEditingSupplier(supplier);
             setForm({
                 name: supplier.name || "",
-                contactPerson: supplier.contactPerson || "",
-                email: supplier.email || "",
-                phone: supplier.phone || "",
-                address: supplier.address || "",
                 etrStatus: supplier.etrStatus || "non-etr",
             });
         } else {
             setEditingSupplier(null);
-            setForm({ name: "", contactPerson: "", email: "", phone: "", address: "", etrStatus: "non-etr" });
+            setForm({ name: "", etrStatus: "non-etr" });
         }
         setShowModal(true);
     };
 
     const handleSave = async () => {
         if (!form.name.trim()) { alert("Supplier name is required"); return; }
-        if (!form.phone.trim()) { alert("Phone number is required"); return; }
 
         setSaving(true);
         try {
-            let phone = form.phone.trim();
-            if (phone.startsWith("254")) phone = "+" + phone;
-
-            const payload = { ...form, phone };
+            const payload = { ...form };
             if (editingSupplier) {
                 await api.updateSupplier(editingSupplier.id, payload);
             } else {
@@ -173,7 +161,7 @@ export default function SuppliersPage() {
                 />
             </div>
 
-            {/* Suppliers Grid */}
+            {/* Suppliers Table */}
             {filteredSuppliers.length === 0 ? (
                 <div className="glass-panel p-10 text-center">
                     <Building2 size={40} className="mx-auto mb-4 text-slate-300" />
@@ -184,93 +172,96 @@ export default function SuppliersPage() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredSuppliers.map((supplier) => {
-                        return (
-                            <div key={supplier.id} className="glass-panel p-5">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white font-bold">
-                                            {(supplier.name || "?").charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-slate-900">{supplier.name}</h3>
-                                                {supplier.etrStatus === 'etr' && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                                        ETR
-                                                    </span>
-                                                )}
+                <div className="glass-panel overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Supplier</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ETR</th>
+                                    <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Total Purchases</th>
+                                    <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Total Paid</th>
+                                    <th className="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Outstanding</th>
+                                    <th className="px-5 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredSuppliers.map((supplier) => (
+                                    <tr key={supplier.id} className="hover:bg-slate-50 transition-colors">
+                                        {/* Name */}
+                                        <td className="px-5 py-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                                    {(supplier.name || "?").charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className="font-medium text-slate-900">{supplier.name}</span>
                                             </div>
-                                            {supplier.contactPerson && (
-                                                <p className="text-xs text-slate-500">{supplier.contactPerson}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button onClick={() => handleOpenModal(supplier)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400">
-                                            <Edit size={14} />
-                                        </button>
-                                        <button onClick={() => handleDelete(supplier.id)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </div>
+                                        </td>
 
-                                {/* Contact Info */}
-                                <div className="space-y-1 text-sm mb-3">
-                                    {supplier.phone && (
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <Phone size={14} className="text-slate-400" />
-                                            <span>{supplier.phone}</span>
-                                        </div>
-                                    )}
-                                    {supplier.email && (
-                                        <div className="flex items-center gap-2 text-slate-600">
-                                            <Mail size={14} className="text-slate-400" />
-                                            <span className="truncate">{supplier.email}</span>
-                                        </div>
-                                    )}
-                                </div>
+                                        {/* ETR */}
+                                        <td className="px-5 py-3">
+                                            {supplier.etrStatus === 'etr'
+                                                ? <span className="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">ETR</span>
+                                                : <span className="text-slate-400 text-xs">—</span>
+                                            }
+                                        </td>
 
-                                {/* Financial Summary - Using Backend-Calculated Values */}
-                                <div className="border-t border-slate-100 pt-3 mt-3">
-                                    <div className="grid grid-cols-3 gap-2 text-center">
-                                        <div className="bg-slate-50 rounded p-2">
-                                            <p className="text-[10px] text-slate-400 uppercase">Total</p>
-                                            <p className="text-sm font-medium text-slate-700">
-                                                {(supplier.totalPurchases || 0) > 0
-                                                    ? (supplier.totalPurchases >= 10000
-                                                        ? `${(supplier.totalPurchases / 1000).toFixed(0)}K`
-                                                        : supplier.totalPurchases.toLocaleString())
-                                                    : '-'}
-                                            </p>
-                                        </div>
-                                        <div className="bg-emerald-50 rounded p-2">
-                                            <p className="text-[10px] text-emerald-600 uppercase">Paid</p>
-                                            <p className="text-sm font-medium text-emerald-700">
-                                                {(supplier.totalPaid || 0) > 0
-                                                    ? (supplier.totalPaid >= 10000
-                                                        ? `${(supplier.totalPaid / 1000).toFixed(0)}K`
-                                                        : supplier.totalPaid.toLocaleString())
-                                                    : '-'}
-                                            </p>
-                                        </div>
-                                        <div className={`rounded p-2 ${(supplier.outstandingBalance || 0) > 0 ? 'bg-amber-50' : 'bg-slate-50'}`}>
-                                            <p className={`text-[10px] uppercase ${(supplier.outstandingBalance || 0) > 0 ? 'text-amber-600' : 'text-slate-400'}`}>Due</p>
-                                            <p className={`text-sm font-medium ${(supplier.outstandingBalance || 0) > 0 ? 'text-amber-700' : 'text-slate-700'}`}>
-                                                {(supplier.outstandingBalance || 0) > 0
-                                                    ? (supplier.outstandingBalance >= 10000
-                                                        ? `${(supplier.outstandingBalance / 1000).toFixed(0)}K`
-                                                        : supplier.outstandingBalance.toLocaleString())
-                                                    : '-'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                                        {/* Total Purchases */}
+                                        <td className="px-5 py-3 text-right font-mono text-slate-700">
+                                            {(supplier.totalPurchases || 0) > 0
+                                                ? `KES ${(supplier.totalPurchases).toLocaleString()}`
+                                                : <span className="text-slate-400">—</span>}
+                                        </td>
+
+                                        {/* Total Paid */}
+                                        <td className="px-5 py-3 text-right font-mono text-slate-700">
+                                            {(supplier.totalPaid || 0) > 0
+                                                ? `KES ${(supplier.totalPaid).toLocaleString()}`
+                                                : <span className="text-slate-400">—</span>}
+                                        </td>
+
+                                        {/* Outstanding */}
+                                        <td className="px-5 py-3 text-right font-mono">
+                                            {(supplier.outstandingBalance || 0) > 0
+                                                ? <span className="font-semibold text-amber-700">KES {(supplier.outstandingBalance).toLocaleString()}</span>
+                                                : <span className="text-slate-400">—</span>}
+                                        </td>
+
+                                        {/* Actions */}
+                                        <td className="px-5 py-3 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <button onClick={() => handleOpenModal(supplier)} className="p-1.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                                                    <Edit size={14} />
+                                                </button>
+                                                <button onClick={() => handleDelete(supplier.id)} className="p-1.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+
+                            {/* Totals footer */}
+                            <tfoot className="bg-slate-50 border-t-2 border-slate-200">
+                                <tr>
+                                    <td colSpan={2} className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        {filteredSuppliers.length} supplier{filteredSuppliers.length !== 1 ? 's' : ''}
+                                    </td>
+                                    <td className="px-5 py-3 text-right font-mono font-bold text-slate-900">
+                                        KES {overallTotals.totalPurchases.toLocaleString()}
+                                    </td>
+                                    <td className="px-5 py-3 text-right font-mono font-bold text-slate-900">
+                                        KES {overallTotals.totalPaid.toLocaleString()}
+                                    </td>
+                                    <td className="px-5 py-3 text-right font-mono font-bold text-amber-700">
+                                        KES {overallTotals.outstandingBalance.toLocaleString()}
+                                    </td>
+                                    <td />
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -292,27 +283,8 @@ export default function SuppliersPage() {
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Supplier Name *</label>
                                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="input-field w-full" placeholder="e.g., ABC Distributors" />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
-                                <input type="text" value={form.contactPerson} onChange={(e) => setForm({ ...form, contactPerson: e.target.value })} className="input-field w-full" placeholder="e.g., John Doe" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone *</label>
-                                    <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field w-full" placeholder="0700000000" />
-                                    <p className="text-xs text-slate-400 mt-1">Format: 07XX or 01XX</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                                    <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-field w-full" placeholder="email@example.com" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                                <textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="input-field w-full" rows={2} placeholder="Physical address" />
-                            </div>
 
-                            <div className="flex items-center gap-2 pt-2">
+                            <div className="flex items-center gap-2 pt-1">
                                 <input
                                     type="checkbox"
                                     id="etrStatus"

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const vehicleController = require('../controllers/vehicle.controller');
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -22,6 +22,7 @@ router.post(
     '/',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('CREATE', 'vehicle'),
     writeLimiter,
     validateBody(createVehicleSchema),
     vehicleController.createVehicle
@@ -62,6 +63,7 @@ router.put(
     '/:id',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('UPDATE', 'vehicle'),
     writeLimiter,
     validateParams(vehicleIdSchema),
     validateBody(updateVehicleSchema),
@@ -77,6 +79,7 @@ router.delete(
     '/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE', 'vehicle'),
     validateParams(vehicleIdSchema),
     vehicleController.deleteVehicle
 );
@@ -90,6 +93,7 @@ router.post(
     '/:id/assign-user',
     verifyToken,
     requireRole('admin', 'store_manager'),
+    logActivity('ASSIGN_USER', 'vehicle'),
     writeLimiter,
     validateParams(vehicleIdSchema),
     validateBody(assignUserSchema),

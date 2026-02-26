@@ -23,7 +23,7 @@ router.get(
 router.get(
     '/sales',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     analyticsController.getSalesAnalytics
 );
 
@@ -35,7 +35,7 @@ router.get(
 router.get(
     '/inventory',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     analyticsController.getInventoryAnalytics
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.get(
     '/vehicles',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     analyticsController.getVehicleAnalytics
 );
 
@@ -59,7 +59,7 @@ router.get(
 router.get(
     '/salesreps',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
     analyticsController.getSalesRepAnalytics
 );
 
@@ -71,7 +71,7 @@ router.get(
 router.get(
     '/profit',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
     analyticsController.getProfitAnalytics
 );
 
@@ -83,7 +83,7 @@ router.get(
 router.get(
     '/accounting',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
     analyticsController.getAccountingStats
 );
 

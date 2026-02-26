@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supplierController = require('../controllers/supplier.controller');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const {
     createSupplierSchema,
@@ -33,7 +33,8 @@ router.get(
 router.post(
     '/',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('CREATE', 'supplier'),
     writeLimiter,
     validateBody(createSupplierSchema),
     supplierController.createSupplier
@@ -43,7 +44,8 @@ router.post(
 router.put(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin', 'store_manager', 'accountant'),
+    logActivity('UPDATE', 'supplier'),
     writeLimiter,
     validateParams(supplierIdSchema),
     validateBody(updateSupplierSchema),
@@ -55,6 +57,7 @@ router.delete(
     '/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('DELETE', 'supplier'),
     validateParams(supplierIdSchema),
     supplierController.deleteSupplier
 );

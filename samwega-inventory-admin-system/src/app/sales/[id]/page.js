@@ -245,15 +245,48 @@ export default function SaleDetailPage() {
                     </h2>
 
                     <div className="space-y-4">
+                        {/* Payment Method Row */}
                         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
                             <span className="text-slate-600">Payment Method</span>
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold capitalize
                                 ${sale.paymentMethod === 'cash' ? 'bg-emerald-100 text-emerald-800' :
                                     sale.paymentMethod === 'mpesa' ? 'bg-violet-100 text-violet-800' :
-                                        'bg-amber-100 text-amber-800'}`}>
-                                {sale.paymentMethod}
+                                        sale.paymentMethod === 'bank' ? 'bg-blue-100 text-blue-800' :
+                                            sale.paymentMethod === 'credit' || sale.paymentMethod === 'debt' ? 'bg-rose-100 text-rose-800' :
+                                                'bg-amber-100 text-amber-800'}`}>
+                                {sale.paymentMethod === 'credit' ? 'Debt' : sale.paymentMethod}
                             </span>
                         </div>
+
+                        {/* Mixed Payment Breakdown */}
+                        {sale.paymentMethod === 'mixed' && Array.isArray(sale.payments) && sale.payments.length > 0 && (
+                            <div className="pb-4 border-b border-slate-200">
+                                <p className="text-sm text-slate-500 mb-3">Payment Breakdown</p>
+                                <div className="space-y-2">
+                                    {sale.payments.map((payment, idx) => {
+                                        const method = (payment.method || '').toLowerCase();
+                                        const badgeClass =
+                                            method === 'cash' ? 'bg-emerald-100 text-emerald-800' :
+                                                method === 'mpesa' || method.includes('mobile') ? 'bg-violet-100 text-violet-800' :
+                                                    method.includes('bank') || method.includes('card') ? 'bg-blue-100 text-blue-800' :
+                                                        method === 'credit' || method === 'debt' ? 'bg-rose-100 text-rose-800' :
+                                                            'bg-slate-100 text-slate-700';
+                                        const label = method === 'credit' ? 'Debt' : method.charAt(0).toUpperCase() + method.slice(1);
+
+                                        return (
+                                            <div key={idx} className="flex items-center justify-between bg-slate-50 rounded-lg px-4 py-2">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`}>
+                                                    {label}
+                                                </span>
+                                                <span className="font-semibold text-slate-900">
+                                                    KSh {parseFloat(payment.amount || 0).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         {sale.customerPhone && (
                             <div className="flex items-center justify-between pb-4 border-b border-slate-200">

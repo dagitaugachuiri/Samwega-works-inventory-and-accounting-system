@@ -28,10 +28,9 @@ const createSupplierSchema = Joi.object({
 
     phone: Joi.string()
         .pattern(/^(\+254|0)[17]\d{8}$/)
-        .required()
+        .optional()
         .messages({
-            'string.pattern.base': 'Please provide a valid Kenyan phone number',
-            'any.required': 'Phone number is required'
+            'string.pattern.base': 'Please provide a valid Kenyan phone number'
         }),
 
     alternativePhone: Joi.string()

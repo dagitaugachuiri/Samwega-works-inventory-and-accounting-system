@@ -13,6 +13,7 @@ export default function ItemDetailsPage() {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -36,12 +37,20 @@ export default function ItemDetailsPage() {
 
     const fetchItem = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/inventory/${id}`);
+        const [res, userRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/inventory/${id}`),
+          api.getCurrentUser()
+        ]);
+
         if (!res.ok) {
           throw new Error(`Failed to load item (status ${res.status})`);
         }
         const data = await res.json();
         setItem(data);
+
+        if (userRes.success) {
+          setUser(userRes.data);
+        }
       } catch (err) {
         setError(err.message || "Failed to load item");
       } finally {
@@ -60,7 +69,7 @@ export default function ItemDetailsPage() {
       const layers = itemData.packagingStructure;
 
       const isMeasurement = (u) => {
-        try { return /\b(KG|G|ML|L)\b/.test((u||'').toString().toUpperCase()); } catch { return false; }
+        try { return /\b(KG|G|ML|L)\b/.test((u || '').toString().toUpperCase()); } catch { return false; }
       };
 
       const piecesPerLayer = (index) => {
@@ -122,7 +131,7 @@ export default function ItemDetailsPage() {
     if (Array.isArray(itemData.packagingStructure) && itemData.packagingStructure.length > 0) {
       const layers = itemData.packagingStructure;
       const isMeasurement = (u) => {
-        try { return /\b(KG|G|ML|L)\b/.test((u||'').toString().toUpperCase()); } catch { return false; }
+        try { return /\b(KG|G|ML|L)\b/.test((u || '').toString().toUpperCase()); } catch { return false; }
       };
       // product of qty of inner layers (index 1 .. end)
       let acc = 1;
@@ -220,23 +229,25 @@ export default function ItemDetailsPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/dashboard/${item.id}/edit`}
-            className="btn-primary text-xs"
-            onClick={() => {
-              try {
-                if (typeof window !== 'undefined') {
-                  window.sessionStorage.setItem('editItem', JSON.stringify(item));
+        {user?.role !== 'accountant' && (
+          <div className="flex gap-2">
+            <Link
+              href={`/dashboard/${item.id}/edit`}
+              className="btn-primary text-xs"
+              onClick={() => {
+                try {
+                  if (typeof window !== 'undefined') {
+                    window.sessionStorage.setItem('editItem', JSON.stringify(item));
+                  }
+                } catch (e) {
+                  console.error('Failed to cache editItem', e);
                 }
-              } catch (e) {
-                console.error('Failed to cache editItem', e);
-              }
-            }}
-          >
-            Edit item
-          </Link>
-        </div>
+              }}
+            >
+              Edit item
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Overview cards */}
@@ -303,7 +314,7 @@ export default function ItemDetailsPage() {
               <>
                 <div>
                   <p className="text-xl font-semibold text-violet-700">
-                    KSh {Number(profitPerMasterUnit).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}
+                    KSh {Number(profitPerMasterUnit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <p className="text-xs text-slate-500">({piecesPerSupplierUnit} pieces)</p>
                 </div>
@@ -414,7 +425,7 @@ export default function ItemDetailsPage() {
               Packaging structure
             </h2>
             {Array.isArray(item.packagingStructure) &&
-            item.packagingStructure.length > 0 ? (
+              item.packagingStructure.length > 0 ? (
               <div className="space-y-2 text-sm">
                 {item.packagingStructure.map((layer, idx) => (
                   <div

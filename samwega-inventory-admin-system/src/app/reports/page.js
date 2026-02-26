@@ -9,7 +9,7 @@ const REPORT_TYPES = [
         reports: [
             { id: "inventory", name: "Warehouse Inventory", description: "Current stock levels and values", needsDate: false },
             { id: "vehicle-inventory", name: "Vehicle Inventory", description: "Stock in vehicles with capacity", needsVehicle: true },
-            { id: "stock-movement", name: "Stock Movement", description: "All inventory transactions", needsDate: true },
+            { id: "stock-movement", name: "Stock Movement", description: "Issues and returns between warehouse and vehicles", needsDate: true, href: "/reports/stock-movement" },
         ]
     },
     {
@@ -172,13 +172,9 @@ export default function ReportsPage() {
                                             Interactive warehouse inventory view available.
                                         </div>
                                         <a href="/reports/inventory" className="flex items-center justify-center gap-2 w-full py-2.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 font-medium text-sm transition-colors">
-                                            <FileText size={16} /> Open Interactive Report
+                                            <FileText size={16} /> Open Report
                                         </a>
-                                        <div className="border-t border-slate-100 my-4 pt-4">
-                                            <button onClick={generateReport} disabled={loading} className="w-full py-2.5 bg-slate-900 text-white rounded hover:bg-slate-800 font-medium text-sm transition-colors flex items-center justify-center gap-2">
-                                                {loading ? 'Generating...' : <><Download size={16} /> Download PDF Summary</>}
-                                            </button>
-                                        </div>
+
                                     </div>
                                 ) : selectedReport.href ? (
                                     // Reports with a dedicated full page
@@ -194,23 +190,21 @@ export default function ReportsPage() {
                                             <FileText size={16} /> Open Report
                                         </a>
                                     </div>
-                                ) : selectedReport.id === 'vehicle-inventory' ? (
+                                ) : (selectedReport.id === 'vehicle-inventory' || selectedReport.id === 'stock-movement') ? (
                                     <div className="space-y-4">
-                                        <p className="text-sm text-slate-600">Select a vehicle to view its current loaded stock.</p>
-                                        <div>
-                                            <label className="block text-xs font-medium text-slate-700 mb-1.5 uppercase">Vehicle</label>
-                                            <select
-                                                value={vehicleId}
-                                                onChange={(e) => setVehicleId(e.target.value)}
-                                                className="w-full p-2.5 bg-white border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400"
-                                            >
-                                                <option value="">-- Select Vehicle --</option>
-                                                {vehicles.map(v => <option key={v.id} value={v.id}>{v.vehicleName}</option>)}
-                                            </select>
+                                        <p className="text-sm text-slate-600 font-medium mb-4">{selectedReport.description}</p>
+                                        <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm border border-blue-100 flex items-start gap-3">
+                                            <div className="mt-0.5">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                            </div>
+                                            <p>This report has an interactive dashboard view with advanced filtering, searching, and custom PDF export options.</p>
                                         </div>
                                         <div className="pt-2">
-                                            <a href="/reports/vehicle-inventory" className="block w-full py-2.5 bg-white border border-slate-300 text-slate-700 rounded hover:bg-slate-50 font-medium text-sm text-center">
-                                                View Online
+                                            <a
+                                                href={selectedReport.href || `/reports/${selectedReport.id}`}
+                                                className="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-bold text-sm transition-all shadow-sm"
+                                            >
+                                                <FileText size={18} /> Open Interactive Report
                                             </a>
                                         </div>
                                     </div>

@@ -144,6 +144,27 @@ class AuthController {
             next(error);
         }
     }
+
+    /**
+     * Update current user
+     * PATCH /api/v1/auth/me
+     */
+    async updateCurrentUser(req, res, next) {
+        try {
+            // Only allow updating certain fields for self
+            // Role and verification status should NOT be self-updatable
+            const { role, isVerified, ...updateData } = req.body;
+
+            const user = await authService.updateUser(req.user.uid, updateData);
+
+            res.json(successResponse(
+                user,
+                'Profile updated successfully'
+            ));
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new AuthController();

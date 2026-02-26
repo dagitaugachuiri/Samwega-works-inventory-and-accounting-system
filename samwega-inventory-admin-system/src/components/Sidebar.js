@@ -16,14 +16,31 @@ import {
     ShoppingCart,
     ArrowRightLeft,
     Contact,
-    PlusCircle
+    PlusCircle,
+    Activity
 } from "lucide-react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const [user, setUser] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await api.getCurrentUser();
+                if (response.success) {
+                    setUser(response.data);
+                }
+            } catch (error) {
+                console.error("Error fetching user for sidebar:", error);
+            }
+        };
+        fetchUser();
+    }, []);
 
     const handleLogout = () => {
         api.logout();
@@ -31,17 +48,17 @@ export default function Sidebar() {
     };
 
     const menuItems = [
-        { name: "Inventory", href: "/dashboard", icon: Package },
-        { name: "Add Stock", href: "/dashboard/add", icon: PlusCircle },
-        { name: "Transfer Stock", href: "/issue-stock", icon: ArrowRightLeft },
-        { name: "Sales", href: "/sales-dashboard", icon: ShoppingCart },
-        { name: "Vehicles", href: "/vehicles", icon: Truck },
-        { name: "Sales Team", href: "/sales-team", icon: Contact },
-        { name: "Suppliers", href: "/suppliers", icon: Users },
-        { name: "Invoices", href: "/invoices", icon: FileText },
-        { name: "Expenses", href: "/expenses", icon: Wallet },
-        { name: "Accounting", href: "/accounting", icon: Calculator },
-        { name: "Reports", href: "/reports", icon: BarChart },
+        { name: "Inventory", href: "/dashboard", icon: Package, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
+        { name: "Add Stock", href: "/dashboard/add", icon: PlusCircle, roles: ["admin", "store_manager"] },
+        { name: "Transfer Stock", href: "/issue-stock", icon: ArrowRightLeft, roles: ["admin", "store_manager"] },
+        { name: "Sales", href: "/sales-dashboard", icon: ShoppingCart, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
+        { name: "Vehicles", href: "/vehicles", icon: Truck, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
+        { name: "Team", href: "/sales-team", icon: Contact, roles: ["admin", "store_manager"] },
+        { name: "Suppliers", href: "/suppliers", icon: Users, roles: ["admin", "store_manager", "accountant"] },
+        { name: "Invoices", href: "/invoices", icon: FileText, roles: ["admin", "store_manager", "accountant"] },
+        { name: "Expenses", href: "/expenses", icon: Wallet, roles: ["admin", "store_manager", "accountant", "sales_rep"] },
+        { name: "Accounting", href: "/accounting", icon: Calculator, roles: ["admin", "store_manager", "accountant"] },
+        { name: "Reports", href: "/reports", icon: BarChart, roles: ["admin", "store_manager", "accountant"] },
     ];
 
     const isActive = (path) => {
@@ -49,6 +66,10 @@ export default function Sidebar() {
         if (path !== "/dashboard" && pathname.startsWith(path)) return true;
         return false;
     };
+
+    const filteredItems = user ? menuItems.filter(item =>
+        !item.roles || item.roles.includes(user.role)
+    ) : menuItems;
 
     return (
         <aside
@@ -76,7 +97,7 @@ export default function Sidebar() {
 
             {/* Menu */}
             <div className="flex-1 overflow-y-auto py-4 px-2 space-y-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-                {menuItems.map((item) => {
+                {filteredItems.map((item) => {
                     const active = isActive(item.href);
                     return (
                         <Link

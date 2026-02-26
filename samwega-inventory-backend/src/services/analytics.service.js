@@ -499,24 +499,14 @@ class AnalyticsService {
     async getAccountingStats(filters = {}) {
         try {
             const { startDate, endDate } = filters;
-
             const cacheKey = `${this.cachePrefix}accounting:${JSON.stringify(filters)}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
             logger.info('Starting getAccountingStats...');
 
-            // Helper to parse dates
-            const parseDate = (dateField) => {
-                if (!dateField) return null;
-                if (dateField instanceof Date) return dateField;
-                if (dateField.toDate && typeof dateField.toDate === 'function') return dateField.toDate();
-                if (dateField._seconds) return new Date(dateField._seconds * 1000); // Firestore Timestamp
-                return new Date(dateField);
-            };
-
             // Range setup
-            const start = startDate ? new Date(startDate) : null;
+            const start = startDate ? this.parseDate(startDate) : null;
             if (start) start.setHours(0, 0, 0, 0);
 
             const end = endDate ? new Date(endDate) : null;
@@ -531,7 +521,7 @@ class AnalyticsService {
             const sales = [];
             salesSnapshot.forEach(doc => {
                 const sale = doc.data();
-                const saleDate = parseDate(sale.saleDate);
+                const saleDate = this.parseDate(sale.saleDate);
 
                 let include = true;
                 if (start && (!saleDate || saleDate < start)) include = false;
@@ -579,7 +569,7 @@ class AnalyticsService {
                 const expense = doc.data();
                 if (expense.status === 'rejected') return; // Exclude rejected
 
-                const expenseDate = parseDate(expense.expenseDate || expense.createdAt);
+                const expenseDate = this.parseDate(expense.expenseDate || expense.createdAt);
 
                 let include = true;
                 if (start && (!expenseDate || expenseDate < start)) include = false;
@@ -615,7 +605,7 @@ class AnalyticsService {
             const invoices = [];
             invoicesSnapshot.forEach(doc => {
                 const invoice = doc.data();
-                const invoiceDate = parseDate(invoice.createdAt || invoice.date);
+                const invoiceDate = this.parseDate(invoice.createdAt || invoice.date);
 
                 let include = true;
                 if (start && (!invoiceDate || invoiceDate < start)) include = false;
@@ -629,7 +619,113 @@ class AnalyticsService {
 
             const totalInvoices = invoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
 
-            // 4. Net Profit Calculation
+            // 4. Advanced BI Calculations
+            const nowTime = new Date();
+
+            // Vehicle ROI
+            const vehicleROIMap = {};
+
+            // 1. Initialize with all active vehicles to ensure complete analysis
+            const vehiclesSnapshot = await this.db.collection('vehicles').where('isActive', '==', true).get();
+            vehiclesSnapshot.forEach(doc => {
+                const v = doc.data();
+                vehicleROIMap[doc.id] = {
+                    id: doc.id,
+                    name: v.vehicleName || v.name || v.registrationNumber || 'Unknown Vehicle',
+                    revenue: 0,
+                    expenses: 0,
+                    profit: 0
+                };
+            });
+
+            // 2. Add Revenue from Sales
+            sales.forEach(s => {
+                if (s.vehicleId) {
+                    if (!vehicleROIMap[s.vehicleId]) {
+                        vehicleROIMap[s.vehicleId] = { id: s.vehicleId, name: s.vehicleName, revenue: 0, expenses: 0, profit: 0 };
+                    }
+                    vehicleROIMap[s.vehicleId].revenue += (s.grandTotal || 0);
+                    const saleProfit = s.items?.reduce((sum, item) => sum + (item.profit || 0), 0) || 0;
+                    vehicleROIMap[s.vehicleId].profit += saleProfit;
+                }
+            });
+
+            // 3. Add Expenses
+            expenses.forEach(e => {
+                if (e.vehicleId) {
+                    if (!vehicleROIMap[e.vehicleId]) {
+                        vehicleROIMap[e.vehicleId] = { id: e.vehicleId, name: e.vehicleName || 'Other Vehicle', revenue: 0, expenses: 0, profit: 0 };
+                    }
+                    vehicleROIMap[e.vehicleId].expenses += (e.amount || 0);
+                }
+            });
+
+            const vehicleROI = Object.values(vehicleROIMap).map(v => ({
+                ...v,
+                netROI: v.revenue - v.expenses
+            })).sort((a, b) => b.netROI - a.netROI);
+
+            // Inventory Health (Turnover & Dead Stock)
+            // Note: Turnover requires COGS which we approximate from sales profits
+            const inventorySnapshot = await this.db.collection('inventory').where('isActive', '==', true).get();
+            const inventoryHealth = {
+                deadStock: [],
+                turnover: []
+            };
+            inventorySnapshot.forEach(doc => {
+                const item = doc.data();
+                const salesForItem = Object.values(productMap).find(p => p.id === doc.id);
+                if (!salesForItem || salesForItem.qty === 0) {
+                    inventoryHealth.deadStock.push({ id: doc.id, name: item.productName, stock: item.stock });
+                } else {
+                    inventoryHealth.turnover.push({ id: doc.id, name: item.productName, qtySold: salesForItem.qty, revenue: salesForItem.revenue });
+                }
+            });
+            inventoryHealth.deadStock = inventoryHealth.deadStock.slice(0, 10);
+            inventoryHealth.turnover = inventoryHealth.turnover.sort((a, b) => b.qtySold - a.qtySold).slice(0, 10);
+
+            // Accounts Receivable (MPESA/Mixed payments that are pending or aging)
+            // approximating from sales with specific statuses if any, or just aging bucketing
+            const aging = { '0-7 days': 0, '8-30 days': 0, '30+ days': 0 };
+            sales.forEach(s => {
+                if (s.paymentMethod === 'credit' || s.paymentMethod === 'mixed') {
+                    const date = this.parseDate(s.saleDate);
+                    if (!date) return; // Skip if invalid
+                    const diffDays = Math.ceil((nowTime - date) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 7) aging['0-7 days'] += s.grandTotal;
+                    else if (diffDays <= 30) aging['8-30 days'] += s.grandTotal;
+                    else aging['30+ days'] += s.grandTotal;
+                }
+            });
+
+            // Team Performance
+            const teamPerformance = {};
+            sales.forEach(s => {
+                const repId = s.salesRepId || 'unknown';
+                if (!teamPerformance[repId]) {
+                    teamPerformance[repId] = { id: repId, name: s.salesRepName || 'Unknown', revenue: 0, profit: 0, sales: 0 };
+                }
+                teamPerformance[repId].revenue += (s.grandTotal || 0);
+                teamPerformance[repId].sales += 1;
+                teamPerformance[repId].profit += s.items?.reduce((sum, item) => sum + (item.profit || 0), 0) || 0;
+            });
+
+            // Operating Margins (Trends)
+            // Using the existing grouping logic for revenue vs expenses
+            const marginTrends = this.groupSalesByPeriod(sales, 'day').map(s => {
+                const dailyExpenses = expenses.filter(e => {
+                    const d = this.parseDate(e.expenseDate || e.createdAt);
+                    return d && d.toISOString().split('T')[0] === s.period;
+                }).reduce((sum, e) => sum + (e.amount || 0), 0);
+                return {
+                    date: s.period,
+                    revenue: s.revenue,
+                    expenses: dailyExpenses,
+                    margin: s.revenue > 0 ? ((s.revenue - dailyExpenses) / s.revenue) * 100 : 0
+                };
+            });
+
+            // 5. Net Profit Calculation
             const netProfit = totalRevenue - (totalExpenses + totalInvoices);
             logger.info('Accounting stats calculated successfully.');
 
@@ -640,6 +736,11 @@ class AnalyticsService {
                 netProfit,
                 topSellingItems,
                 topExpenses,
+                vehicleROI,
+                inventoryHealth,
+                accountsReceivable: aging,
+                teamPerformance: Object.values(teamPerformance).sort((a, b) => b.profit - a.profit),
+                marginTrends,
                 lastUpdated: new Date()
             };
 
@@ -662,7 +763,14 @@ class AnalyticsService {
         const grouped = {};
 
         sales.forEach(sale => {
-            const date = new Date(sale.saleDate);
+            const date = this.parseDate(sale.saleDate);
+
+            // Skip invalid dates to prevent RangeError: Invalid time value
+            if (!date || isNaN(date.getTime())) {
+                logger.warn(`Skipping sale ${sale.id} in groupSalesByPeriod due to invalid date:`, sale.saleDate);
+                return;
+            }
+
             let key;
 
             if (groupBy === 'hour') {
@@ -693,6 +801,21 @@ class AnalyticsService {
         });
 
         return Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period));
+    }
+
+    /**
+     * Robust date parser for various formats (Firestore Timestamp, Date object, string)
+     * @param {*} dateField 
+     * @returns {Date|null}
+     */
+    parseDate(dateField) {
+        if (!dateField) return null;
+        if (dateField instanceof Date) return dateField;
+        if (dateField.toDate && typeof dateField.toDate === 'function') return dateField.toDate();
+        if (dateField._seconds) return new Date(dateField._seconds * 1000);
+
+        const d = new Date(dateField);
+        return isNaN(d.getTime()) ? null : d;
     }
 }
 

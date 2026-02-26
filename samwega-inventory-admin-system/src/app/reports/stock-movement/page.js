@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Download, Truck, Calendar } from "lucide-react";
+import { FileText, Download, Truck, Calendar, ArrowUpRight, ArrowDownLeft, MoveHorizontal } from "lucide-react";
 import api from "@/lib/api";
 import ReportLayout from "@/components/reports/ReportLayout";
 import jsPDF from "jspdf";
@@ -68,48 +68,48 @@ export default function StockMovementPage() {  // Renamed to match route/functio
     const filters = (
         <div className="flex flex-wrap gap-4 w-full md:w-auto items-end">
             <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Start Date</label>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Start Date</label>
                 <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
                     />
                 </div>
             </div>
             <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">End Date</label>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">End Date</label>
                 <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 h-[40px] transition-all"
                     />
                 </div>
             </div>
-            <div className="w-full md:w-56">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Vehicle</label>
+            <div className="w-full md:w-48">
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Vehicle</label>
                 <div className="relative">
-                    <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <select
                         value={selectedVehicle}
                         onChange={(e) => setSelectedVehicle(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none"
+                        className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:ring-1 focus:ring-slate-400 bg-white h-[40px] transition-all appearance-none"
                     >
                         <option value="">All Vehicles</option>
                         {vehicles.map(v => (
-                            <option key={v.id} value={v.id}>{v.vehicleName} ({v.vehicleNumber})</option>
+                            <option key={v.id} value={v.id}>{v.vehicleName}</option>
                         ))}
                     </select>
                 </div>
             </div>
             <button
                 onClick={fetchReport}
-                className="btn-secondary h-[38px] px-4"
+                className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors h-[40px]"
             >
                 Apply
             </button>
@@ -132,20 +132,27 @@ export default function StockMovementPage() {  // Renamed to match route/functio
             doc.text(`Vehicle: ${vName}`, 14, 38);
         }
 
-        const tableColumn = ["Date", "Ref", "Item", "Quantity", "Vehicle", "Status"];
-        const tableRows = reportData.map(row => {
-            const vehicle = vehicles.find(v => v.id === row.vehicleId);
-            const vehicleDisplay = vehicle ? vehicle.vehicleNumber : row.vehicleId;
+        const tableColumn = ["Date", "Ref", "Item", "Quantity", "Origin", "Dest", "Vehicle", "Status"];
+        const tableRows = reportData
+            .filter(row => vehicles.some(v => v.id === row.vehicleId)) // Only WH <-> Valid Vehicle
+            .map(row => {
+                const vehicle = vehicles.find(v => v.id === row.vehicleId);
+                const vehicleDisplay = vehicle ? vehicle.vehicleNumber : row.vehicleId;
+                const isReturn = row.returnQty || row.type === 'return' || row.status?.toLowerCase() === 'returned';
+                const origin = isReturn ? (vehicle ? vehicle.vehicleNumber : "Vehicle") : "Warehouse";
+                const dest = isReturn ? "Warehouse" : (vehicle ? vehicle.vehicleNumber : "Vehicle");
 
-            return [
-                new Date(row.date._seconds * 1000 || row.date).toLocaleDateString(),
-                row.transferNumber,
-                row.productName,
-                row.quantity,
-                vehicleDisplay,
-                row.status
-            ];
-        });
+                return [
+                    new Date(row.date._seconds * 1000 || row.date).toLocaleDateString(),
+                    row.transferNumber,
+                    row.productName,
+                    row.quantity,
+                    row.origin || origin,
+                    row.destination || dest,
+                    vehicleDisplay,
+                    row.status
+                ];
+            });
 
         autoTable(doc, {
             head: [tableColumn],
@@ -162,11 +169,12 @@ export default function StockMovementPage() {  // Renamed to match route/functio
 
     const actions = (
         <button
-            className="btn-primary flex items-center gap-2"
             onClick={exportPDF}
+            disabled={loading || reportData.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm font-medium"
         >
-            <Download size={18} />
-            Export PDF
+            <Download size={16} />
+            Download PDF
         </button>
     );
 
@@ -182,57 +190,84 @@ export default function StockMovementPage() {  // Renamed to match route/functio
             <div className="min-w-full inline-block align-middle">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity Issued</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Date/Time</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Reference</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Item</th>
+                                <th scope="col" className="px-6 py-3 text-right text-[11px] font-bold text-slate-500 uppercase tracking-wider">Qty</th>
+                                <th scope="col" className="px-6 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-center">Origin/Dest</th>
+                                <th scope="col" className="px-6 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Vehicle</th>
+                                <th scope="col" className="px-6 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {reportData.length === 0 ? (
+                            {reportData.filter(row => vehicles.some(v => v.id === row.vehicleId)).length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-12 text-center text-slate-400">
-                                        No stock movements found for the selected period.
+                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-400">
+                                        No warehouse-vehicle movements found for the selected period.
                                     </td>
                                 </tr>
                             ) : (
-                                reportData.map((row, index) => (
-                                    <tr key={index} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {new Date(row.date._seconds * 1000 || row.date).toLocaleDateString()}
-                                            <span className="block text-xs text-gray-400">
-                                                {new Date(row.date._seconds * 1000 || row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                                            {row.transferNumber}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                            {row.productName}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                                            {row.quantity}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {(() => {
-                                                const vehicle = vehicles.find(v => v.id === row.vehicleId);
-                                                return vehicle ? vehicle.vehicleNumber : row.vehicleId;
-                                            })()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                ${row.status === 'collected' ? 'bg-green-100 text-green-800' :
-                                                    row.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-yellow-100 text-yellow-800'}`}>
-                                                {row.status ? row.status.charAt(0).toUpperCase() + row.status.slice(1) : 'Unknown'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))
+                                reportData
+                                    .filter(row => vehicles.some(v => v.id === row.vehicleId))
+                                    .map((row, index) => {
+                                        const isReturn = row.returnQty || row.type === 'return' || row.status?.toLowerCase() === 'returned';
+                                        const vehicle = vehicles.find(v => v.id === row.vehicleId);
+                                        const vName = vehicle ? vehicle.vehicleNumber : row.vehicleId;
+
+                                        // Use provided origin/dest or fallback to logic
+                                        const origin = row.origin || (isReturn ? vName : "Warehouse");
+                                        const dest = row.destination || (isReturn ? "Warehouse" : vName);
+
+                                        return (
+                                            <tr key={index} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 last:border-0">
+                                                <td className="px-6 py-3 whitespace-nowrap text-xs">
+                                                    <div className="text-slate-900 font-bold">
+                                                        {new Date(row.date._seconds * 1000 || row.date).toLocaleDateString()}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase">
+                                                        {new Date(row.date._seconds * 1000 || row.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap text-[11px] font-bold text-blue-600 uppercase">
+                                                    {row.transferNumber}
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap text-xs font-bold text-slate-800">
+                                                    {row.productName}
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap text-xs text-slate-900 text-right font-bold">
+                                                    {row.quantity}
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="flex items-center gap-2 group">
+                                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${isReturn ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{origin}</span>
+                                                            {isReturn ? <ArrowDownLeft size={10} className="text-emerald-500" /> : <ArrowUpRight size={10} className="text-blue-500" />}
+                                                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${!isReturn ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{dest}</span>
+                                                        </div>
+                                                        <span className={`text-[8.5px] font-bold uppercase tracking-tighter ${isReturn ? 'text-emerald-600' : 'text-blue-600'}`}>
+                                                            {isReturn ? "Return (In)" : "Issue (Out)"}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap text-xs">
+                                                    <div className="flex items-center gap-1.5 text-slate-700 font-bold uppercase">
+                                                        <Truck size={12} className="text-slate-400" />
+                                                        {vName}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 whitespace-nowrap text-center">
+                                                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                                ${row.status === 'collected' ? 'bg-indigo-50 text-indigo-700' :
+                                                            row.status === 'confirmed' ? 'bg-slate-100 text-slate-700' :
+                                                                'bg-amber-50 text-amber-700'}`}>
+                                                        {row.status || 'Pending'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                             )}
                         </tbody>
                     </table>

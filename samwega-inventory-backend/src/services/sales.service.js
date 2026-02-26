@@ -50,7 +50,7 @@ class SalesService {
         try {
             const { vehicleId, items, paymentMethod, payments, customerName, customerPhone,
                 customerIdNumber, customerEmail, storeName, subtotal, taxAmount = 0, discountAmount = 0,
-                grandTotal, notes = '', status = 'completed', location } = saleData;
+                grandTotal, notes = '', status = 'completed', location, isEtr = false } = saleData;
 
             // Get user details
             const userDoc = await this.db.collection('users').doc(userId).get();
@@ -294,6 +294,7 @@ class SalesService {
                     storeName: storeName || null,
                     customerIdNumber: customerIdNumber || null,
                     customerEmail: customerEmail || null,
+                    isEtr: Boolean(isEtr),
                     location: location ? {
                         latitude: location.latitude,
                         longitude: location.longitude,
@@ -715,62 +716,136 @@ class SalesService {
      */
     async getStats(vehicleId, options = {}) {
         try {
-            const { startDate, endDate, type = 'daily' } = options;
+            const { startDate, endDate, type = 'daily', useFallback = true } = options;
 
             logger.info(`=== STATS CALCULATION (${type}) ===`);
 
-            // Use daily_sales_summary collection for much faster aggregation
+            // 1. Try to get from daily_sales_summary first
             let summaryQuery = this.db.collection('daily_sales_summary');
 
-            // Apply filters
             if (vehicleId) {
                 summaryQuery = summaryQuery.where('vehicleId', '==', vehicleId);
             }
 
             if (startDate && endDate) {
-                // Determine date range strings (summary uses YYYY-MM-DD)
                 const startStr = new Date(startDate).toISOString().split('T')[0];
                 const endStr = new Date(endDate).toISOString().split('T')[0];
-
-                summaryQuery = summaryQuery
-                    .where('date', '>=', startStr)
-                    .where('date', '<=', endStr);
+                summaryQuery = summaryQuery.where('date', '>=', startStr).where('date', '<=', endStr);
             } else if (type === 'daily' || type === 'today') {
-                // Default to today if daily and no dates
                 const today = new Date().toISOString().split('T')[0];
                 summaryQuery = summaryQuery.where('date', '==', today);
             }
 
             const snapshot = await summaryQuery.get();
-            logger.info(`Found ${snapshot.size} summary records for stats calculation`);
 
+            // Define core stats structure
             const stats = {
                 totalRevenue: 0,
                 totalTransactions: 0,
-                totalItemsSold: 0, // Not explicitly tracked in summary
+                totalItemsSold: 0,
                 paymentMethods: {
-                    cash: 0,
-                    mpesa: 0,
-                    bank: 0,
-                    credit: 0,
-                    mixed: 0
+                    cash: { amount: 0, count: 0 },
+                    mpesa: { amount: 0, count: 0 },
+                    bank: { amount: 0, count: 0 },
+                    credit: { amount: 0, count: 0 },
+                    mixed: { amount: 0, count: 0 }
                 },
                 period: type === 'all' ? 'all_time' : (startDate && endDate ? `${startDate} to ${endDate}` : 'today')
             };
 
+            // If we have summary data, use it
             if (!snapshot.empty) {
                 snapshot.forEach(doc => {
                     const data = doc.data();
+                    stats.totalRevenue += Number(data.totalSales || 0);
+                    stats.totalTransactions += Number(data.totalTransactions || 0);
+                    stats.paymentMethods.cash.amount += Number(data.cashSales || 0);
+                    stats.paymentMethods.mpesa.amount += Number(data.mpesaSales || 0);
+                    stats.paymentMethods.bank.amount += Number(data.bankSales || 0);
+                    stats.paymentMethods.credit.amount += Number(data.creditSales || 0);
+                    stats.paymentMethods.mixed.amount += Number(data.mixedSales || 0);
+                    // Summary data does not provide transaction counts per payment method, only totalTransactions
+                });
 
-                    stats.totalRevenue += (data.totalSales || 0);
-                    stats.totalTransactions += (data.totalTransactions || 0);
+                // Validate if summary breakdown matches total revenue AND has no 'mixed' bucket 
+                // (since mixed bucket isn't displayed on dashboard)
+                const pmSum = stats.paymentMethods.cash.amount +
+                    stats.paymentMethods.mpesa.amount +
+                    stats.paymentMethods.bank.amount +
+                    stats.paymentMethods.credit.amount;
 
-                    // Aggregate payment methods
-                    stats.paymentMethods.cash += (data.cashSales || 0);
-                    stats.paymentMethods.mpesa += (data.mpesaSales || 0);
-                    stats.paymentMethods.bank += (data.bankSales || 0);
-                    stats.paymentMethods.credit += (data.creditSales || 0);
-                    stats.paymentMethods.mixed += (data.mixedSales || 0);
+                const isComplete = stats.totalRevenue > 0 &&
+                    stats.paymentMethods.mixed.amount === 0 &&
+                    Math.abs(stats.totalRevenue - pmSum) < 0.01;
+
+                if (isComplete && !options.forceFallback) {
+                    logger.info(`Stats from summary: Total=${stats.totalRevenue}, Count=${stats.totalTransactions}`);
+                    return stats;
+                }
+
+                logger.info(`Summary data incomplete or has mixed payments (Revenue=${stats.totalRevenue}, PM Sum=${pmSum}, Mixed=${stats.paymentMethods.mixed.amount}). Proceeding to fallback...`);
+            }
+
+            // 2. Fallback: Aggregate directly from sales collection
+            if (useFallback) {
+                logger.info('Performing deep aggregation from sales collection...');
+                let salesQuery = this.db.collection(this.collection).where('status', '==', 'completed');
+
+                if (vehicleId) {
+                    salesQuery = salesQuery.where('vehicleId', '==', vehicleId);
+                }
+
+                if (startDate && endDate) {
+                    salesQuery = salesQuery.where('saleDate', '>=', new Date(startDate))
+                        .where('saleDate', '<=', new Date(endDate));
+                } else if (type === 'daily' || type === 'today') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    salesQuery = salesQuery.where('saleDate', '>=', today);
+                }
+
+                const salesSnapshot = await salesQuery.get();
+
+                // Reset stats to ensure we don't double count or mix with summary data
+                stats.totalRevenue = 0;
+                stats.totalTransactions = 0;
+                stats.paymentMethods = {
+                    cash: { amount: 0, count: 0 },
+                    mpesa: { amount: 0, count: 0 },
+                    bank: { amount: 0, count: 0 },
+                    credit: { amount: 0, count: 0 },
+                    mixed: { amount: 0, count: 0 }
+                };
+
+                salesSnapshot.forEach(doc => {
+                    const sale = doc.data();
+                    const amount = Number(sale.grandTotal || 0);
+                    if (amount === 0) return;
+
+                    stats.totalRevenue += amount;
+                    stats.totalTransactions += 1;
+
+                    const mainMethod = String(sale.paymentMethod || 'cash').toLowerCase();
+
+                    if (mainMethod === 'mixed' && Array.isArray(sale.payments) && sale.payments.length > 0) {
+                        sale.payments.forEach(p => {
+                            const pMethod = String(p.method || '').toLowerCase();
+                            const pAmount = Number(p.amount || 0);
+
+                            if (pMethod === 'cash') { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; }
+                            else if (pMethod.includes('mpesa') || pMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += pAmount; stats.paymentMethods.mpesa.count += 1; }
+                            else if (pMethod.includes('bank') || pMethod.includes('card') || pMethod.includes('cheque')) { stats.paymentMethods.bank.amount += pAmount; stats.paymentMethods.bank.count += 1; }
+                            else if (pMethod === 'credit' || pMethod === 'debt') { stats.paymentMethods.credit.amount += pAmount; stats.paymentMethods.credit.count += 1; }
+                            else { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; } // Default sub-payment to cash
+                        });
+                    } else {
+                        // Single payment method or mixed without payment details
+                        if (mainMethod === 'cash') { stats.paymentMethods.cash.amount += amount; stats.paymentMethods.cash.count += 1; }
+                        else if (mainMethod.includes('mpesa') || mainMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += amount; stats.paymentMethods.mpesa.count += 1; }
+                        else if (mainMethod.includes('bank') || mainMethod.includes('card') || mainMethod.includes('cheque')) { stats.paymentMethods.bank.amount += amount; stats.paymentMethods.bank.count += 1; }
+                        else if (mainMethod === 'credit' || mainMethod === 'debt') { stats.paymentMethods.credit.amount += amount; stats.paymentMethods.credit.count += 1; }
+                        else { stats.paymentMethods.cash.amount += amount; stats.paymentMethods.cash.count += 1; } // Default to cash for everything else
+                    }
                 });
             }
 

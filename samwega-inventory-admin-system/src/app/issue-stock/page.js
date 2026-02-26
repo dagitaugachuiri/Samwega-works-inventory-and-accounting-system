@@ -80,15 +80,25 @@ export default function IssueStockUnified() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
 
   // Fetch Initial Data (Vehicles & Main Inventory)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [vehiclesRes, inventoryRes] = await Promise.all([
+        const [vehiclesRes, inventoryRes, userRes] = await Promise.all([
           api.getVehicles(),
-          api.getInventory()
+          api.getInventory(),
+          api.getCurrentUser()
         ]);
+
+        if (userRes.success) {
+          if (userRes.data.role === 'accountant') {
+            router.push('/dashboard');
+            return;
+          }
+          setUser(userRes.data);
+        }
 
         const vList = vehiclesRes?.data?.vehicles || vehiclesRes?.vehicles || vehiclesRes?.data || [];
         setVehicles(Array.isArray(vList) ? vList : []);
@@ -104,7 +114,7 @@ export default function IssueStockUnified() {
       }
     };
     fetchData();
-  }, []);
+  }, [router]);
 
   const loadVehicleInventory = useCallback(async () => {
     // Wait for inventory to load first to ensure we can calculate structure

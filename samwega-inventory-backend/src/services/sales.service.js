@@ -362,7 +362,7 @@ class SalesService {
                     });
                 }
 
-                return saleRef.id;
+                return { id: saleRef.id };
             });
 
             logger.info(`Sale created: ${receiptNumber}`, { id: saleId, vehicleId, grandTotal });
@@ -457,6 +457,10 @@ class SalesService {
             }
             if (status) {
                 query = query.where('status', '==', status);
+            }
+            if (filters.isEtr !== undefined && filters.isEtr !== '') {
+                const isEtrBool = filters.isEtr === 'true' || filters.isEtr === true;
+                query = query.where('isEtr', '==', isEtrBool);
             }
 
             // Text search (Customer Name)
@@ -716,7 +720,17 @@ class SalesService {
      */
     async getStats(vehicleId, options = {}) {
         try {
-            const { startDate, endDate, type = 'daily', useFallback = true } = options;
+            const { startDate, endDate, type = 'daily', useFallback = true, isEtr } = options;
+
+            // Normalise isEtr to a boolean or undefined
+            let isEtrFilter;
+            if (isEtr === 'true' || isEtr === true) isEtrFilter = true;
+            else if (isEtr === 'false' || isEtr === false) isEtrFilter = false;
+            // else isEtrFilter remains undefined => no filter
+
+            // When filtering by ETR status, the daily_sales_summary doesn't have that breakdown,
+            // so we must always go straight to the fallback aggregation.
+            const forceFallback = isEtrFilter !== undefined;
 
             logger.info(`=== STATS CALCULATION (${type}) ===`);
 
@@ -753,8 +767,8 @@ class SalesService {
                 period: type === 'all' ? 'all_time' : (startDate && endDate ? `${startDate} to ${endDate}` : 'today')
             };
 
-            // If we have summary data, use it
-            if (!snapshot.empty) {
+            // If we have summary data and are NOT filtering by ETR, try to use it
+            if (!snapshot.empty && !forceFallback) {
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     stats.totalRevenue += Number(data.totalSales || 0);
@@ -793,6 +807,11 @@ class SalesService {
 
                 if (vehicleId) {
                     salesQuery = salesQuery.where('vehicleId', '==', vehicleId);
+                }
+
+                // Apply ETR filter
+                if (isEtrFilter !== undefined) {
+                    salesQuery = salesQuery.where('isEtr', '==', isEtrFilter);
                 }
 
                 if (startDate && endDate) {

@@ -39,10 +39,57 @@ export default function SalesTeamPage() {
         action: '',
         resource: ''
     });
+    const [selectedLog, setSelectedLog] = useState(null);
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [resourceData, setResourceData] = useState(null);
+    const [loadingResource, setLoadingResource] = useState(false);
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (isLogModalOpen && selectedLog?.resourceId) {
+            fetchResourceDetails(selectedLog.resource, selectedLog.resourceId);
+        } else {
+            setResourceData(null);
+        }
+    }, [isLogModalOpen, selectedLog]);
+
+    const fetchResourceDetails = async (resource, id) => {
+        try {
+            setLoadingResource(true);
+            let response;
+            switch (resource) {
+                case 'sale':
+                    response = await api.getSaleById(id);
+                    break;
+                case 'expense':
+                    response = await api.getExpenseById(id);
+                    break;
+                case 'inventory':
+                    response = await api.getInventoryById(id);
+                    break;
+                case 'transfer':
+                    response = await api.getTransferById(id);
+                    break;
+                case 'vehicle':
+                    response = await api.getVehicleById(id);
+                    break;
+                default:
+                    setResourceData(null);
+                    return;
+            }
+
+            if (response?.success) {
+                setResourceData(response.data);
+            }
+        } catch (error) {
+            console.error(`Failed to fetch ${resource} details:`, error);
+        } finally {
+            setLoadingResource(false);
+        }
+    };
 
     const fetchData = async () => {
         try {
@@ -341,6 +388,7 @@ export default function SalesTeamPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Action</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Resource</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Description</th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700">Audit</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
@@ -354,7 +402,7 @@ export default function SalesTeamPage() {
                                     </tr>
                                 ) : (
                                     activityLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50">
+                                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
                                             <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
                                                 {log.timestamp ? new Date(log.timestamp.seconds * 1000 || log.timestamp).toLocaleString() : 'N/A'}
                                             </td>
@@ -380,7 +428,23 @@ export default function SalesTeamPage() {
                                                 {log.resource}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">
-                                                {log.description}
+                                                <div className="flex flex-col">
+                                                    <span>{log.description}</span>
+                                                    {log.resourceId && (
+                                                        <span className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {log.resourceId}</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedLog(log);
+                                                        setIsLogModalOpen(true);
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline"
+                                                >
+                                                    View Details
+                                                </button>
                                             </td>
                                         </tr>
                                     ))
@@ -674,6 +738,184 @@ export default function SalesTeamPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Activity Log Details Modal */}
+            {isLogModalOpen && selectedLog && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="mb-6 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-slate-900 border-l-4 border-sky-500 pl-3">Activity Details</h2>
+                            <button
+                                onClick={() => setIsLogModalOpen(false)}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Timestamp</p>
+                                    <p className="text-sm text-slate-700">
+                                        {selectedLog.timestamp ? new Date(selectedLog.timestamp.seconds * 1000 || selectedLog.timestamp).toLocaleString() : 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">User</p>
+                                    <p className="text-sm font-semibold text-slate-900">{selectedLog.username}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Action Type</p>
+                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold
+                                        ${selectedLog.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
+                                            selectedLog.action === 'UPDATE' ? 'bg-blue-100 text-blue-700' :
+                                                selectedLog.action === 'DELETE' ? 'bg-rose-100 text-rose-700' :
+                                                    'bg-slate-100 text-slate-700'}`}>
+                                        {selectedLog.action}
+                                    </span>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Resource</p>
+                                    <p className="text-sm font-medium capitalize text-slate-700">{selectedLog.resource}</p>
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Description</p>
+                                <p className="text-sm text-slate-800 leading-relaxed font-medium">
+                                    {selectedLog.description}
+                                </p>
+                            </div>
+
+                            {/* Resource Data Preview */}
+                            {(loadingResource || resourceData) && (
+                                <div className="space-y-3 p-4 rounded-xl bg-sky-50/50 border border-sky-100">
+                                    <div className="flex items-center justify-between border-b border-sky-100 pb-2">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Resource Preview</p>
+                                        {loadingResource && <div className="h-4 w-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>}
+                                    </div>
+
+                                    {resourceData && (
+                                        <div className="space-y-2">
+                                            {selectedLog.resource === 'sale' && (
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-sm font-semibold text-slate-900 px-1">
+                                                        <span>Receipt #{resourceData.receiptNumber || 'N/A'}</span>
+                                                        <span className="text-emerald-700">KSh {resourceData.grandTotal?.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="bg-white/60 rounded-lg p-2 text-xs space-y-1">
+                                                        {resourceData.items?.map((item, idx) => (
+                                                            <div key={idx} className="flex justify-between items-start border-b border-slate-100/50 pb-1 last:border-0 last:pb-0">
+                                                                <span className="text-slate-600 truncate max-w-[180px]">{item.productName}</span>
+                                                                <span className="text-slate-900 font-medium whitespace-nowrap">{item.quantity} x {item.sellingPrice?.toLocaleString()}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                                        <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">Payment: {resourceData.paymentMethod}</span>
+                                                        <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">Vehicle: {resourceData.vehicleName}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedLog.resource === 'expense' && (
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center text-sm font-semibold text-slate-900 px-1">
+                                                        <span>{resourceData.category?.toUpperCase()}</span>
+                                                        <span className="text-rose-700">KSh {resourceData.amount?.toLocaleString()}</span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-600 bg-white/60 p-2 rounded-lg italic">
+                                                        "{resourceData.description}"
+                                                    </p>
+                                                    <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                                                        <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">Date: {new Date(resourceData.expenseDate).toLocaleDateString()}</span>
+                                                        <span className="bg-white px-1.5 py-0.5 rounded border border-slate-200">Status: {resourceData.status}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {selectedLog.resource === 'inventory' && (
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-semibold text-slate-900 px-1">{resourceData.productName}</p>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="bg-white/60 p-2 rounded-lg">
+                                                            <span className="text-slate-500 block">Stock Level</span>
+                                                            <span className="font-bold text-slate-900">{resourceData.stock} units</span>
+                                                        </div>
+                                                        <div className="bg-white/60 p-2 rounded-lg">
+                                                            <span className="text-slate-500 block">Selling Price</span>
+                                                            <span className="font-bold text-slate-900">KSh {resourceData.sellingPrice?.toLocaleString()}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {!['sale', 'expense', 'inventory'].includes(selectedLog.resource) && (
+                                                <div className="text-xs text-slate-500 italic text-center py-2">
+                                                    Basic info: {resourceData.name || resourceData.productName || resourceData.title || 'Details loaded'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Technical Context</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <div className="flex items-center justify-between text-xs py-2 border-b border-slate-100">
+                                        <span className="text-slate-500">Method / URL</span>
+                                        <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{selectedLog.details?.method || 'N/A'} {selectedLog.details?.url || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs py-2 border-b border-slate-100">
+                                        <span className="text-slate-500">Status Code</span>
+                                        <span className={`font-mono font-bold ${selectedLog.details?.statusCode >= 400 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                            {selectedLog.details?.statusCode || '200'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs py-2 border-b border-slate-100">
+                                        <span className="text-slate-500">Resource ID</span>
+                                        <span className="font-mono text-slate-700 selection:bg-sky-100">{selectedLog.resourceId || 'N/A'}</span>
+                                    </div>
+                                    {selectedLog.details?.identifier && (
+                                        <div className="flex items-center justify-between text-xs py-2 border-b border-slate-100">
+                                            <span className="text-slate-500">Identifier</span>
+                                            <span className="font-medium text-slate-700">{selectedLog.details.identifier}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                {selectedLog.resourceId && (
+                                    <Link
+                                        href={
+                                            selectedLog.resource === 'sale' ? '/sales-dashboard' :
+                                                selectedLog.resource === 'expense' ? '/expenses' :
+                                                    selectedLog.resource === 'invoice' ? '/invoices' :
+                                                        selectedLog.resource === 'vehicle' ? '/vehicles' :
+                                                            selectedLog.resource === 'inventory' ? '/dashboard' :
+                                                                '#'
+                                        }
+                                        className="flex-1 btn-primary justify-center gap-2"
+                                        onClick={() => setIsLogModalOpen(false)}
+                                    >
+                                        Go to {selectedLog.resource.charAt(0).toUpperCase() + selectedLog.resource.slice(1)}s
+                                    </Link>
+                                ) || (
+                                        <div className="flex-1 text-center py-2 text-xs text-slate-400 italic">No direct resource link available</div>
+                                    )}
+                                <button
+                                    onClick={() => setIsLogModalOpen(false)}
+                                    className="px-6 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

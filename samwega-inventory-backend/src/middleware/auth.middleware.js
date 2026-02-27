@@ -154,16 +154,48 @@ const requireVehicle = (req, res, next) => {
  */
 const logActivity = (action, resource) => {
     return async (req, res, next) => {
+        // Capture the original send and json methods to intercept the response body
+        const originalSend = res.send;
+        const originalJson = res.json;
+        let responseBody;
+
+        res.send = function (body) {
+            responseBody = body;
+            return originalSend.apply(res, arguments);
+        };
+
+        res.json = function (body) {
+            responseBody = body;
+            return originalJson.apply(res, arguments);
+        };
+
         // We log after the request is successful
         res.on('finish', async () => {
             if (res.statusCode >= 200 && res.statusCode < 300) {
                 try {
                     const activityLogService = require('../services/activity-log.service');
 
-                    // Try to find resource ID from params or body
-                    const resourceId = req.params.id || req.body.id || null;
+                    // 1. Determine local resourceId (from params or body)
+                    let resourceId = req.params.id || req.body.id || null;
 
-                    // Extract a helpful identifier from the request body
+                    // 2. Try to extract ID from response body if local is missing (common for CREATE)
+                    if (!resourceId && responseBody) {
+                        try {
+                            // Handle both string and object bodies
+                            const parsedBody = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+                            // Check for ID in various common locations
+                            resourceId = parsedBody.data?.id || parsedBody.id || parsedBody.data?.uid || null;
+
+                            // IF data is just a string, it might be the ID itself
+                            if (!resourceId && typeof parsedBody.data === 'string' && parsedBody.data.length > 5) {
+                                resourceId = parsedBody.data;
+                            }
+                        } catch (e) {
+                            // Ignore parsing errors
+                        }
+                    }
+
+                    // 3. Extract a helpful identifier from the request body or response
                     let identifier = '';
                     if (req.body) {
                         identifier = req.body.vehicleName ||
@@ -172,8 +204,18 @@ const logActivity = (action, resource) => {
                             req.body.fullName ||
                             req.body.username ||
                             req.body.invoiceNumber ||
-                            req.body.saleId ||
+                            req.body.reference ||
+                            req.body.receiptNumber ||
                             '';
+                    }
+
+                    // If identifier is still empty, check the response body
+                    if (!identifier && responseBody) {
+                        try {
+                            const parsedBody = typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+                            const data = parsedBody.data || parsedBody;
+                            identifier = data.invoiceNumber || data.receiptNumber || data.name || '';
+                        } catch (e) { }
                     }
 
                     const description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${req.user.username || req.user.email}`;
@@ -183,13 +225,14 @@ const logActivity = (action, resource) => {
                         username: req.user.username || req.user.email,
                         action,
                         resource,
-                        resourceId,
+                        resourceId: resourceId ? String(resourceId) : null,
                         description,
                         details: {
                             method: req.method,
                             url: req.originalUrl,
                             params: req.params,
-                            identifier: identifier || null
+                            identifier: identifier || null,
+                            statusCode: res.statusCode
                             // body: req.body // Be careful with sensitive data
                         }
                     });

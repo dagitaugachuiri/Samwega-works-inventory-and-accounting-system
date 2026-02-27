@@ -8,6 +8,7 @@ import {
     BarChart2,
     List,
     ChevronDown,
+    Receipt,
     X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -87,6 +88,7 @@ export default function SalesDashboard() {
     const [selectedVehicle, setSelectedVehicle] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [etrFilter, setEtrFilter] = useState("");
     const [search, setSearch] = useState(""); // searches receipt#, customer, items
 
     // Transactions-mode specific
@@ -96,7 +98,7 @@ export default function SalesDashboard() {
     // ── Fetch ────────────────────────────────────────────────────────────────
 
     useEffect(() => { fetchVehicles(); }, []);
-    useEffect(() => { fetchData(); }, [selectedVehicle, startDate, endDate]);
+    useEffect(() => { fetchData(); }, [selectedVehicle, startDate, endDate, etrFilter]);
 
     const fetchVehicles = async () => {
         try {
@@ -118,6 +120,7 @@ export default function SalesDashboard() {
                 filters.type = "all";
             }
             if (selectedVehicle) filters.vehicleId = selectedVehicle;
+            if (etrFilter) filters.isEtr = etrFilter;
 
             const [statsData, salesData] = await Promise.all([
                 api.getSalesStats(filters),
@@ -233,6 +236,7 @@ export default function SalesDashboard() {
         setSelectedVehicle("");
         setStartDate("");
         setEndDate("");
+        setEtrFilter("");
         setSearch("");
     };
 
@@ -282,6 +286,20 @@ export default function SalesDashboard() {
                                 </select>
                             </div>
 
+                            {/* ETR filter */}
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5 relative overflow-hidden">
+                                <Receipt size={14} className="text-slate-400" />
+                                <select
+                                    value={etrFilter}
+                                    onChange={(e) => setEtrFilter(e.target.value)}
+                                    className="bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer appearance-none pr-4 outline-none"
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="true">ETR Sales</option>
+                                    <option value="false">Non-ETR Sales</option>
+                                </select>
+                            </div>
+
                             {/* Date range */}
                             <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-sm">
                                 <input
@@ -299,7 +317,7 @@ export default function SalesDashboard() {
                                 />
                             </div>
 
-                            {(selectedVehicle || startDate || endDate || search) && (
+                            {(selectedVehicle || startDate || endDate || etrFilter || search) && (
                                 <button
                                     onClick={resetFilters}
                                     className="flex items-center gap-1 text-xs text-rose-500 font-medium hover:text-rose-700 bg-white border border-rose-200 rounded px-2 py-1.5"

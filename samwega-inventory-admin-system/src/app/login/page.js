@@ -108,10 +108,7 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="mt-6 text-center text-sm text-slate-500">
-                        <p>Default credentials:</p>
-                        <p className="font-mono text-xs mt-1">admin@samwega.com / admin123</p>
-                    </div>
+
                 </div>
 
                 <div className="text-center mt-6 text-sm text-slate-600">

@@ -362,7 +362,7 @@ class SalesService {
                     });
                 }
 
-                return { id: saleRef.id };
+                return saleRef.id;
             });
 
             logger.info(`Sale created: ${receiptNumber}`, { id: saleId, vehicleId, grandTotal });

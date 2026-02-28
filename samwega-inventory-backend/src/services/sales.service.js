@@ -48,6 +48,12 @@ class SalesService {
      */
     async createSale(saleData, userId) {
         try {
+            console.log('[SalesService] CREATE SALE RECEIVED:', JSON.stringify({
+                paymentMethod: saleData.paymentMethod,
+                bankName: saleData.bankName,
+                payments: !!saleData.payments,
+                paymentCount: saleData.payments ? saleData.payments.length : 0
+            }, null, 2));
             const { vehicleId, items, paymentMethod, payments, customerName, customerPhone,
                 customerIdNumber, customerEmail, storeName, subtotal, taxAmount = 0, discountAmount = 0,
                 grandTotal, notes = '', status = 'completed', location, isEtr = false } = saleData;
@@ -173,6 +179,9 @@ class SalesService {
                 const bankPayment = paymentRecords.find(p => p.method === 'bank' && p.bankName);
                 if (bankPayment) finalizedBankName = bankPayment.bankName;
             }
+
+            console.log('[SalesService] FINALIZED BANK NAME:', finalizedBankName);
+            console.log('[SalesService] PAYMENT RECORDS:', JSON.stringify(paymentRecords, null, 2));
 
             // Handle customer creation/lookup
             let customerId = null;

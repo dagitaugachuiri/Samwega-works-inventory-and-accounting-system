@@ -10,7 +10,8 @@ export default function SalesPage() {
         startDate: "",
         endDate: "",
         vehicleId: "",
-        paymentMethod: "all"
+        paymentMethod: "all",
+        bankName: ""
     });
     const [vehicles, setVehicles] = useState([]);
     const [selectedSale, setSelectedSale] = useState(null);
@@ -111,7 +112,7 @@ export default function SalesPage() {
 
             {/* Filters */}
             <div className="glass-panel px-5 py-5">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                     <div>
                         <label className="block text-xs font-medium text-slate-700 mb-2">Start Date</label>
                         <input
@@ -157,6 +158,22 @@ export default function SalesPage() {
                             <option value="credit">Credit</option>
                         </select>
                     </div>
+                    <div>
+                        <label className="block text-xs font-medium text-slate-700 mb-2">Bank</label>
+                        <select
+                            value={filter.bankName}
+                            onChange={(e) => setFilter({ ...filter, bankName: e.target.value })}
+                            className="input-field w-full"
+                        >
+                            <option value="">All Banks</option>
+                            <option value="Equity">Equity</option>
+                            <option value="Old KCB">Old KCB</option>
+                            <option value="New KCB">New KCB</option>
+                            <option value="Old Absa">Old Absa</option>
+                            <option value="New Absa">New Absa</option>
+                            <option value="Family">Family</option>
+                        </select>
+                    </div>
                 </div>
                 <button onClick={fetchSales} className="btn-primary mt-3">
                     Apply Filters
@@ -200,10 +217,17 @@ export default function SalesPage() {
                                     <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
                                         KSh {sale.grandTotal.toLocaleString()}
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">
-                                            {sale.paymentMethod}
-                                        </span>
+                                    <td className="px-4 py-3 text-center text-sm">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 capitalize">
+                                                {sale.paymentMethod}
+                                            </span>
+                                            {sale.bankName && (
+                                                <span className="text-[10px] text-sky-600 font-medium mt-1 uppercase">
+                                                    {sale.bankName}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className={`text-xs px-2 py-1 rounded ${sale.status === "completed" ? "bg-emerald-100 text-emerald-800" :

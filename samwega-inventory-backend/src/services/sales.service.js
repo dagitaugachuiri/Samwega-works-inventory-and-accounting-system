@@ -152,6 +152,7 @@ class SalesService {
                     method: p.method,
                     amount: p.amount,
                     reference: p.reference || null,
+                    bankName: p.bankName || null,
                     notes: p.notes || '',
                     paidAt: new Date()
                 }));
@@ -160,6 +161,7 @@ class SalesService {
                     method: paymentMethod,
                     amount: grandTotal,
                     reference: saleData.paymentReference || null,
+                    bankName: saleData.bankName || null,
                     notes: '',
                     paidAt: new Date()
                 }]
@@ -426,6 +428,7 @@ class SalesService {
                 endDate,
                 minAmount,
                 maxAmount,
+                bankName,
                 page = 1,
                 limit = 20,
                 sortBy = 'createdAt',
@@ -457,6 +460,9 @@ class SalesService {
             }
             if (status) {
                 query = query.where('status', '==', status);
+            }
+            if (bankName) {
+                query = query.where('bankName', '==', bankName);
             }
             if (filters.isEtr !== undefined && filters.isEtr !== '') {
                 const isEtrBool = filters.isEtr === 'true' || filters.isEtr === true;

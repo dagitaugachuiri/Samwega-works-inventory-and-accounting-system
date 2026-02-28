@@ -89,6 +89,7 @@ export default function SalesDashboard() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [etrFilter, setEtrFilter] = useState("");
+    const [bankFilter, setBankFilter] = useState("");
     const [search, setSearch] = useState(""); // searches receipt#, customer, items
 
     // Transactions-mode specific
@@ -98,7 +99,7 @@ export default function SalesDashboard() {
     // ── Fetch ────────────────────────────────────────────────────────────────
 
     useEffect(() => { fetchVehicles(); }, []);
-    useEffect(() => { fetchData(); }, [selectedVehicle, startDate, endDate, etrFilter]);
+    useEffect(() => { fetchData(); }, [selectedVehicle, startDate, endDate, etrFilter, bankFilter]);
 
     const fetchVehicles = async () => {
         try {
@@ -121,6 +122,7 @@ export default function SalesDashboard() {
             }
             if (selectedVehicle) filters.vehicleId = selectedVehicle;
             if (etrFilter) filters.isEtr = etrFilter;
+            if (bankFilter) filters.bankName = bankFilter;
 
             const [statsData, salesData] = await Promise.all([
                 api.getSalesStats(filters),
@@ -237,6 +239,7 @@ export default function SalesDashboard() {
         setStartDate("");
         setEndDate("");
         setEtrFilter("");
+        setBankFilter("");
         setSearch("");
     };
 
@@ -300,6 +303,24 @@ export default function SalesDashboard() {
                                 </select>
                             </div>
 
+                            {/* Bank filter */}
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5 relative overflow-hidden">
+                                <ChevronDown size={14} className="text-slate-400" />
+                                <select
+                                    value={bankFilter}
+                                    onChange={(e) => setBankFilter(e.target.value)}
+                                    className="bg-transparent border-none text-sm text-slate-700 focus:ring-0 cursor-pointer appearance-none pr-4 outline-none"
+                                >
+                                    <option value="">All Banks</option>
+                                    <option value="Equity">Equity</option>
+                                    <option value="Old KCB">Old KCB</option>
+                                    <option value="New KCB">New KCB</option>
+                                    <option value="Old Absa">Old Absa</option>
+                                    <option value="New Absa">New Absa</option>
+                                    <option value="Family">Family</option>
+                                </select>
+                            </div>
+
                             {/* Date range */}
                             <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-3 py-1.5 text-sm">
                                 <input
@@ -317,7 +338,7 @@ export default function SalesDashboard() {
                                 />
                             </div>
 
-                            {(selectedVehicle || startDate || endDate || etrFilter || search) && (
+                            {(selectedVehicle || startDate || endDate || etrFilter || bankFilter || search) && (
                                 <button
                                     onClick={resetFilters}
                                     className="flex items-center gap-1 text-xs text-rose-500 font-medium hover:text-rose-700 bg-white border border-rose-200 rounded px-2 py-1.5"
@@ -476,7 +497,14 @@ export default function SalesDashboard() {
                                                             </div>
                                                         </td>
                                                         <td className="px-5 py-3" onClick={() => router.push(`/sales/${sale.id}`)}>
-                                                            <PaymentBadge method={sale.paymentMethod} />
+                                                            <div className="flex flex-col items-start gap-1">
+                                                                <PaymentBadge method={sale.paymentMethod} />
+                                                                {sale.bankName && (
+                                                                    <span className="text-[10px] text-sky-600 font-medium uppercase tracking-tight">
+                                                                        {sale.bankName}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="px-5 py-3 text-right font-semibold text-slate-900 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
                                                             {fmt(sale.grandTotal)}

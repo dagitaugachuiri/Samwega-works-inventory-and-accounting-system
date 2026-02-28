@@ -97,6 +97,13 @@ const paymentSchema = Joi.object({
         .optional()
         .messages({
             'string.max': 'Notes cannot exceed 500 characters'
+        }),
+
+    bankName: Joi.string()
+        .optional()
+        .allow(null, '')
+        .messages({
+            'string.base': 'Bank name must be a string'
         })
 });
 
@@ -268,6 +275,13 @@ const createSaleSchema = Joi.object({
         .optional()
         .messages({
             'boolean.base': 'isEtr must be a boolean'
+        }),
+
+    bankName: Joi.string()
+        .optional()
+        .allow(null, '')
+        .messages({
+            'string.base': 'Bank name must be a string'
         })
 });
 
@@ -288,7 +302,8 @@ const updateSaleSchema = Joi.object({
     grandTotal: Joi.number().positive().optional(),
     notes: Joi.string().max(500).optional(),
     status: Joi.string().valid('draft', 'completed').optional(),
-    isEtr: Joi.boolean().optional()
+    isEtr: Joi.boolean().optional(),
+    bankName: Joi.string().optional().allow(null, '')
 }).min(1); // At least one field must be provided
 
 /**
@@ -334,6 +349,7 @@ const searchSalesSchema = Joi.object({
     sortBy: Joi.string().valid('receiptNumber', 'grandTotal', 'saleDate', 'createdAt').default('createdAt'),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     isEtr: Joi.alternatives().try(Joi.boolean(), Joi.string().valid('true', 'false')).optional(),
+    bankName: Joi.string().optional(),
     search: Joi.string().optional()
 });
 

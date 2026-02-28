@@ -5008,3 +5008,4 @@
 {"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-02-28 15:35:35"}
 {"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-02-28 15:35:35"}
 {"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-02-28 15:35:35"}
+{"level":"info","message":"HTTP server closed","service":"samwega-backend","timestamp":"2026-02-28 15:36:41"}

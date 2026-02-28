@@ -147,7 +147,7 @@ class SalesService {
 
             // Prepare payment records
             let paymentRecords = [];
-            if (paymentMethod === 'mixed' && payments) {
+            if (payments && Array.isArray(payments)) {
                 paymentRecords = payments.map(p => ({
                     method: p.method,
                     amount: p.amount,
@@ -165,6 +165,13 @@ class SalesService {
                     notes: '',
                     paidAt: new Date()
                 }]
+            }
+
+            // Extract bankName from payments if not already at top level
+            let finalizedBankName = saleData.bankName || null;
+            if (!finalizedBankName) {
+                const bankPayment = paymentRecords.find(p => p.method === 'bank' && p.bankName);
+                if (bankPayment) finalizedBankName = bankPayment.bankName;
             }
 
             // Handle customer creation/lookup
@@ -297,7 +304,7 @@ class SalesService {
                     customerIdNumber: customerIdNumber || null,
                     customerEmail: customerEmail || null,
                     isEtr: Boolean(isEtr),
-                    bankName: saleData.bankName || null,
+                    bankName: finalizedBankName,
                     location: location ? {
                         latitude: location.latitude,
                         longitude: location.longitude,

@@ -8,7 +8,7 @@
 
 const debtService = require('../services/debt.service');
 const salesService = require('../services/sales.service');
-const { successResponse, errorResponse } = require('../utils/response.util');
+const { successResponse, errorResponse } = require('../utils/response');
 const logger = require('../utils/logger');
 
 /**
@@ -56,7 +56,7 @@ const enrichSales = async (req, res) => {
         }
 
         // Fetch the debtId for each sale from Firestore (batch)
-        const db = require('../config/firebase').getDb();
+        const db = require('../config/firebase.config').getFirestore();
         const salesRef = db.collection('sales');
 
         const saleSnapshots = await Promise.allSettled(

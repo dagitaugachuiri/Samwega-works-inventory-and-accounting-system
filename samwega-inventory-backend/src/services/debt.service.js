@@ -10,7 +10,7 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 const DEBT_API_BASE = process.env.DEBT_API_URL || 'https://smwoks-kzpo.onrender.com/api';
-const DEBT_API_TIMEOUT = 15000; // 15s
+const DEBT_API_TIMEOUT = 60000; // 60s to allow for Render cold starts
 
 const debtApi = axios.create({
     baseURL: DEBT_API_BASE,
@@ -104,13 +104,12 @@ const getDashboardSummary = async (filters = {}) => {
             bank: 0
         };
 
+        const targetBank = filters.bankName ? String(filters.bankName).toLowerCase() : null;
+
         for (const debt of debts) {
-            // Date filter (on dateIssued for basic metrics, or lastPaymentDate for collections?)
-            // Usually, dashboard stats show what happened in the period.
-            // If we want "transferred" payments, we should look at payments made in the period.
-            // For now, we filter by dateIssued to match the sale period.
             if (filters.startDate || filters.endDate) {
-                const issuedSeconds = debt.dateIssued?.seconds || debt.dateIssued?._seconds;
+                const issued = debt.dateIssued;
+                const issuedSeconds = issued?.seconds || issued?._seconds;
                 if (!issuedSeconds) continue;
                 const issuedMs = issuedSeconds * 1000;
                 if (filters.startDate && issuedMs < new Date(filters.startDate).getTime()) continue;
@@ -125,10 +124,20 @@ const getDashboardSummary = async (filters = {}) => {
             // Aggregate collections if there's a paid amount
             if (paid > 0) {
                 const method = String(debt.paidPaymentMethod || '').toLowerCase();
-                if (method === 'cash') collections.cash += paid;
-                else if (method.includes('mpesa') || method.includes('mobile')) collections.mpesa += paid;
-                else if (method.includes('bank') || method.includes('card') || method.includes('cheque')) collections.bank += paid;
-                else collections.cash += paid; // default fallback
+                const isBank = method.includes('bank') || method.includes('card') || method.includes('cheque');
+
+                // If a specific bank is requested, only count if it matches
+                if (targetBank) {
+                    const debtBank = String(debt.bankName || '').toLowerCase();
+                    const match = debtBank.includes(targetBank) || method.includes(targetBank);
+
+                    if (isBank && match) collections.bank += paid;
+                } else {
+                    if (method === 'cash') collections.cash += paid;
+                    else if (method.includes('mpesa') || method.includes('mobile')) collections.mpesa += paid;
+                    else if (isBank) collections.bank += paid;
+                    else collections.cash += paid; // default fallback
+                }
             }
 
             if (debt.status === 'paid' && remaining === 0) {
@@ -163,4 +172,48 @@ const getDashboardSummary = async (filters = {}) => {
     }
 };
 
-module.exports = { getDebtById, getDebtsByIds, getDashboardSummary, resolveDebtDisplayStatus };
+/**
+ * Batch-fetch debt records for a list of sale IDs.
+ * First resolves the debtId for each sale from Firestore, then fetches live records.
+ * @param {string[]} saleIds
+ * @returns {Promise<Object>} Map of { saleId -> debtRecord }
+ */
+const getDebtsBySaleIds = async (saleIds) => {
+    if (!saleIds || saleIds.length === 0) return {};
+
+    const { getFirestore } = require('../config/firebase.config');
+    const db = getFirestore();
+    const salesRef = db.collection('sales');
+
+    const saleSnapshots = await Promise.allSettled(
+        saleIds.map((id) => salesRef.doc(id).get())
+    );
+
+    const debtIdToSaleId = {};
+    const debtIds = [];
+
+    saleSnapshots.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.exists) {
+            const data = result.value.data();
+            const debtId = data?.debtId;
+            if (debtId) {
+                debtIdToSaleId[debtId] = saleIds[index];
+                debtIds.push(debtId);
+            }
+        }
+    });
+
+    const debtMap = await getDebtsByIds(debtIds);
+
+    const result = {};
+    for (const [debtId, debtRecord] of Object.entries(debtMap)) {
+        const saleId = debtIdToSaleId[debtId];
+        if (saleId) {
+            result[saleId] = debtRecord;
+        }
+    }
+
+    return result;
+};
+
+module.exports = { getDebtById, getDebtsByIds, getDashboardSummary, getDebtsBySaleIds, resolveDebtDisplayStatus };

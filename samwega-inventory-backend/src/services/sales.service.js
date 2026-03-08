@@ -470,9 +470,6 @@ class SalesService {
             if (status) {
                 query = query.where('status', '==', status);
             }
-            if (bankName) {
-                query = query.where('bankName', '==', bankName);
-            }
             if (filters.isEtr !== undefined && filters.isEtr !== '') {
                 const isEtrBool = filters.isEtr === 'true' || filters.isEtr === true;
                 query = query.where('isEtr', '==', isEtrBool);
@@ -747,6 +744,17 @@ class SalesService {
             // so we must always go straight to the fallback aggregation.
             const forceFallback = isEtrFilter !== undefined || !!bankName;
 
+            // Resolve vehiclePlate from vehicleId if provided (for debt enrichment)
+            let vehiclePlate;
+            if (vehicleId) {
+                try {
+                    const vehicle = await vehicleService.getVehicleById(vehicleId);
+                    vehiclePlate = vehicle?.plateNumber || vehicle?.vehiclePlate;
+                } catch (_) {
+                    // non-fatal
+                }
+            }
+
             logger.info(`=== STATS CALCULATION (${type}) ===`);
 
             // 1. Try to get from daily_sales_summary first
@@ -775,15 +783,15 @@ class SalesService {
                 paymentMethods: {
                     cash: { amount: 0, count: 0 },
                     mpesa: { amount: 0, count: 0 },
-                    bank: { amount: 0, count: 0 },
+                    bank: { amount: 0, count: 0, breakdown: {} },
                     credit: { amount: 0, count: 0 },
                     mixed: { amount: 0, count: 0 }
                 },
                 period: type === 'all' ? 'all_time' : (startDate && endDate ? `${startDate} to ${endDate}` : 'today')
             };
 
-            // If we have summary data and are NOT filtering by ETR, try to use it
-            if (!snapshot.empty && !forceFallback) {
+            // If we have summary data, try to use it
+            if (!snapshot.empty) {
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     stats.totalRevenue += Number(data.totalSales || 0);
@@ -816,6 +824,7 @@ class SalesService {
             }
 
             // 2. Fallback: Aggregate directly from sales collection
+            let salesSnapshot = null;
             if (useFallback) {
                 logger.info('Performing deep aggregation from sales collection...');
                 let salesQuery = this.db.collection(this.collection).where('status', '==', 'completed');
@@ -843,7 +852,7 @@ class SalesService {
                     salesQuery = salesQuery.where('saleDate', '>=', today);
                 }
 
-                const salesSnapshot = await salesQuery.get();
+                salesSnapshot = await salesQuery.get();
 
                 salesSnapshot.forEach(doc => {
                     const sale = doc.data();
@@ -883,14 +892,24 @@ class SalesService {
 
                                 if (pMethod === 'cash') { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; }
                                 else if (pMethod.includes('mpesa') || pMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += pAmount; stats.paymentMethods.mpesa.count += 1; }
-                                else if (pMethod.includes('bank') || pMethod.includes('card') || pMethod.includes('cheque')) { stats.paymentMethods.bank.amount += pAmount; stats.paymentMethods.bank.count += 1; }
+                                else if (pMethod.includes('bank') || pMethod.includes('card') || pMethod.includes('cheque')) {
+                                    stats.paymentMethods.bank.amount += pAmount;
+                                    stats.paymentMethods.bank.count += 1;
+                                    const bName = p.bankName || 'Other';
+                                    stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + pAmount;
+                                }
                                 else if (pMethod === 'credit' || pMethod === 'debt') { stats.paymentMethods.credit.amount += pAmount; stats.paymentMethods.credit.count += 1; }
                                 else { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; }
                             });
                         } else {
                             if (mainMethod === 'cash') { stats.paymentMethods.cash.amount += grandTotal; stats.paymentMethods.cash.count += 1; }
                             else if (mainMethod.includes('mpesa') || mainMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += grandTotal; stats.paymentMethods.mpesa.count += 1; }
-                            else if (mainMethod.includes('bank') || mainMethod.includes('card') || mainMethod.includes('cheque')) { stats.paymentMethods.bank.amount += grandTotal; stats.paymentMethods.bank.count += 1; }
+                            else if (mainMethod.includes('bank') || mainMethod.includes('card') || mainMethod.includes('cheque')) {
+                                stats.paymentMethods.bank.amount += grandTotal;
+                                stats.paymentMethods.bank.count += 1;
+                                const bName = sale.bankName || 'Other';
+                                stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + grandTotal;
+                            }
                             else if (mainMethod === 'credit' || mainMethod === 'debt') { stats.paymentMethods.credit.amount += grandTotal; stats.paymentMethods.credit.count += 1; }
                             else { stats.paymentMethods.cash.amount += grandTotal; stats.paymentMethods.cash.count += 1; }
                         }
@@ -899,43 +918,71 @@ class SalesService {
             }
 
             // 3. ENRICH WITH LIVE DEBT STATS
-            // Override 'credit' bucket with true outstanding amount from debt system
-            try {
-                // Get vehicle plate for accurate filtering if vehicleId is provided
-                let vehiclePlate;
-                if (vehicleId) {
-                    try {
-                        const vehicle = await vehicleService.getVehicleById(vehicleId);
-                        vehiclePlate = vehicle?.plateNumber || vehicle?.vehiclePlate;
-                    } catch (_) {
-                        // fallback to vehicleId if plate lookup fails
-                        vehiclePlate = vehicleId;
-                    }
-                }
+            // Instead of a global summary, we should only enrich the credit portion 
+            // for the sales we just aggregated if filters are active.
 
+            let targetSaleIds = [];
+            if (salesSnapshot) {
+                targetSaleIds = salesSnapshot.docs.map(doc => doc.id);
+            }
+
+            if (targetSaleIds.length > 0) {
+                // Fetch debt enrichment for these specific sales
+                const enrichment = await debtService.getDebtsBySaleIds(targetSaleIds);
+
+                // Reset credit bucket and rebuild it from enrichment
+                stats.paymentMethods.credit.amount = 0;
+
+                Object.values(enrichment).forEach(debt => {
+                    stats.paymentMethods.credit.amount += Number(debt.remainingAmount || 0);
+
+                    // Also add collections from these specific debts to their respective buckets
+                    if (debt.paidAmount > 0) {
+                        const method = String(debt.paidPaymentMethod || '').toLowerCase();
+                        const paid = Number(debt.paidAmount || 0);
+                        const debtBankName = String(debt.bankName || '').toLowerCase();
+
+                        const isBank = method.includes('bank') ||
+                            method.includes('card') ||
+                            method.includes('cheque') ||
+                            ['equity', 'kcb', 'absa', 'family', 'stanchart', 'coop', 'dtb'].some(b => method.includes(b));
+
+                        if (isBank) {
+                            stats.paymentMethods.bank.amount += paid;
+                            const bName = debtBankName || 'Other';
+                            stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + paid;
+                        } else {
+                            if (method === 'cash') stats.paymentMethods.cash.amount += paid;
+                            else if (method.includes('mpesa') || method.includes('mobile')) stats.paymentMethods.mpesa.amount += paid;
+                            else stats.paymentMethods.cash.amount += paid;
+                        }
+                    }
+                });
+
+                logger.info(`Stats enriched with specific debt enrichment for ${targetSaleIds.length} sales.`);
+            } else {
+                // Fallback to global summary
                 const debtSummary = await debtService.getDashboardSummary({
                     vehiclePlate,
                     startDate,
                     endDate
                 });
 
-                // Update the credit bucket with LIVE data
-                // We keep the count from inventory sales query, but Use amount from debt API
                 stats.paymentMethods.credit.amount = debtSummary.totalOutstanding;
 
-                // PAYMENT TRANSFER: Add debt payments to their respective buckets
                 if (debtSummary.collections) {
                     const coll = debtSummary.collections;
                     stats.paymentMethods.cash.amount += (coll.cash || 0);
                     stats.paymentMethods.mpesa.amount += (coll.mpesa || 0);
                     stats.paymentMethods.bank.amount += (coll.bank || 0);
 
-                    logger.info(`Stats updated with Debt Collections: Cash(+${coll.cash || 0}), Mpesa(+${coll.mpesa || 0}), Bank(+${coll.bank || 0})`);
+                    // Merge bank breakdown
+                    if (coll.banks) {
+                        Object.entries(coll.banks).forEach(([bName, amount]) => {
+                            stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + amount;
+                        });
+                    }
                 }
-
-                logger.info(`Stats enriched with Live Debt. Original Credit Sale Total overridden with Outstanding: ${debtSummary.totalOutstanding}`);
-            } catch (debtStatsError) {
-                logger.warn(`Failed to enrich stats with live debt: ${debtStatsError.message}`);
             }
 
             return stats;

@@ -20,7 +20,8 @@ export default function VehicleDetailsDashboard() {
   const [vehicleInventory, setVehicleInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFilter, setDateFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [activeTab, setActiveTab] = useState("issuances");
 
   // Modal state
@@ -44,14 +45,19 @@ export default function VehicleDetailsDashboard() {
 
     const fetchData = async () => {
       try {
-        setLoading(true);
+        if (!vehicle) setLoading(true);
+
+        const filters = { vehicleId };
+        if (startDate) filters.startDate = startDate;
+        if (endDate) filters.endDate = endDate;
+
         const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
           api.getVehicleById(vehicleId),
-          api.getTransfers({ vehicleId }),
+          api.getTransfers(filters),
           api.getInventory(),
-          api.getSales({ vehicleId }),
-          api.getExpenses({ vehicleId }),
-          api.getVehicleInventoryReport({ vehicleId })
+          api.getSales(filters),
+          api.getExpenses(filters),
+          api.getVehicleInventoryReport(filters)
         ]);
 
         setVehicle(vehicleRes?.data || vehicleRes);
@@ -71,7 +77,7 @@ export default function VehicleDetailsDashboard() {
     };
 
     fetchData();
-  }, [vehicleId]);
+  }, [vehicleId, startDate, endDate]);
 
   // Helper to calculate multiplier (matching backend logic)
   const calculateMultiplier = (structure, layerIndex) => {
@@ -90,10 +96,20 @@ export default function VehicleDetailsDashboard() {
     return 1;
   };
 
-  // Filter transfers, sales, expenses by date
-  const filteredTransfers = transfers.filter(t => !dateFilter || new Date(t.createdAt).toISOString().split('T')[0] === dateFilter);
-  const filteredSales = sales.filter(s => !dateFilter || new Date(s.createdAt).toISOString().split('T')[0] === dateFilter);
-  const filteredExpenses = expenses.filter(e => !dateFilter || new Date(e.createdAt).toISOString().split('T')[0] === dateFilter);
+  // Filter transfers, sales, expenses by date range (local fallback)
+  const isWithinDateRange = (dateString) => {
+    if (!dateString) return true;
+    if (!startDate && !endDate) return true;
+    const date = new Date(dateString).toISOString().split('T')[0];
+    if (startDate && endDate) return date >= startDate && date <= endDate;
+    if (startDate) return date >= startDate;
+    if (endDate) return date <= endDate;
+    return true;
+  };
+
+  const filteredTransfers = transfers.filter(t => isWithinDateRange(t.createdAt));
+  const filteredSales = sales.filter(s => isWithinDateRange(s.createdAt));
+  const filteredExpenses = expenses.filter(e => isWithinDateRange(e.createdAt));
 
   // Stats calculation
   const stats = {
@@ -157,17 +173,29 @@ export default function VehicleDetailsDashboard() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
-            />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
+              />
+            </div>
+            <span className="text-slate-400 text-sm font-medium">to</span>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
+              />
+            </div>
           </div>
-          <button onClick={() => window.print()} className="btn-ghost flex items-center gap-2 text-xs">
+          <button onClick={() => window.print()} className="btn-ghost flex items-center gap-2 text-xs border border-slate-200 bg-white hover:bg-slate-50 px-3 py-2 rounded-lg">
             <Printer size={14} /> Print
           </button>
         </div>

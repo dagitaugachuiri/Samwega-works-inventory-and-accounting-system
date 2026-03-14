@@ -595,12 +595,7 @@ export default function BulkAddItemPage() {
                           disabled={item.isExisting}
                         >
                           <option value="misc">Misc</option>
-                          <option value="sweets">Sweets</option>
-                          <option value="juice">Juice</option>
-                          <option value="biscuits">Biscuits</option>
-                          <option value="baking ingredients">Baking</option>
-                          <option value="seasoning / mchuzi mix">Seasoning</option>
-                          <option value="household">Household</option>
+                         
                           <option value="Building Materials">Building</option>
                           <option value="Hardware">Hardware</option>
                           <option value="Electrical">Electrical</option>

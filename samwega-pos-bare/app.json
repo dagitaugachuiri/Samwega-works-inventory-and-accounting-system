@@ -1,0 +1,17 @@
+{
+  "name": "SamwegaPOS",
+  "displayName": "SamwegaPOS",
+  "expo": {
+    "name": "Samwega POS",
+    "slug": "samwega-pos",
+    "version": "1.0.0",
+    "ios": {
+      "bundleIdentifier": "com.samwega.pos"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ad4d4138-a03f-43d7-8186-c05846a967dd"
+      }
+    }
+  }
+}

@@ -99,10 +99,21 @@ const DebtStatusBadge = ({ sale }) => {
     
     const remainingAmount = Math.max(0, (sale.grandTotal || 0) - totalPaid);
 
-    // Map backend status to frontend keys
-    let status = sale.paymentStatus || (remainingAmount === 0 ? 'paid' : (totalPaid > 0 ? 'partial' : 'unpaid'));
-    if (status === 'partially_paid') status = 'partial';
-    if (status === 'pending') status = 'unpaid';
+    // Force dynamic status calculation to ensure "Paid" only shows when balance is zero
+    // This prevents incorrect backend "paid" flags from misleading the user on mixed/credit sales
+    let status;
+    if (remainingAmount <= 1) { // Allowance for small floating point diffs
+        status = 'paid';
+    } else if (totalPaid > 0) {
+        status = 'partial';
+    } else {
+        status = 'unpaid';
+    }
+
+    // Handle overdue override if applicable (only if not paid)
+    if (status !== 'paid' && (sale.paymentStatus === 'overdue' || (sale.dueDate && new Date(sale.dueDate) < new Date()))) {
+        status = 'overdue';
+    }
 
     const config = {
         paid: {

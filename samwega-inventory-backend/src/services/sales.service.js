@@ -298,7 +298,10 @@ class SalesService {
                     paymentMethod,
                     paymentStatus: (paymentMethod === 'credit' || paymentMethod === 'debt') 
                         ? 'pending' 
-                        : (paymentMethod === 'mixed' && paymentRecords.some(p => p.method === 'credit' || p.method === 'debt'))
+                        : (paymentMethod === 'mixed' && paymentRecords.some(p => {
+                            const m = String(p.method || '').toLowerCase();
+                            return m === 'credit' || m === 'debt';
+                        }))
                             ? 'partially_paid'
                             : 'paid',
                     payments: paymentRecords,

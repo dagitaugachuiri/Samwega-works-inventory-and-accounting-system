@@ -12,7 +12,7 @@ export default function SalesTeamPage() {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(null);
-    const [activeTab, setActiveTab] = useState('sales'); // 'sales', 'admins', 'accounting', or 'activity'
+    const [activeTab, setActiveTab] = useState('sales'); // 'sales', 'drivers', 'admins', 'accounting', or 'activity'
 
     // Add Admin Modal State
     const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
@@ -256,15 +256,18 @@ export default function SalesTeamPage() {
         }
     };
 
-    const getUnassignedVehicles = () => {
-        const assignedVehicleIds = users.map(u => u.assignedVehicleId).filter(Boolean);
-        return vehicles.filter(v => !assignedVehicleIds.includes(v.id));
+    const getUnassignedVehicles = (role) => {
+        if (role === 'driver') {
+            return vehicles.filter(v => !v.assignedDriverId);
+        }
+        return vehicles.filter(v => !v.assignedUserId);
     };
 
     // Filter Lists
     const admins = users.filter(u => ['admin', 'store_manager'].includes(u.role));
     const accountingTeam = users.filter(u => u.role === 'accountant');
     const salesTeam = users.filter(u => u.role === 'sales_rep');
+    const driversTeam = users.filter(u => u.role === 'driver');
 
     if (loading) {
         return (
@@ -332,6 +335,15 @@ export default function SalesTeamPage() {
                             }`}
                     >
                         Sales Team ({salesTeam.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('drivers')}
+                        className={`border-b-2 px-1 py-3 text-sm font-medium transition-colors ${activeTab === 'drivers'
+                            ? 'border-blue-600 text-blue-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Drivers ({driversTeam.length})
                     </button>
                     <button
                         onClick={() => setActiveTab('admins')}
@@ -496,9 +508,9 @@ export default function SalesTeamPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {(activeTab === 'sales' ? salesTeam : activeTab === 'admins' ? admins : accountingTeam).map((user) => {
+                                {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : accountingTeam).map((user) => {
                                     const assignedVehicle = vehicles.find(v => v.id === user.assignedVehicleId);
-                                    const unassignedVehicles = getUnassignedVehicles();
+                                    const unassignedVehicles = getUnassignedVehicles(user.role);
                                     const isUpdating = updating === user.id;
                                     const isAdmin = user.role === 'admin';
                                     const isCurrentUser = currentUser && currentUser.id === user.id;
@@ -527,8 +539,9 @@ export default function SalesTeamPage() {
                                                             user.role === 'accountant' ? 'bg-emerald-100 text-emerald-800' :
                                                                 'bg-blue-100 text-blue-800'}`}>
                                                     {user.role === 'sales_rep' ? 'Sales Rep' :
-                                                        user.role === 'store_manager' ? 'Manager' :
-                                                            user.role === 'accountant' ? 'Accountant' : 'Admin'}
+                                                        user.role === 'driver' ? 'Driver' :
+                                                            user.role === 'store_manager' ? 'Manager' :
+                                                                user.role === 'accountant' ? 'Accountant' : 'Admin'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
@@ -579,7 +592,7 @@ export default function SalesTeamPage() {
                                                     )}
                                                 </button>
                                             </td>
-                                            {activeTab === 'sales' && (
+                                            {(activeTab === 'sales' || activeTab === 'drivers') && (
                                                 <td className="px-6 py-4">
                                                     <select
                                                         value={user.assignedVehicleId || ''}
@@ -625,7 +638,7 @@ export default function SalesTeamPage() {
                         </table>
                     </div>
 
-                    {(activeTab === 'sales' ? salesTeam : activeTab === 'admins' ? admins : accountingTeam).length === 0 && (
+                    {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : accountingTeam).length === 0 && (
                         <div className="py-12 text-center">
                             <Users size={48} className="mx-auto mb-4 text-slate-300" />
                             <p className="text-slate-500">No {activeTab} members found</p>
@@ -701,6 +714,7 @@ export default function SalesTeamPage() {
                                     <option value="store_manager">Store Manager</option>
                                     <option value="accountant">Accountant</option>
                                     <option value="sales_rep">Sales Rep</option>
+                                    <option value="driver">Driver</option>
                                 </select>
                             </div>
 

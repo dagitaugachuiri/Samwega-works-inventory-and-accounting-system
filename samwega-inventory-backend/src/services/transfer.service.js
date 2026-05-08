@@ -380,19 +380,20 @@ class TransferService {
                 throw new ValidationError(`Cannot confirm transfer with status: ${transfer.status}`);
             }
 
-            // Verify sales rep is assigned to the vehicle
+            // Get confirming user details
+            const confirmingUserDoc = await this.db.collection('users').doc(salesRepId).get();
+            const confirmingUser = confirmingUserDoc.data();
+
+            // Verify the user is either the primary assigned user OR the assigned driver of the vehicle
             const vehicle = await vehicleService.getVehicleById(transfer.vehicleId);
-            if (vehicle.assignedUserId !== salesRepId) {
-                throw new UnauthorizedError('Only the assigned sales representative can confirm this transfer');
+            const isAssignedUser = vehicle.assignedUserId === salesRepId;
+            const isAssignedDriver = vehicle.assignedDriverId === salesRepId;
+
+            if (!isAssignedUser && !isAssignedDriver) {
+                throw new AuthorizationError('Only the assigned sales representative or driver can confirm this transfer');
             }
 
-            // Get sales rep details
-            const salesRepDoc = await this.db.collection('users').doc(salesRepId).get();
-            if (!salesRepDoc.exists) {
-                throw new NotFoundError('Sales representative');
-            }
-            const salesRepData = salesRepDoc.data();
-            const salesRepName = salesRepData.fullName || salesRepData.email;
+            const salesRepName = confirmingUser.fullName || confirmingUser.email;
 
             // Mark all items as collected
             const updatedItems = transfer.items.map(item => ({
@@ -452,8 +453,11 @@ class TransferService {
 
             // Verify vehicle/user assignment
             const vehicle = await vehicleService.getVehicleById(transfer.vehicleId);
-            if (vehicle.assignedUserId !== userId) {
-                throw new AuthorizationError('Only the assigned sales representative can collect items');
+            const isAssignedUser = vehicle.assignedUserId === userId;
+            const isAssignedDriver = vehicle.assignedDriverId === userId;
+
+            if (!isAssignedUser && !isAssignedDriver) {
+                throw new AuthorizationError('Only the assigned sales representative or driver can collect items');
             }
 
             const items = [...transfer.items];

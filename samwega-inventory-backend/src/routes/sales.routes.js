@@ -193,5 +193,15 @@ router.patch(
     salesController.updateSaleItem
 );
 
+/**
+ * @route   POST /api/v1/sales/webhook/debt-update
+ * @desc    Webhook for debt system to update sale payment status
+ * @access  Internal (simplified for now)
+ */
+router.post(
+    '/webhook/debt-update',
+    salesController.handleDebtWebhook
+);
+
 module.exports = router;
 

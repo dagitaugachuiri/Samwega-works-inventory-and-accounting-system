@@ -537,6 +537,7 @@ function IssuancesTab({ transfers }) {
           <th className="px-6 py-4 font-bold uppercase tracking-wider">Reference</th>
           <th className="px-6 py-4 font-bold uppercase tracking-wider">Items Issued</th>
           <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Qty</th>
+          <th className="px-6 py-4 font-bold uppercase tracking-wider">User</th>
           <th className="px-6 py-4 font-bold uppercase tracking-wider text-center">Status</th>
         </tr>
       </thead>
@@ -591,6 +592,17 @@ function IssuancesTab({ transfers }) {
                   "-"
                 )}
               </td>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                    {(t.status === 'collected' ? t.confirmedByName : t.submittedByName)?.substring(0, 2).toUpperCase() || "??"}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-900 font-medium">{t.status === 'collected' ? t.confirmedByName : t.submittedByName}</span>
+                    <span className="text-[10px] text-slate-400 capitalize">{t.status === 'collected' ? 'Confirmed Collection' : 'Issued by Admin'}</span>
+                  </div>
+                </div>
+              </td>
               <td className="px-6 py-4 text-center">
                 <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${t.status === 'collected' ? 'bg-emerald-50 text-emerald-600' :
                   t.status === 'approved' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
@@ -601,7 +613,7 @@ function IssuancesTab({ transfers }) {
             </tr>
           );
         }) : (
-          <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">No issuance records found.</td></tr>
+          <tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400">No issuance records found.</td></tr>
         )}
       </tbody>
     </table>

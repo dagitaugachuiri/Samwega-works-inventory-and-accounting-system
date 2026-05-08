@@ -17,8 +17,6 @@ import {
     Activity
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { debtDb } from "../../lib/debtFirebase";
 import api from "../../lib/api";
 import DeleteSaleModal from "../../components/KKCalcModal";
 
@@ -87,15 +85,24 @@ const PaymentBadge = ({ method }) => {
     );
 };
 
-const DebtStatusBadge = ({ debt }) => {
-    if (!debt) return null;
+const DebtStatusBadge = ({ sale }) => {
+    if (!sale) return null;
 
-    // Use displayStatus from backend or derive it
-    const status = debt.displayStatus || (
-        debt.remainingAmount === 0 ? 'paid' :
-            (debt.paidAmount > 0 ? 'partial' :
-                (debt.status === 'overdue' ? 'overdue' : 'unpaid'))
-    );
+    // Calculate actual amounts from payments array for accurate display
+    const totalPaid = (sale.payments || []).reduce((sum, p) => {
+        const method = (p.method || p.paymentMethod || '').toLowerCase();
+        if (method !== 'credit' && method !== 'debt') {
+            return sum + (Number(p.amount) || 0);
+        }
+        return sum;
+    }, 0);
+    
+    const remainingAmount = Math.max(0, (sale.grandTotal || 0) - totalPaid);
+
+    // Map backend status to frontend keys
+    let status = sale.paymentStatus || (remainingAmount === 0 ? 'paid' : (totalPaid > 0 ? 'partial' : 'unpaid'));
+    if (status === 'partially_paid') status = 'partial';
+    if (status === 'pending') status = 'unpaid';
 
     const config = {
         paid: {
@@ -110,7 +117,7 @@ const DebtStatusBadge = ({ debt }) => {
             text: "text-amber-700",
             border: "border-amber-100",
             icon: <Clock size={10} />,
-            label: `Partial: KSh ${fmt(debt.remainingAmount)}`
+            label: `Partial: KSh ${fmt(remainingAmount)}`
         },
         overdue: {
             bg: "bg-rose-50",
@@ -124,7 +131,7 @@ const DebtStatusBadge = ({ debt }) => {
             text: "text-slate-600",
             border: "border-slate-200",
             icon: <Clock size={10} />,
-            label: "Unpaid"
+            label: `Unpaid: KSh ${fmt(remainingAmount)}`
         },
     };
 
@@ -136,11 +143,6 @@ const DebtStatusBadge = ({ debt }) => {
                 {style.icon}
                 {style.label}
             </span>
-            {status === 'paid' && debt.paidPaymentMethod && (
-                <span className="text-[9px] text-slate-400 font-medium px-0.5 italic">
-                    via {debt.paidPaymentMethod}
-                </span>
-            )}
         </div>
     );
 };
@@ -165,12 +167,8 @@ export default function SalesDashboard() {
     const [selectedDate, setSelectedDate] = useState("");
     const [etrFilter, setEtrFilter] = useState("");
     const [debtFilter, setDebtFilter] = useState(false);
-    const [debtEnrichment, setDebtEnrichment] = useState({});
-    const [paymentLogsMap, setPaymentLogsMap] = useState({});
-    const [debtSummary, setDebtSummary] = useState(null);
     const [search, setSearch] = useState(""); // searches receipt#, customer, items
     const [walletFilter, setWalletFilter] = useState(""); // filters by Cash, Mpesa, or Bank Name
-    const [isEnriching, setIsEnriching] = useState(false); // track async calculations (debt/logs)
 
     // Transactions-mode specific
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -207,10 +205,9 @@ export default function SalesDashboard() {
             if (selectedVehicle) filters.vehicleId = selectedVehicle;
             if (etrFilter) filters.isEtr = etrFilter;
 
-            const [statsData, salesData, debtSumData] = await Promise.all([
+            const [statsData, salesData] = await Promise.all([
                 api.getSalesStats(filters),
-                api.getSales({ ...filters, limit: 2000 }), // Increased limit for accurate dashboard aggregation
-                api.getDebtDashboardSummary(filters)
+                api.getSales({ ...filters, limit: 2000 }) // Sufficient limit for dashboard view and aggregation fallback
             ]);
 
             if (statsData.success && statsData.data) {
@@ -219,9 +216,6 @@ export default function SalesDashboard() {
                 setStats({ totalRevenue: 0, totalTransactions: 0, totalItemsSold: 0, paymentMethods: {} });
             }
 
-            if (debtSumData.success) {
-                setDebtSummary(debtSumData.data);
-            }
 
             let fetchedSales = [];
             if (salesData.success && Array.isArray(salesData.data?.sales)) {
@@ -235,49 +229,7 @@ export default function SalesDashboard() {
 
             setSales(fetchedSales);
 
-            // Fetch live debt records for enrichment if there are credit/mixed sales
-            const creditSaleIds = fetchedSales
-                .filter(s => s.paymentMethod === 'credit' || s.paymentMethod === 'mixed')
-                .map(s => s.id);
-
-            if (creditSaleIds.length > 0) {
-                try {
-                    setIsEnriching(true);
-                    const enrichRes = await api.enrichSalesWithDebt(creditSaleIds);
-                    if (enrichRes.success) {
-                        setDebtEnrichment(enrichRes.data);
-
-                        // Fetch payment logs from Debt System (Client SDK approach)
-                        const debtIds = Object.values(enrichRes.data).map(d => d.id).filter(Boolean);
-                        if (debtIds.length > 0) {
-                            const logsMap = {};
-                            // Use limit or batch if there are many, but for now fetch for all debtIds
-                            // Firestore "in" query limited to 30 items
-                            for (let i = 0; i < debtIds.length; i += 30) {
-                                const batch = debtIds.slice(i, i + 30);
-                                const q = query(
-                                    collection(debtDb, "payment_logs"),
-                                    where("debtId", "in", batch),
-                                    where("success", "==", true)
-                                );
-                                const querySnapshot = await getDocs(q);
-                                querySnapshot.forEach(docSnap => {
-                                    const log = docSnap.data();
-                                    if (!logsMap[log.debtId]) logsMap[log.debtId] = [];
-                                    logsMap[log.debtId].push({ id: docSnap.id, ...log });
-                                });
-                            }
-                            setPaymentLogsMap(logsMap);
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Failed to enrich sales with debt data:", err);
-                } finally {
-                    setIsEnriching(false);
-                }
-            } else {
-                setIsEnriching(false);
-            }
+            setSales(fetchedSales);
 
             const userRes = await api.getCurrentUser();
             if (userRes.success) {
@@ -361,51 +313,30 @@ export default function SalesDashboard() {
             );
         }
 
-        // Apply wallet filter (Cash, Mpesa, specific Bank)
+        // Apply wallet filter (Cash, Mpesa, or specific Bank)
         if (walletFilter) {
             const filter = walletFilter.toLowerCase();
             result = result.filter(s => {
-                // 1. Check original payments
                 const method = (s.paymentMethod || "").toLowerCase();
                 const bank = (s.bankName || "").toLowerCase();
 
-                let matchesOriginal = false;
-                if (method === 'mixed' && Array.isArray(s.payments)) {
-                    matchesOriginal = s.payments.some(p => {
+                // 1. Check primary method/bank
+                let matches = false;
+                if (filter === 'cash') matches = method === 'cash';
+                else if (filter === 'mpesa') matches = method.includes('mpesa') || method.includes('mobile');
+                else matches = bank.includes(filter) || method.includes(filter);
+
+                if (matches) return true;
+
+                // 2. Check payments array (includes original parts and webhook updates)
+                if (Array.isArray(s.payments)) {
+                    return s.payments.some(p => {
                         const pm = (p.method || p.paymentMethod || "").toLowerCase();
                         const pb = (p.bankName || "").toLowerCase();
                         if (filter === 'cash') return pm === 'cash';
                         if (filter === 'mpesa') return pm.includes('mpesa') || pm.includes('mobile');
                         return pb.includes(filter) || pm.includes(filter);
                     });
-                } else {
-                    if (filter === 'cash') matchesOriginal = method === 'cash';
-                    else if (filter === 'mpesa') matchesOriginal = method.includes('mpesa') || method.includes('mobile');
-                    else matchesOriginal = bank.includes(filter) || method.includes(filter);
-                }
-                if (matchesOriginal) return true;
-
-                // 2. Check debt enrichment / logs
-                const enrichment = debtEnrichment[s.id];
-                if (enrichment) {
-                    const logs = paymentLogsMap[enrichment.id] || [];
-                    const matchesLogs = logs.some(log => {
-                        const lm = (log.paymentMethod || "").toLowerCase();
-                        const lb = (log.bankName || "").toLowerCase();
-                        if (filter === 'cash') return lm === 'cash';
-                        if (filter === 'mpesa') return lm.includes('mpesa') || lm.includes('mobile');
-                        return lb.includes(filter) || lm.includes(filter);
-                    });
-                    if (matchesLogs) return true;
-
-                    // Check enrichment summary paid info if logs missing
-                    if (logs.length === 0 && enrichment.paidAmount > 0) {
-                        const pm = (enrichment.paidPaymentMethod || "").toLowerCase();
-                        const pb = (enrichment.bankName || "").toLowerCase();
-                        if (filter === 'cash') return pm === 'cash';
-                        if (filter === 'mpesa') return pm.includes('mpesa') || pm.includes('mobile');
-                        return pb.includes(filter) || pm.includes(filter);
-                    }
                 }
                 return false;
             });
@@ -420,7 +351,7 @@ export default function SalesDashboard() {
                 (s.customer?.name || "").toLowerCase().includes(q) ||
                 (s.items || []).some((i) => (i.productName || "").toLowerCase().includes(q))
         );
-    }, [sales, search, debtFilter, walletFilter, debtEnrichment, paymentLogsMap]);
+    }, [sales, search, debtFilter, walletFilter]);
 
     // ── P&L Totals ────────────────────────────────────────────────────────────
     const pnlTotals = useMemo(() => {
@@ -434,120 +365,18 @@ export default function SalesDashboard() {
         );
     }, [filteredPnlRows]);
 
-    const computedStats = useMemo(() => {
-        const stats = {
-            totalRevenue: 0,
-            totalTransactions: filteredSales.length,
-            cash: 0,
-            mpesa: 0,
-            banks: {}, // breakdown by bank name
-            debt: 0
+    const displayStats = useMemo(() => {
+        if (!stats) return { totalRevenue: 0, totalTransactions: 0, cash: 0, mpesa: 0, debt: 0, banks: {} };
+
+        return {
+            totalRevenue: stats.totalRevenue || 0,
+            totalTransactions: stats.totalTransactions || 0,
+            cash: stats.paymentMethods?.cash?.amount || 0,
+            mpesa: stats.paymentMethods?.mpesa?.amount || 0,
+            debt: stats.paymentMethods?.credit?.amount || 0,
+            banks: stats.paymentMethods?.bank?.breakdown || {}
         };
-
-        // Helper for bank identification and naming
-        const getBankName = (method = "", bankName = "") => {
-            const m = String(method || "").toLowerCase();
-            const b = String(bankName || "").toLowerCase();
-
-            // Priority list of known banks for normalization
-            const knownBanks = ['Equity', 'KCB', 'Absa', 'Family', 'Stanchart', 'Coop', 'DTB'];
-            for (const name of knownBanks) {
-                if (m.includes(name.toLowerCase()) || b.includes(name.toLowerCase())) {
-                    // Try to preserve sub-names like "Old KCB" / "New KCB" if they exist in the literal strings
-                    if (b.toLowerCase().includes(name.toLowerCase())) return bankName;
-                    return name;
-                }
-            }
-
-            if (m.includes('bank') || m.includes('card') || m.includes('cheque')) {
-                return bankName || 'Other Bank';
-            }
-            return null;
-        };
-
-        const checkIsMpesa = (method = "") => {
-            const m = String(method || "").toLowerCase();
-            return m.includes('mpesa') || m.includes('mobile');
-        };
-
-        filteredSales.forEach(sale => {
-            const amount = Number(sale.grandTotal || 0);
-            stats.totalRevenue += amount;
-
-            // 1. Initial Payment Breakdown
-            const method = (sale.paymentMethod || 'cash').toLowerCase();
-
-            if (method === 'mixed' && Array.isArray(sale.payments)) {
-                sale.payments.forEach(p => {
-                    const pMethod = (p.method || p.paymentMethod || '').toLowerCase();
-                    const pAmount = Number(p.amount || 0);
-                    const pBank = p.bankName || '';
-
-                    if (pMethod === 'cash') stats.cash += pAmount;
-                    else if (checkIsMpesa(pMethod)) stats.mpesa += pAmount;
-                    else {
-                        const bName = getBankName(pMethod, pBank);
-                        if (bName) stats.banks[bName] = (stats.banks[bName] || 0) + pAmount;
-                    }
-                });
-            } else if (method === 'cash') {
-                stats.cash += amount;
-            } else if (checkIsMpesa(method)) {
-                stats.mpesa += amount;
-            } else {
-                const bName = getBankName(method, sale.bankName);
-                if (bName) stats.banks[bName] = (stats.banks[bName] || 0) + amount;
-            }
-
-            // 2. Debt & Collections breakdown
-            const enrichment = debtEnrichment[sale.id];
-            if (enrichment) {
-                // The current outstanding debt goes to the debt wallet
-                stats.debt += Number(enrichment.remainingAmount || 0);
-
-                // For collections, use the payment logs history (most accurate)
-                // enrichment.id is the debt system's document ID
-                const logs = paymentLogsMap[enrichment.id] || [];
-                if (logs.length > 0) {
-                    logs.forEach(log => {
-                        const logAmount = Number(log.amount || 0);
-                        const logMethod = (log.paymentMethod || '').toLowerCase();
-                        const logBank = log.bankName || '';
-
-                        if (logMethod === 'cash') stats.cash += logAmount;
-                        else if (checkIsMpesa(logMethod)) stats.mpesa += logAmount;
-                        else {
-                            const bName = getBankName(logMethod, logBank);
-                            if (bName) stats.banks[bName] = (stats.banks[bName] || 0) + logAmount;
-                            else stats.cash += logAmount; // fallback
-                        }
-                    });
-                } else if (enrichment.paidAmount > 0) {
-                    // Fallback to enrichment summary ONLY if logs haven't loaded yet
-                    const paid = Number(enrichment.paidAmount);
-                    const pMethod = (enrichment.paidPaymentMethod || '').toLowerCase();
-                    const pBank = enrichment.bankName || '';
-
-                    if (pMethod === 'cash') stats.cash += paid;
-                    else if (checkIsMpesa(pMethod)) stats.mpesa += paid;
-                    else {
-                        const bName = getBankName(pMethod, pBank);
-                        if (bName) stats.banks[bName] = (stats.banks[bName] || 0) + paid;
-                        else stats.cash += paid;
-                    }
-                }
-            } else if (method === 'credit' || method === 'debt') {
-                stats.debt += amount;
-            } else if (method === 'mixed' && Array.isArray(sale.payments)) {
-                const creditPortion = sale.payments
-                    .filter(p => p.method === 'credit' || p.method === 'debt')
-                    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-                stats.debt += creditPortion;
-            }
-        });
-
-        return stats;
-    }, [filteredSales, debtEnrichment, paymentLogsMap]);
+    }, [stats]);
 
     const resetFilters = () => {
         setSelectedVehicle("");
@@ -679,7 +508,7 @@ export default function SalesDashboard() {
                                     <option value="">All Wallets</option>
                                     <option value="cash">Cash Wallet</option>
                                     <option value="mpesa">M-Pesa Wallet</option>
-                                    {Object.keys(computedStats.banks || {}).map(bank => (
+                                    {Object.keys(displayStats.banks || {}).map(bank => (
                                         <option key={bank} value={bank}>{bank}</option>
                                     ))}
                                 </select>
@@ -713,37 +542,37 @@ export default function SalesDashboard() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <StatCard
                                 title="Total Revenue"
-                                value={isEnriching ? "..." : `KSh ${computedStats.totalRevenue.toLocaleString()}`}
-                                subValue={`${computedStats.totalTransactions} transactions`}
+                                value={`KSh ${displayStats.totalRevenue.toLocaleString()}`}
+                                subValue={`${displayStats.totalTransactions} transactions`}
                             />
                             <StatCard
                                 title="Cash Sales"
-                                value={isEnriching ? "..." : `KSh ${computedStats.cash.toLocaleString()}`}
+                                value={`KSh ${displayStats.cash.toLocaleString()}`}
                             />
                             <StatCard
                                 title="M-Pesa Sales"
-                                value={isEnriching ? "..." : `KSh ${computedStats.mpesa.toLocaleString()}`}
+                                value={`KSh ${displayStats.mpesa.toLocaleString()}`}
                             />
                             <StatCard
                                 title="Outstanding Debt"
-                                value={isEnriching ? "..." : `KSh ${computedStats.debt.toLocaleString()}`}
+                                value={`KSh ${displayStats.debt.toLocaleString()}`}
                                 tag={debtFilter ? "FILTERED" : null}
                             />
                         </div>
 
                         {/* Bank Wallets Section */}
-                        {Object.keys(computedStats.banks || {}).length > 0 && (
+                        {Object.keys(displayStats.banks || {}).length > 0 && (
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider px-1">
                                     <div className="w-1 h-3 bg-slate-300 rounded-full"></div>
                                     Bank Wallets
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                    {Object.entries(computedStats.banks).map(([name, amount]) => (
+                                    {Object.entries(displayStats.banks).map(([name, amount]) => (
                                         <StatCard
                                             key={name}
                                             title={name}
-                                            value={isEnriching ? "..." : `KSh ${amount.toLocaleString()}`}
+                                            value={`KSh ${amount.toLocaleString()}`}
                                             tag="BANK"
                                         />
                                     ))}
@@ -830,15 +659,65 @@ export default function SalesDashboard() {
                                                     Loading sales…
                                                 </td>
                                             </tr>
-                                        ) : filteredSales.length === 0 ? (
+                                        ) : (filteredSales.length === 0 && (!stats?.collectionRecords || stats.collectionRecords.length === 0)) ? (
                                             <tr>
                                                 <td colSpan={8} className="px-5 py-12 text-center text-slate-400">No transactions found.</td>
                                             </tr>
                                         ) : (
-                                            filteredSales.map((sale) => {
+                                            <>
+                                                {/* ── Collection Records (Settlements) ── */}
+                                                {(stats?.collectionRecords || []).map((record) => (
+                                                    <tr key={`coll-${record.id}`} className="bg-amber-50/30 hover:bg-amber-50/50 transition-colors">
+                                                        <td className="px-5 py-3" />
+                                                        <td className="px-5 py-3 font-mono text-slate-500 text-xs whitespace-nowrap">
+                                                            <div>{record.debtCode}</div>
+                                                            <div className="text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded w-fit mt-1 uppercase tracking-tight">DEBT COLLECTION</div>
+                                                        </td>
+                                                        <td className="px-5 py-3 whitespace-nowrap">
+                                                            <div className="text-slate-800">{convertTimestamp(record.date)?.toLocaleDateString() || "—"}</div>
+                                                            <div className="text-xs text-slate-400">Settlement</div>
+                                                        </td>
+                                                        <td className="px-5 py-3 text-slate-700 whitespace-nowrap">{record.vehiclePlate}</td>
+                                                        <td className="px-5 py-3 text-slate-700 whitespace-nowrap">{record.customerName}</td>
+                                                        <td className="px-5 py-3 text-slate-500 italic text-xs">Payment toward outstanding debt</td>
+                                                        <td className="px-5 py-3">
+                                                            <div className="flex items-center gap-1.5 text-[10px]">
+                                                                <PaymentBadge method={record.method} />
+                                                                <span className="text-slate-700 font-medium">KSh {fmtInt(record.amount)}</span>
+                                                                {record.bankName && (
+                                                                    <span className="text-sky-600 text-[9px] font-bold uppercase">({record.bankName})</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-5 py-3 text-right font-semibold text-amber-700 whitespace-nowrap">
+                                                            {fmt(record.amount)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+
+                                                {/* ── Sale Records ── */}
+                                                {filteredSales.map((sale) => {
                                                 const vehicle = vehicles.find((v) => v.id === sale.vehicleId);
                                                 const isSelected = selectedSales.includes(sale.id);
                                                 const date = convertTimestamp(sale.saleDate);
+                                                const consolidated = new Map();
+                                                const addPayment = (method, bank, amount) => {
+                                                    if (!method) return;
+                                                    const m = method.toLowerCase();
+                                                    const b = (bank || "").toLowerCase();
+                                                    const key = `${m}|${b}`;
+                                                    const existing = consolidated.get(key) || { method: m, bank: b, amount: 0 };
+                                                    consolidated.set(key, { ...existing, amount: existing.amount + Number(amount || 0) });
+                                                };
+
+                                                if (Array.isArray(sale.payments)) {
+                                                    sale.payments.forEach(p => addPayment(p.method || p.paymentMethod, p.bankName, p.amount));
+                                                } else if (sale.paymentMethod !== 'credit' && sale.paymentMethod !== 'debt') {
+                                                    addPayment(sale.paymentMethod, sale.bankName, sale.grandTotal);
+                                                }
+
+                                                const paymentItems = Array.from(consolidated.values()).filter(i => i.amount > 0);
+
                                                 return (
                                                     <tr
                                                         key={sale.id}
@@ -876,60 +755,20 @@ export default function SalesDashboard() {
                                                         </td>
                                                         <td className="px-5 py-3" onClick={() => router.push(`/sales/${sale.id}`)}>
                                                             <div className="flex flex-col gap-0.5">
-                                                                {(() => {
-                                                                    const enrichment = debtEnrichment[sale.id];
-                                                                    const logs = enrichment ? (paymentLogsMap[enrichment.id] || []) : [];
-
-                                                                    // Map to consolidate: key = "method|bank"
-                                                                    const consolidated = new Map();
-
-                                                                    const addPayment = (method, bank, amount) => {
-                                                                        if (!method) return;
-                                                                        const m = method.toLowerCase();
-                                                                        const b = (bank || "").toLowerCase();
-                                                                        const key = `${m}|${b}`;
-                                                                        const existing = consolidated.get(key) || { method: m, bank: b, amount: 0 };
-                                                                        consolidated.set(key, { ...existing, amount: existing.amount + Number(amount || 0) });
-                                                                    };
-
-                                                                    // 1. Add original payments
-                                                                    if (sale.paymentMethod === 'mixed' && Array.isArray(sale.payments)) {
-                                                                        sale.payments.forEach(p => addPayment(p.method || p.paymentMethod, p.bankName, p.amount));
-                                                                    } else if (sale.paymentMethod !== 'credit' && sale.paymentMethod !== 'debt') {
-                                                                        // For non-mixed/non-credit, the entire paid part (total - remaining) is the original method
-                                                                        const paidOrig = sale.grandTotal - (sale.remainingAmount || 0);
-                                                                        if (paidOrig > 0) addPayment(sale.paymentMethod, sale.bankName, paidOrig);
-                                                                    }
-
-                                                                    // 2. Add collection logs
-                                                                    logs.forEach(log => addPayment(log.paymentMethod, log.bankName, log.amount));
-
-                                                                    // If no logs but paidAmount exists in enrichment summary
-                                                                    if (enrichment && logs.length === 0 && enrichment.paidAmount > 0) {
-                                                                        addPayment(enrichment.paidPaymentMethod, enrichment.bankName, enrichment.paidAmount);
-                                                                    }
-
-                                                                    const items = Array.from(consolidated.values()).filter(i => i.amount > 0);
-
-                                                                    return (
-                                                                        <>
-                                                                            {items.length > 0 ? (
-                                                                                items.map((item, idx) => (
-                                                                                    <div key={idx} className="flex items-center gap-1.5 text-[10px]">
-                                                                                        <PaymentBadge method={item.method} />
-                                                                                        <span className="text-slate-700 font-medium">KSh {fmtInt(item.amount)}</span>
-                                                                                        {item.bank && (
-                                                                                            <span className="text-sky-600 text-[9px] font-bold uppercase">({item.bank})</span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                ))
-                                                                            ) : (
-                                                                                <PaymentBadge method={sale.paymentMethod} />
+                                                                {paymentItems.length > 0 ? (
+                                                                    paymentItems.map((item, idx) => (
+                                                                        <div key={idx} className="flex items-center gap-1.5 text-[10px]">
+                                                                            <PaymentBadge method={item.method} />
+                                                                            <span className="text-slate-700 font-medium">KSh {fmtInt(item.amount)}</span>
+                                                                            {item.bank && (
+                                                                                <span className="text-sky-600 text-[9px] font-bold uppercase">({item.bank})</span>
                                                                             )}
-                                                                            {enrichment && <DebtStatusBadge debt={enrichment} />}
-                                                                        </>
-                                                                    );
-                                                                })()}
+                                                                        </div>
+                                                                    ))
+                                                                ) : (
+                                                                    <PaymentBadge method={sale.paymentMethod} />
+                                                                )}
+                                                                <DebtStatusBadge sale={sale} />
                                                             </div>
                                                         </td>
                                                         <td className="px-5 py-3 text-right font-semibold text-slate-900 whitespace-nowrap" onClick={() => router.push(`/sales/${sale.id}`)}>
@@ -937,7 +776,8 @@ export default function SalesDashboard() {
                                                         </td>
                                                     </tr>
                                                 );
-                                            })
+                                            })}
+                                            </>
                                         )}
                                     </tbody>
                                 </table>

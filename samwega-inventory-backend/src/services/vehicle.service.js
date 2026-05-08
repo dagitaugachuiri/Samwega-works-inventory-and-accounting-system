@@ -311,13 +311,21 @@ class VehicleService {
             const userData = userDoc.data();
             const assignedUserName = userData.fullName || userData.email;
 
-            await this.db.collection(this.collection).doc(vehicleId).update({
-                assignedUserId: userId,
-                assignedUserName: assignedUserName,
+            const updates = {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
+            };
 
-            logger.info(`User ${userId} assigned to vehicle ${vehicleId}`);
+            if (userData.role === 'driver') {
+                updates.assignedDriverId = userId;
+                updates.assignedDriverName = assignedUserName;
+            } else {
+                updates.assignedUserId = userId;
+                updates.assignedUserName = assignedUserName;
+            }
+
+            await this.db.collection(this.collection).doc(vehicleId).update(updates);
+
+            logger.info(`User ${userId} (role: ${userData.role}) assigned to vehicle ${vehicleId}`);
 
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${vehicleId}`);
@@ -335,7 +343,7 @@ class VehicleService {
      * @param {string} vehicleId
      * @returns {Promise<void>}
      */
-    async unassignUser(vehicleId) {
+    async unassignUser(vehicleId, role) {
         try {
             const docRef = this.db.collection(this.collection).doc(vehicleId);
             const doc = await docRef.get();
@@ -345,13 +353,21 @@ class VehicleService {
                 return;
             }
 
-            await docRef.update({
-                assignedUserId: null,
-                assignedUserName: null,
+            const updates = {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
+            };
 
-            logger.info(`User unassigned from vehicle ${vehicleId}`);
+            if (role === 'driver') {
+                updates.assignedDriverId = null;
+                updates.assignedDriverName = null;
+            } else {
+                updates.assignedUserId = null;
+                updates.assignedUserName = null;
+            }
+
+            await docRef.update(updates);
+
+            logger.info(`User role ${role} unassigned from vehicle ${vehicleId}`);
 
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${vehicleId}`);

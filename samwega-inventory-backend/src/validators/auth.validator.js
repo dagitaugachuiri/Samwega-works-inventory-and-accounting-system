@@ -31,10 +31,10 @@ const registerSchema = Joi.object({
         }),
 
     role: Joi.string()
-        .valid('admin', 'store_manager', 'sales_rep', 'accountant')
+        .valid('admin', 'store_manager', 'sales_rep', 'accountant', 'driver')
         .default('sales_rep')
         .messages({
-            'any.only': 'Role must be one of: admin, store_manager, sales_rep, accountant'
+            'any.only': 'Role must be one of: admin, store_manager, sales_rep, accountant, driver'
         }),
 
     phone: Joi.string()
@@ -101,7 +101,7 @@ const updateUserSchema = Joi.object({
         .optional(),
 
     role: Joi.string()
-        .valid('admin', 'store_manager', 'sales_rep', 'accountant')
+        .valid('admin', 'store_manager', 'sales_rep', 'accountant', 'driver')
         .optional(),
 
     password: Joi.string()

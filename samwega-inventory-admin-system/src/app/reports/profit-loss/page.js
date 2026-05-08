@@ -35,12 +35,9 @@ export default function ProfitLossReportPage() {
     const [selectedVehicle, setSelectedVehicle] = useState("");
     const [search, setSearch] = useState("");
 
-    // Default: current month
+    // Default: empty (shows all time)
     useEffect(() => {
-        const now = new Date();
-        const first = new Date(now.getFullYear(), now.getMonth(), 1);
-        setStartDate(first.toISOString().split("T")[0]);
-        setEndDate(now.toISOString().split("T")[0]);
+        // We leave them empty to "start from the beginning"
     }, []);
 
     useEffect(() => {
@@ -48,7 +45,7 @@ export default function ProfitLossReportPage() {
     }, []);
 
     useEffect(() => {
-        if (startDate && endDate) fetchData();
+        fetchData();
     }, [startDate, endDate, selectedVehicle]);
 
     const fetchVehicles = async () => {
@@ -65,10 +62,10 @@ export default function ProfitLossReportPage() {
         setLoading(true);
         try {
             const filters = {
-                startDate,
-                endDate: `${endDate}T23:59:59`,
-                limit: 500,
+                limit: 10000,
             };
+            if (startDate) filters.startDate = startDate;
+            if (endDate) filters.endDate = `${endDate}T23:59:59`;
             if (selectedVehicle) filters.vehicleId = selectedVehicle;
 
             const res = await api.getSales(filters);

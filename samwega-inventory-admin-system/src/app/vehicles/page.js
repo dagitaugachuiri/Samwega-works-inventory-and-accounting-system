@@ -136,10 +136,18 @@ export default function VehiclesPage() {
                             </div>
                         </div>
 
-                        {/* Driver */}
-                        <div className="px-4 py-3 flex items-center gap-2 text-sm text-slate-600">
-                            <User size={13} className="text-slate-400 shrink-0" />
-                            <span className="truncate text-xs">{vehicle.assignedUserName || "No driver assigned"}</span>
+                        {/* Driver & Sales Rep */}
+                        <div className="px-4 py-3 space-y-2">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <User size={13} className="text-blue-400 shrink-0" />
+                                <span className="text-[10px] font-medium uppercase text-slate-400 mr-1">Driver:</span>
+                                <span className="truncate text-xs font-semibold">{vehicle.assignedDriverName || "Not assigned"}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <User size={13} className="text-sky-400 shrink-0" />
+                                <span className="text-[10px] font-medium uppercase text-slate-400 mr-1">Sales:</span>
+                                <span className="truncate text-xs font-semibold">{vehicle.assignedUserName || "Not assigned"}</span>
+                            </div>
                         </div>
 
                         {/* Footer */}

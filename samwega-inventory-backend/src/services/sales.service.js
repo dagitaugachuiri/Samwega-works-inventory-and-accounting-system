@@ -296,7 +296,11 @@ class SalesService {
                     discountAmount,
                     grandTotal,
                     paymentMethod,
-                    paymentStatus: paymentMethod === 'credit' ? 'pending' : 'paid',
+                    paymentStatus: (paymentMethod === 'credit' || paymentMethod === 'debt') 
+                        ? 'pending' 
+                        : (paymentMethod === 'mixed' && paymentRecords.some(p => p.method === 'credit' || p.method === 'debt'))
+                            ? 'partially_paid'
+                            : 'paid',
                     payments: paymentRecords,
                     customerId: customerId || null,
                     customerName: customerName || null,
@@ -377,6 +381,75 @@ class SalesService {
             });
 
             logger.info(`Sale created: ${receiptNumber}`, { id: saleId, vehicleId, grandTotal });
+
+            // ── Automated Debt Creation ──
+            // If the sale has a credit portion, create the debt record in the external system.
+            // Doing this on the backend avoids Firebase token audience mismatch issues.
+            const debtPayment = paymentRecords.find(p => p.method === 'credit' || p.method === 'debt');
+            if (debtPayment && debtPayment.amount > 0) {
+                try {
+                    logger.info(`[SalesService] Initiating automated debt creation for receipt: ${receiptNumber}`);
+                    
+                    // Format phone for external API
+                    const formatPhone = (phone) => {
+                        if (!phone) return '+254700000000';
+                        let p = phone.toString().replace(/\s+/g, '');
+                        if (p.startsWith('+254')) return p;
+                        if (p.startsWith('254')) return '+' + p;
+                        if (p.startsWith('0')) return '+254' + p.substring(1);
+                        return '+254' + p;
+                    };
+
+                    const debtData = {
+                        storeOwner: {
+                            name: customerName || 'Unknown Customer',
+                            phoneNumber: formatPhone(customerPhone),
+                            email: customerEmail || ""
+                        },
+                        store: {
+                            name: storeName || customerName || 'No Store Name',
+                            location: location?.address || 'Unknown Location'
+                        },
+                        vehiclePlate: vehicle.vehicleName || 'Unknown Vehicle',
+                        salesRep: userData.fullName || userData.email || 'Sales Rep',
+                        amount: Number(debtPayment.amount),
+                        remainingAmount: Number(debtPayment.amount),
+                        paidAmount: 0,
+                        status: "pending",
+                        manualPaymentRequested: false,
+                        dateIssued: new Date().toISOString(),
+                        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        paymentMethod: 'cheque', // Placeholder for credit sales in external API
+                        description: `Credit sale for receipt #${receiptNumber}`,
+                        createdBy: userData.fullName || userData.email || 'Sales Rep',
+                        locationCoordinates: location ? { 
+                            latitude: location.latitude || 0, 
+                            longitude: location.longitude || 0 
+                        } : { latitude: 0, longitude: 0 },
+                    };
+
+                    const createdDebt = await debtService.createDebt(debtData);
+                    
+                    if (createdDebt && (createdDebt.id || createdDebt._id)) {
+                        const debtId = createdDebt.id || createdDebt._id;
+                        const debtCode = createdDebt.debtCode;
+                        
+                        logger.info(`[SalesService] Debt created successfully. ID: ${debtId}, Code: ${debtCode}`);
+                        
+                        // Link the debt back to the sale record in Firestore
+                        await this.db.collection(this.collection).doc(saleId).update({
+                            debtId: debtId,
+                            debtCode: debtCode,
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        logger.info(`[SalesService] Sale ${receiptNumber} linked to debt ${debtCode}`);
+                    }
+                } catch (debtError) {
+                    // Non-fatal error for the sale itself
+                    logger.error(`[SalesService] Automated debt creation failed for ${receiptNumber}:`, debtError.message);
+                }
+            }
 
             // Invalidate cache
             await cache.delPattern(`${this.cachePrefix}*`);
@@ -890,10 +963,24 @@ class SalesService {
 
                 if (isComplete && !options.forceFallback) {
                     logger.info(`Stats from summary: Total=${stats.totalRevenue}, Count=${stats.totalTransactions}`);
+                    // Summary path: transfers are baked into summary already.
+                    // No external debt service call needed.
                     return stats;
                 }
 
                 logger.info(`Summary data incomplete or has mixed payments (Revenue=${stats.totalRevenue}, PM Sum=${pmSum}, Mixed=${stats.paymentMethods.mixed.amount}). Proceeding to fallback...`);
+                
+                // RESET STATS BEFORE FALLBACK TO AVOID DOUBLE COUNTING
+                stats.totalRevenue = 0;
+                stats.totalTransactions = 0;
+                stats.totalItemsSold = 0;
+                stats.paymentMethods = {
+                    cash: { amount: 0, count: 0 },
+                    mpesa: { amount: 0, count: 0 },
+                    bank: { amount: 0, count: 0, breakdown: {} },
+                    credit: { amount: 0, count: 0 },
+                    mixed: { amount: 0, count: 0 }
+                };
             }
 
             // 2. Fallback: Aggregate directly from sales collection
@@ -960,23 +1047,47 @@ class SalesService {
                         stats.totalRevenue += grandTotal;
                         stats.totalTransactions += 1;
 
-                        if (mainMethod === 'mixed' && Array.isArray(sale.payments) && sale.payments.length > 0) {
+                        // Aggregate from payments array (includes mixed, credit payments, etc.)
+                        if (Array.isArray(sale.payments) && sale.payments.length > 0) {
+                            // First pass: accumulate all payment amounts by method
+                            let saleCredit = 0;
+                            let saleWebhookSettled = 0;
+
                             sale.payments.forEach(p => {
                                 const pMethod = String(p.method || '').toLowerCase();
                                 const pAmount = Number(p.amount || 0);
+                                const isWebhook = Boolean(p.webhookUpdate);
 
-                                if (pMethod === 'cash') { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; }
-                                else if (pMethod.includes('mpesa') || pMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += pAmount; stats.paymentMethods.mpesa.count += 1; }
-                                else if (pMethod.includes('bank') || pMethod.includes('card') || pMethod.includes('cheque')) {
+                                if (pMethod === 'cash') {
+                                    stats.paymentMethods.cash.amount += pAmount;
+                                    stats.paymentMethods.cash.count += 1;
+                                } else if (pMethod.includes('mpesa') || pMethod.includes('mobile')) {
+                                    stats.paymentMethods.mpesa.amount += pAmount;
+                                    stats.paymentMethods.mpesa.count += 1;
+                                } else if (pMethod.includes('bank') || pMethod.includes('card') || pMethod.includes('cheque')) {
                                     stats.paymentMethods.bank.amount += pAmount;
                                     stats.paymentMethods.bank.count += 1;
-                                    const bName = p.bankName || 'Other';
+                                    const bName = p.bankName || sale.bankName || 'Other';
                                     stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + pAmount;
+                                } else if (pMethod === 'credit' || pMethod === 'debt') {
+                                    saleCredit += pAmount;
                                 }
-                                else if (pMethod === 'credit' || pMethod === 'debt') { stats.paymentMethods.credit.amount += pAmount; stats.paymentMethods.credit.count += 1; }
-                                else { stats.paymentMethods.cash.amount += pAmount; stats.paymentMethods.cash.count += 1; }
+
+                                // Track total settled via webhook (debt repayments already counted in bank/mpesa/cash above)
+                                if (isWebhook) {
+                                    saleWebhookSettled += pAmount;
+                                }
                             });
+
+                            // Net credit = original credit minus what was settled via webhook
+                            // This implements the "transfer": settled amount moves from credit to bank/mpesa/cash
+                            const netCredit = Math.max(0, saleCredit - saleWebhookSettled);
+                            if (netCredit > 0) {
+                                stats.paymentMethods.credit.amount += netCredit;
+                                stats.paymentMethods.credit.count += 1;
+                            }
                         } else {
+                            // Single payment method or initial credit
                             if (mainMethod === 'cash') { stats.paymentMethods.cash.amount += grandTotal; stats.paymentMethods.cash.count += 1; }
                             else if (mainMethod.includes('mpesa') || mainMethod.includes('mobile')) { stats.paymentMethods.mpesa.amount += grandTotal; stats.paymentMethods.mpesa.count += 1; }
                             else if (mainMethod.includes('bank') || mainMethod.includes('card') || mainMethod.includes('cheque')) {
@@ -992,78 +1103,10 @@ class SalesService {
                 });
             }
 
-            // 3. ENRICH WITH LIVE DEBT STATS
-            // Instead of a global summary, we should only enrich the credit portion 
-            // for the sales we just aggregated if filters are active.
-
-            let targetSaleIds = [];
-            if (salesSnapshot) {
-                targetSaleIds = salesSnapshot.docs.map(doc => doc.id);
-            }
-
-            // Smart Enrichment: Only fetch individual debt records for small sets or filtered views.
-            // For large "All Sales" datasets, the global summary is much more efficient.
-            const ENRICHMENT_THRESHOLD = 150;
-            const isFiltered = !!isEtrFilter || !!bankName;
-
-            if (targetSaleIds.length > 0 && (targetSaleIds.length <= ENRICHMENT_THRESHOLD || isFiltered)) {
-                // Fetch debt enrichment for these specific sales using the new batch endpoint
-                const enrichment = await debtService.getDebtsBySaleIds(targetSaleIds);
-
-                // Reset credit bucket and rebuild it from enrichment
-                stats.paymentMethods.credit.amount = 0;
-
-                Object.values(enrichment).forEach(debt => {
-                    stats.paymentMethods.credit.amount += Number(debt.remainingAmount || 0);
-
-                    // Also add collections from these specific debts to their respective buckets
-                    if (debt.paidAmount > 0) {
-                        const method = String(debt.paidPaymentMethod || '').toLowerCase();
-                        const paid = Number(debt.paidAmount || 0);
-                        const debtBankName = String(debt.bankName || '').toLowerCase();
-
-                        const isBank = method.includes('bank') ||
-                            method.includes('card') ||
-                            method.includes('cheque') ||
-                            ['equity', 'kcb', 'absa', 'family', 'stanchart', 'coop', 'dtb'].some(b => method.includes(b));
-
-                        if (isBank) {
-                            stats.paymentMethods.bank.amount += paid;
-                            const bName = debtBankName || 'Other';
-                            stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + paid;
-                        } else {
-                            if (method === 'cash') stats.paymentMethods.cash.amount += paid;
-                            else if (method.includes('mpesa') || method.includes('mobile')) stats.paymentMethods.mpesa.amount += paid;
-                            else stats.paymentMethods.cash.amount += paid;
-                        }
-                    }
-                });
-
-                logger.info(`Stats enriched with specific debt enrichment for ${targetSaleIds.length} sales.`);
-            } else {
-                // Fallback to global summary
-                const debtSummary = await debtService.getDashboardSummary({
-                    vehiclePlate,
-                    startDate,
-                    endDate
-                });
-
-                stats.paymentMethods.credit.amount = debtSummary.totalOutstanding;
-
-                if (debtSummary.collections) {
-                    const coll = debtSummary.collections;
-                    stats.paymentMethods.cash.amount += (coll.cash || 0);
-                    stats.paymentMethods.mpesa.amount += (coll.mpesa || 0);
-                    stats.paymentMethods.bank.amount += (coll.bank || 0);
-
-                    // Merge bank breakdown
-                    if (coll.banks) {
-                        Object.entries(coll.banks).forEach(([bName, amount]) => {
-                            stats.paymentMethods.bank.breakdown[bName] = (stats.paymentMethods.bank.breakdown[bName] || 0) + amount;
-                        });
-                    }
-                }
-            }
+            logger.info('Stats aggregated successfully from sales records.');
+            // Note: Debt settlement transfers (credit → bank/mpesa/cash) are handled
+            // directly in the payment aggregation loop above via 'webhookUpdate: true' markers.
+            // No external debt service call needed here — the sale record is the source of truth.
 
             return stats;
         } catch (error) {
@@ -1380,6 +1423,65 @@ class SalesService {
             return await this.getSaleById(saleId);
         } catch (error) {
             logger.error('Update sale item error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Update debt status in a sale record via webhook
+     * @param {string} debtCode
+     * @param {object} updateData { status, paidAmount, paymentMethod, paymentDate }
+     */
+    async updateDebtStatus(debtCode, updateData) {
+        try {
+            logger.info(`Webhook: Updating debt status for ${debtCode}`, updateData);
+
+            // Find the sale by debtCode
+            const snapshot = await this.db.collection(this.collection)
+                .where('debtCode', '==', debtCode)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                logger.warn(`Sale with debtCode ${debtCode} not found for webhook update`);
+                return { success: false, message: 'Sale not found' };
+            }
+
+            const saleDoc = snapshot.docs[0];
+            const saleId = saleDoc.id;
+            const sale = saleDoc.data();
+
+            // Map status if needed (e.g. 'partially_paid' -> 'partially_paid', 'paid' -> 'paid')
+            const newPaymentStatus = updateData.status === 'paid' ? 'paid' : (updateData.status === 'partially_paid' ? 'partially_paid' : 'pending');
+            
+            const updates = {
+                paymentStatus: newPaymentStatus,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
+            // If payment info provided, append to payments array
+            if (updateData.paidAmount > 0) {
+                const newPayment = {
+                    method: updateData.paymentMethod || 'manual',
+                    amount: updateData.paidAmount,
+                    paidAt: updateData.paymentDate ? new Date(updateData.paymentDate) : new Date(),
+                    webhookUpdate: true,
+                    // Preserve bank name so wallet breakdown is accurate
+                    ...(updateData.bankName ? { bankName: updateData.bankName } : {})
+                };
+
+                updates.payments = admin.firestore.FieldValue.arrayUnion(newPayment);
+            }
+
+            await saleDoc.ref.update(updates);
+
+            // Invalidate cache
+            await cache.del(`${this.cachePrefix}${saleId}`);
+            await cache.delPattern(`${this.cachePrefix}list:*`);
+
+            return { success: true, saleId, debtCode, newStatus: newPaymentStatus };
+        } catch (error) {
+            logger.error('Update debt status webhook error:', error);
             throw error;
         }
     }

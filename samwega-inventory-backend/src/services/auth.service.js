@@ -100,29 +100,17 @@ class AuthService {
      */
     async login(email, password) {
         try {
-            // Authenticate with Firebase Auth
-            let userRecord;
-            try {
-                // Verify credentials by attempting to get user
-                userRecord = await this.auth.getUserByEmail(email);
-
-                // For admin SDK, we need to verify the password differently
-                // We'll use a custom token approach or verify against Firestore
-                // Since we can't directly verify password with Admin SDK, 
-                // we'll use Firebase Auth REST API
-                const response = await this.verifyPasswordWithFirebase(email, password);
-
-                if (!response.success) {
-                    throw new AuthenticationError('Invalid email or password');
-                }
-            } catch (error) {
-                if (error.code === 'auth/user-not-found') {
-                    throw new AuthenticationError('Invalid email or password');
-                }
-                throw error;
+            // 1. Authenticate with Firebase Auth REST API to get ID Token
+            const authResponse = await this.verifyPasswordWithFirebase(email, password);
+            if (!authResponse.success) {
+                throw new AuthenticationError('Invalid email or password');
             }
+            const firebaseIdToken = authResponse.data.idToken;
 
-            // Get user data from Firestore
+            // 2. Get User Record to verify existence and get UID
+            const userRecord = await this.auth.getUserByEmail(email);
+
+            // 3. Get user data from Firestore
             const userDoc = await this.db.collection('users').doc(userRecord.uid).get();
 
             if (!userDoc.exists) {
@@ -141,7 +129,7 @@ class AuthService {
                 throw new AuthenticationError('Account disabled. Please contact administrator.');
             }
 
-            // Generate JWT token
+            // Generate custom JWT token for Inventory Backend APIs
             const token = this.generateToken(userRecord.uid, email, userData.role);
 
             // Update last login
@@ -160,7 +148,8 @@ class AuthService {
                     isVerified: userData.isVerified,
                     assignedVehicleId: userData.assignedVehicleId
                 },
-                token
+                token,
+                firebaseToken: firebaseIdToken
             };
         } catch (error) {
             logger.error('Login error:', error);
@@ -333,12 +322,13 @@ class AuthService {
             }
             const userData = userDoc.data();
             const oldVehicleId = userData.assignedVehicleId;
+            const role = userData.role;
 
             // Case 1: Unassign vehicle (vehicleId is null)
             if (!vehicleId) {
                 // If user had a vehicle, unassign from it
                 if (oldVehicleId) {
-                    await vehicleService.unassignUser(oldVehicleId);
+                    await vehicleService.unassignUser(oldVehicleId, role);
                 }
 
                 await this.db.collection('users').doc(userId).update({
@@ -359,7 +349,7 @@ class AuthService {
 
             // If user had a different vehicle, unassign from it first
             if (oldVehicleId && oldVehicleId !== vehicleId) {
-                await vehicleService.unassignUser(oldVehicleId);
+                await vehicleService.unassignUser(oldVehicleId, role);
             }
 
             // Update user document

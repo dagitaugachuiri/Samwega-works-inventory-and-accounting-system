@@ -13,7 +13,7 @@ const DEBT_API_BASE = process.env.DEBT_API_URL || 'https://smwoks-kzpo.onrender.
 const DEBT_API_TIMEOUT = 60000; // 60s to allow for Render cold starts
 
 const debtApi = axios.create({
-    baseURL: DEBT_API_BASE,
+    baseURL: DEBT_API_BASE.endsWith('/') ? DEBT_API_BASE : `${DEBT_API_BASE}/`,
     timeout: DEBT_API_TIMEOUT,
     headers: { 'Content-Type': 'application/json' },
 });
@@ -50,7 +50,7 @@ const getDebtById = async (debtId) => {
             debtCache.delete(debtId);
         }
 
-        const response = await debtApi.get(`/debts/${debtId}`);
+        const response = await debtApi.get(`debts/${debtId}`);
         const debt = response.data?.data || response.data;
         if (!debt) return null;
 
@@ -101,7 +101,7 @@ const getDebtsByIds = async (debtIds) => {
         const CHUNK_SIZE = 100;
         for (let i = 0; i < idsToFetch.length; i += CHUNK_SIZE) {
             const chunk = idsToFetch.slice(i, i + CHUNK_SIZE);
-            const response = await debtApi.post('/debts/batch', { ids: chunk });
+            const response = await debtApi.post('debts/batch', { ids: chunk });
             
             const debts = response.data?.data || [];
             debts.forEach(debt => {
@@ -141,11 +141,49 @@ const getDebtsByIds = async (debtIds) => {
  */
 const getDashboardSummary = async (filters = {}) => {
     try {
+        const params = {};
+        if (filters.vehiclePlate) params.vehiclePlate = filters.vehiclePlate;
+        if (filters.startDate) params.startDate = filters.startDate;
+        if (filters.endDate) params.endDate = filters.endDate;
+        if (filters.bankName) params.bankName = filters.bankName;
+
+        // Always compute the full collections breakdown locally (the external API
+        // /debts/summary endpoint never returns per-bank/per-method breakdown).
+        // This is the source of truth for the wallet transfer logic in getStats.
+        const legacySummary = await legacyGetDashboardSummary(filters);
+        return legacySummary;
+
+    } catch (error) {
+        const status = error.response?.status;
+        const message = error.message;
+        
+        if (status === 502 || status === 504 || message.includes('timeout')) {
+            logger.error(`[DebtService] External API unavailable (${status || 'timeout'}): ${message}`);
+        } else {
+            logger.error(`[DebtService] Failed to get dashboard summary: ${message}`);
+        }
+
+        return {
+            totalOutstanding: 0,
+            debtCount: 0,
+            unpaidCount: 0,
+            overdueCount: 0,
+            partialCount: 0,
+            collections: { cash: 0, mpesa: 0, bank: 0, bankBreakdown: {}, records: [] }
+        };
+    }
+};
+
+/**
+ * Legacy summary calculation (fetches up to 1000 debts and aggregates in-memory).
+ * Used as a fallback if the /summary endpoint fails.
+ */
+const legacyGetDashboardSummary = async (filters = {}) => {
+    try {
         const params = { limit: 1000, offset: 0 };
         if (filters.vehiclePlate) params.vehiclePlate = filters.vehiclePlate;
 
-        // Fetch all debts matching the filter
-        const response = await debtApi.get('/debts', { params });
+        const response = await debtApi.get('debts', { params });
         const debts = response.data?.data || [];
 
         let totalOutstanding = 0;
@@ -154,16 +192,28 @@ const getDashboardSummary = async (filters = {}) => {
         let overdueCount = 0;
         let partialCount = 0;
 
-        // Collections aggregation (for payment method transfer to stats cards)
+        // Collections aggregation
         const collections = {
             cash: 0,
             mpesa: 0,
-            bank: 0
+            bank: 0,
+            bankBreakdown: {},
+            records: [] // Individual collection records for the UI
         };
 
         const targetBank = filters.bankName ? String(filters.bankName).toLowerCase() : null;
 
         for (const debt of debts) {
+            // Filter: Ignore any debt that is not linked to a sale
+            const description = String(debt.description || '').toLowerCase();
+            const isLinkedByDescription = description.includes('receipt #');
+            const isLinkedByList = filters.linkedDebtIds && filters.linkedDebtIds.includes(debt.id);
+
+            if (!isLinkedByDescription && !isLinkedByList) {
+                // If it doesn't look like a sale-linked debt, ignore it
+                continue;
+            }
+
             if (filters.startDate || filters.endDate) {
                 const issued = debt.dateIssued;
                 const issuedSeconds = issued?.seconds || issued?._seconds;
@@ -184,25 +234,58 @@ const getDashboardSummary = async (filters = {}) => {
 
             // Aggregate collections if there's a paid amount
             if (paid > 0) {
-                const method = String(debt.paidPaymentMethod || '').toLowerCase();
-                const isBank = method.includes('bank') || method.includes('card') || method.includes('cheque');
+                const rawMethod = String(debt.paidPaymentMethod || debt.paymentMethod || '').toLowerCase();
+                // 'manual_mpesa' is used by the payment endpoint for mpesa payments
+                const isMpesa = rawMethod.includes('mpesa') || rawMethod.includes('mobile');
+                const isBank = !isMpesa && (rawMethod.includes('bank') || rawMethod.includes('card') || rawMethod.includes('cheque'));
+                const isCash = !isMpesa && !isBank;
 
-                // If a specific bank is requested, only count if it matches
+                // Extract bank name: payment endpoint saves it in bankDetails array
+                // Fall back to top-level bankName for older records
+                let resolvedBankName = debt.bankName || null;
+                if (isBank) {
+                    const bankDetailsArr = debt.bankDetails || [];
+                    if (bankDetailsArr.length > 0) {
+                        // Most recent payment's bank name
+                        const lastEntry = bankDetailsArr[bankDetailsArr.length - 1];
+                        resolvedBankName = lastEntry?.bankName || resolvedBankName || 'Other';
+                    } else {
+                        resolvedBankName = resolvedBankName || 'Other';
+                    }
+                }
+
+                let shouldCount = true;
                 if (targetBank) {
-                    const debtBank = String(debt.bankName || '').toLowerCase();
-                    const match = debtBank.includes(targetBank) || method.includes(targetBank);
+                    const debtBank = String(resolvedBankName || '').toLowerCase();
+                    shouldCount = isBank && (debtBank.includes(targetBank) || rawMethod.includes(targetBank));
+                }
 
-                    if (isBank && match) collections.bank += paid;
-                } else {
-                    if (method === 'cash') collections.cash += paid;
-                    else if (method.includes('mpesa') || method.includes('mobile')) collections.mpesa += paid;
-                    else if (isBank) collections.bank += paid;
-                    else collections.cash += paid; // default fallback
+                if (shouldCount) {
+                    if (isCash) collections.cash += paid;
+                    else if (isMpesa) collections.mpesa += paid;
+                    else if (isBank) {
+                        collections.bank += paid;
+                        const bName = resolvedBankName || 'Other';
+                        collections.bankBreakdown[bName] = (collections.bankBreakdown[bName] || 0) + paid;
+                    }
+
+                    // Add to records for UI display
+                    collections.records.push({
+                        id: debt.id,
+                        debtCode: debt.debtCode,
+                        customerName: debt.storeOwner?.name || 'Unknown',
+                        vehiclePlate: debt.vehiclePlate || '—',
+                        amount: paid,
+                        method: isMpesa ? 'mpesa' : (isBank ? 'bank' : 'cash'),
+                        bankName: isBank ? resolvedBankName : null,
+                        date: debt.dateIssued,
+                        isCollection: true
+                    });
                 }
             }
 
             if (debt.status === 'paid' && remaining === 0) {
-                // fully paid — not outstanding
+                // fully paid
             } else if (paid > 0 && remaining > 0) {
                 partialCount++;
             } else if (debt.status === 'overdue') {
@@ -277,4 +360,38 @@ const getDebtsBySaleIds = async (saleIds) => {
     return result;
 };
 
-module.exports = { getDebtById, getDebtsByIds, getDashboardSummary, getDebtsBySaleIds, resolveDebtDisplayStatus };
+/**
+ * Create a new debt record in the external debt system.
+ * @param {object} debtData
+ * @returns {Promise<object|null>}
+ */
+const createDebt = async (debtData) => {
+    try {
+        logger.info(`[DebtService] Creating debt in external API for ${debtData.customerName || 'customer'}...`);
+        
+        const response = await debtApi.post('debts', debtData);
+        const result = response.data?.data || response.data;
+        
+        if (result && (result.id || result.debtCode)) {
+            logger.info(`[DebtService] Successfully created debt. External ID: ${result.id}, Code: ${result.debtCode}`);
+            return result;
+        }
+        
+        logger.warn('[DebtService] Create debt returned unexpected response format');
+        return result;
+    } catch (error) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        logger.error(`[DebtService] Failed to create debt (${status || 'error'}): ${error.message}`, data);
+        throw error;
+    }
+};
+
+module.exports = { 
+    getDebtById, 
+    getDebtsByIds, 
+    getDashboardSummary, 
+    getDebtsBySaleIds, 
+    resolveDebtDisplayStatus,
+    createDebt
+};

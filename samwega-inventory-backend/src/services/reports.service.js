@@ -268,9 +268,33 @@ class ReportsService {
             };
 
             sales.forEach(sale => {
-                if (paymentMethods[sale.paymentMethod]) {
-                    paymentMethods[sale.paymentMethod].count += 1;
-                    paymentMethods[sale.paymentMethod].total += sale.grandTotal;
+                const method = (sale.paymentMethod || 'cash').toLowerCase();
+
+                if (method === 'mixed' && Array.isArray(sale.payments)) {
+                    paymentMethods.mixed.count += 1;
+                    paymentMethods.mixed.total += sale.grandTotal;
+                    
+                    sale.payments.forEach(p => {
+                        const pMethod = (p.method || p.paymentMethod || '').toLowerCase();
+                        const pAmount = Number(p.amount || 0);
+                        
+                        if (pMethod === 'cash') paymentMethods.cash.total += pAmount;
+                        else if (pMethod.includes('mpesa') || pMethod.includes('mobile')) paymentMethods.mpesa.total += pAmount;
+                        else if (pMethod.includes('bank') || pMethod.includes('card')) paymentMethods.bank.total += pAmount;
+                        else if (pMethod === 'credit' || pMethod === 'debt') paymentMethods.credit.total += pAmount;
+                    });
+                } else if (method === 'cash') {
+                    paymentMethods.cash.count += 1;
+                    paymentMethods.cash.total += sale.grandTotal;
+                } else if (method.includes('mpesa') || method.includes('mobile')) {
+                    paymentMethods.mpesa.count += 1;
+                    paymentMethods.mpesa.total += sale.grandTotal;
+                } else if (method.includes('bank') || method.includes('card')) {
+                    paymentMethods.bank.count += 1;
+                    paymentMethods.bank.total += sale.grandTotal;
+                } else if (method === 'credit' || method === 'debt') {
+                    paymentMethods.credit.count += 1;
+                    paymentMethods.credit.total += sale.grandTotal;
                 }
             });
 
@@ -605,10 +629,26 @@ class ReportsService {
             const snapshot = await query.get();
             const creditSales = serializeDocs(snapshot);
 
-            // Calculate totals
-            const totalCredit = creditSales.reduce((sum, s) => sum + s.grandTotal, 0);
-            const paidSales = creditSales.filter(s => s.paymentStatus === 'paid');
-            const totalPaid = paidSales.reduce((sum, s) => sum + s.grandTotal, 0);
+            // Calculate totals using payment records for accuracy
+            let totalCredit = 0;
+            let totalPaid = 0;
+
+            creditSales.forEach(sale => {
+                totalCredit += sale.grandTotal;
+                
+                // Sum all payments recorded for this sale (including webhook updates)
+                const paid = (sale.payments || []).reduce((sum, p) => {
+                    const method = (p.method || p.paymentMethod || '').toLowerCase();
+                    // Don't count the 'credit' portion itself as 'paid'
+                    if (method !== 'credit' && method !== 'debt') {
+                        return sum + Number(p.amount || 0);
+                    }
+                    return sum;
+                }, 0);
+                
+                totalPaid += paid;
+            });
+
             const outstanding = totalCredit - totalPaid;
 
             // Group by customer
@@ -627,9 +667,16 @@ class ReportsService {
                     };
                 }
                 customerMap[key].totalCredit += sale.grandTotal;
-                if (sale.paymentStatus === 'paid') {
-                    customerMap[key].totalPaid += sale.grandTotal;
-                }
+                
+                const paid = (sale.payments || []).reduce((sum, p) => {
+                    const method = (p.method || p.paymentMethod || '').toLowerCase();
+                    if (method !== 'credit' && method !== 'debt') {
+                        return sum + Number(p.amount || 0);
+                    }
+                    return sum;
+                }, 0);
+
+                customerMap[key].totalPaid += paid;
                 customerMap[key].outstanding = customerMap[key].totalCredit - customerMap[key].totalPaid;
                 customerMap[key].transactions += 1;
             });

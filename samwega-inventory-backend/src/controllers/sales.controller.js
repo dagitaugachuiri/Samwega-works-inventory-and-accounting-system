@@ -184,6 +184,32 @@ const updateSaleItem = async (req, res) => {
     }
 };
 
+/**
+ * Handle debt status update webhook
+ */
+const handleDebtWebhook = async (req, res) => {
+    try {
+        const { debtCode, status, paidAmount, paymentMethod, paymentDate, bankName } = req.body;
+        logger.info('📩 Debt webhook received payload:', JSON.stringify(req.body, null, 2));
+        if (!debtCode) {
+            return res.status(400).json(errorResponse('debtCode is required'));
+        }
+
+        const result = await salesService.updateDebtStatus(debtCode, {
+            status,
+            paidAmount,
+            paymentMethod,
+            paymentDate,
+            bankName,
+        });
+
+        return res.status(200).json(successResponse(result, 'Sale payment status updated via webhook'));
+    } catch (error) {
+        logger.error('Debt webhook controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message));
+    }
+};
+
 module.exports = {
     createSale,
     getAllSales,
@@ -196,6 +222,7 @@ module.exports = {
     deleteBatch,
     deleteSale,
     linkDebt,
-    updateSaleItem
+    updateSaleItem,
+    handleDebtWebhook
 };
 

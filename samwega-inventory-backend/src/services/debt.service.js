@@ -9,7 +9,7 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 
-const DEBT_API_BASE = process.env.DEBT_API_URL || 'https://smwoks-kzpo.onrender.com/api';
+const DEBT_API_BASE = process.env.DEBT_API_URL
 const DEBT_API_TIMEOUT = 60000; // 60s to allow for Render cold starts
 
 const debtApi = axios.create({
@@ -55,10 +55,10 @@ const getDebtById = async (debtId) => {
         if (!debt) return null;
 
         const enrichedDebt = { ...debt, displayStatus: resolveDebtDisplayStatus(debt) };
-        
+
         // Update cache
         debtCache.set(debtId, { data: enrichedDebt, timestamp: Date.now() });
-        
+
         return enrichedDebt;
     } catch (error) {
         logger.warn(`[DebtService] Failed to fetch debt ${debtId}: ${error.message}`);
@@ -96,22 +96,22 @@ const getDebtsByIds = async (debtIds) => {
 
     try {
         logger.info(`[DebtService] Batch fetching ${idsToFetch.length} debts...`);
-        
+
         // Fetch in chunks of 100 to avoid huge payloads
         const CHUNK_SIZE = 100;
         for (let i = 0; i < idsToFetch.length; i += CHUNK_SIZE) {
             const chunk = idsToFetch.slice(i, i + CHUNK_SIZE);
             const response = await debtApi.post('debts/batch', { ids: chunk });
-            
+
             const debts = response.data?.data || [];
             debts.forEach(debt => {
                 if (debt && debt.id) {
-                    const enrichedDebt = { 
-                        ...debt, 
-                        displayStatus: resolveDebtDisplayStatus(debt) 
+                    const enrichedDebt = {
+                        ...debt,
+                        displayStatus: resolveDebtDisplayStatus(debt)
                     };
                     result[debt.id] = enrichedDebt;
-                    
+
                     // Update cache
                     debtCache.set(debt.id, { data: enrichedDebt, timestamp: Date.now() });
                 }
@@ -119,7 +119,7 @@ const getDebtsByIds = async (debtIds) => {
         }
     } catch (error) {
         logger.error(`[DebtService] Batch fetch failed: ${error.message}`);
-        
+
         // Fallback for small batches if the batch endpoint fails
         if (idsToFetch.length < 5) {
             for (const id of idsToFetch) {
@@ -156,7 +156,7 @@ const getDashboardSummary = async (filters = {}) => {
     } catch (error) {
         const status = error.response?.status;
         const message = error.message;
-        
+
         if (status === 502 || status === 504 || message.includes('timeout')) {
             logger.error(`[DebtService] External API unavailable (${status || 'timeout'}): ${message}`);
         } else {
@@ -368,15 +368,15 @@ const getDebtsBySaleIds = async (saleIds) => {
 const createDebt = async (debtData) => {
     try {
         logger.info(`[DebtService] Creating debt in external API for ${debtData.customerName || 'customer'}...`);
-        
+
         const response = await debtApi.post('debts', debtData);
         const result = response.data?.data || response.data;
-        
+
         if (result && (result.id || result.debtCode)) {
             logger.info(`[DebtService] Successfully created debt. External ID: ${result.id}, Code: ${result.debtCode}`);
             return result;
         }
-        
+
         logger.warn('[DebtService] Create debt returned unexpected response format');
         return result;
     } catch (error) {
@@ -387,11 +387,11 @@ const createDebt = async (debtData) => {
     }
 };
 
-module.exports = { 
-    getDebtById, 
-    getDebtsByIds, 
-    getDashboardSummary, 
-    getDebtsBySaleIds, 
+module.exports = {
+    getDebtById,
+    getDebtsByIds,
+    getDashboardSummary,
+    getDebtsBySaleIds,
     resolveDebtDisplayStatus,
     createDebt
 };

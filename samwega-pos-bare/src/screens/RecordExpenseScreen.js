@@ -9,6 +9,8 @@ import {
     Platform,
 } from 'react-native';
 import { createExpense } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect } from 'react';
 
 // Theme & UI
 import { colors, spacing, borderRadius, shadows, typography } from '../theme';
@@ -26,6 +28,20 @@ const EXPENSE_CATEGORIES = [
 
 export default function RecordExpenseScreen({ route, navigation }) {
     const { vehicleId } = route?.params || {};
+
+    useEffect(() => {
+        const checkRole = async () => {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                if (user.role === 'driver') {
+                    console.log('🚫 Driver tried to access record expense screen');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                }
+            }
+        };
+        checkRole();
+    }, []);
 
     const [expenseAmounts, setExpenseAmounts] = useState({});
     const [globalDescription, setGlobalDescription] = useState('');

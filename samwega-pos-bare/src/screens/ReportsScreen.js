@@ -26,11 +26,16 @@ export default function ReportsScreen({ navigation, route }) {
             const userData = await AsyncStorage.getItem('userData');
             if (userData) {
                 const user = JSON.parse(userData);
+                if (user.role === 'driver') {
+                    console.log('🚫 Driver tried to access reports screen');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                    return;
+                }
                 setRole(user.role || 'sales_rep');
             }
         };
         getRole();
-    }, []);
+    }, [navigation]);
 
     // Date States
     const [salesDate, setSalesDate] = useState({ start: '', end: '' });

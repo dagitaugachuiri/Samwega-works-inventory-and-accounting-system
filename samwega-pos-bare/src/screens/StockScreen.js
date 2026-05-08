@@ -378,19 +378,6 @@ export default function StockScreen({ route, navigation }) {
 
                         <TouchableOpacity
                             style={styles.actionCard}
-                            onPress={() => navigation.navigate('IssuanceConfirmation', { vehicleId })}
-                        >
-                            <Text style={styles.actionIcon}>📦</Text>
-                            <Text style={styles.actionLabel}>Stock</Text>
-                            {pendingIssuances > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{pendingIssuances}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.actionCard}
                             onPress={() => navigation.navigate('Expenses', { vehicleId })}
                         >
                             <Text style={styles.actionIcon}>💳</Text>
@@ -516,26 +503,6 @@ export default function StockScreen({ route, navigation }) {
                                 <Text style={styles.utilityEmoji}>📦</Text>
                             </View>
                             <Text style={styles.utilityLabel}>Confirm{"\n"}Collection</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.utilityButton, { marginHorizontal: 12 }]}
-                            onPress={() => navigation.navigate('Expenses', { vehicleId })}
-                        >
-                            <View style={[styles.utilityIconBg, { backgroundColor: '#DBEAFE' }]}>
-                                <Text style={styles.utilityEmoji}>⛽</Text>
-                            </View>
-                            <Text style={styles.utilityLabel}>Fuel &{"\n"}Expenses</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.utilityButton}
-                            onPress={() => navigation.navigate('Reports', { vehicleId })}
-                        >
-                            <View style={[styles.utilityIconBg, { backgroundColor: '#E0E7FF' }]}>
-                                <Text style={styles.utilityEmoji}>📋</Text>
-                            </View>
-                            <Text style={styles.utilityLabel}>Inventory{"\n"}Report</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

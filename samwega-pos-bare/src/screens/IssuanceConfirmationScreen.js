@@ -9,6 +9,7 @@ import {
     Platform,
     Text
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getIssuances, confirmTransfer, getVehicleInventoryReport, getVehicleById } from '../services/api';
 import ReceiptService from '../services/ReceiptService';
 
@@ -396,11 +397,26 @@ const CollectionsTab = ({ vehicleId }) => {
 export default function IssuanceConfirmationScreen({ route, navigation }) {
     const { vehicleId } = route?.params || {};
     const [activeTab, setActiveTab] = useState('collections'); // Default to Collections for workflow continuity
+    const [role, setRole] = useState(null);
 
     useEffect(() => {
-        // Update header title based on tab maybe? Or just keep generic.
+        const checkRole = async () => {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                setRole(user.role);
+                if (user.role === 'sales_rep') {
+                    // Redirect sales rep away if they somehow reach here
+                    console.log('🚫 Sales rep tried to access inventory confirmation');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                }
+            }
+        };
+        checkRole();
         navigation.setOptions({ title: 'Stock Management' });
     }, [navigation]);
+
+    if (role === 'sales_rep') return null;
 
     return (
         <View style={styles.container}>

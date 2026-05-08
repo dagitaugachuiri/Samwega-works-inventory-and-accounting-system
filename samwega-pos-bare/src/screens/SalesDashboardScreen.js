@@ -8,6 +8,7 @@ import {
     RefreshControl,
 } from 'react-native';
 import { getSalesStats, getSales } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Theme & UI
 import { colors, spacing, borderRadius, shadows, typography } from '../theme';
@@ -33,7 +34,19 @@ export default function SalesDashboardScreen({ route, navigation }) {
     }, []);
 
     useEffect(() => {
-        loadData();
+        const checkRole = async () => {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                if (user.role === 'driver') {
+                    console.log('🚫 Driver tried to access sales dashboard');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                    return;
+                }
+            }
+            loadData();
+        };
+        checkRole();
     }, [filterType, etrFilter]);
 
     const loadData = async () => {

@@ -4,8 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import sessionManager from '../utils/sessionManager';
 
 // Backend API URL - Updated for local development
-const BASE_URL = 'http://192.168.100.5:8080/api/v1';
-// const BASE_URL = 'https://samwega-works-inventory-and-accounting-ef5a.onrender.com/api/v1';
+// const BASE_URL = 'http://192.168.100.5:8080/api/v1';
+const BASE_URL = 'https://samwega-works-inventory-and-accounting-ef5a.onrender.com/api/v1';
 
 const api = axios.create({
     baseURL: BASE_URL,

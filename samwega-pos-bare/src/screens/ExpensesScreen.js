@@ -11,6 +11,7 @@ import {
     Text
 } from 'react-native';
 import { getExpenses, getExpensesByCategory } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Theme & UI
 import { colors, spacing, borderRadius, shadows, typography } from '../theme';
@@ -26,7 +27,19 @@ export default function ExpensesScreen({ route, navigation }) {
     const [filterType, setFilterType] = useState('today'); // 'today' | 'all'
 
     useEffect(() => {
-        loadData();
+        const checkRole = async () => {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                if (user.role === 'driver') {
+                    console.log('🚫 Driver tried to access expenses screen');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                    return;
+                }
+            }
+            loadData();
+        };
+        checkRole();
     }, [filterType]);
 
     const loadData = async () => {

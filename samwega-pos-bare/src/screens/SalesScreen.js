@@ -12,6 +12,7 @@ import {
     Switch,
 } from 'react-native';
 import { getVehicleInventory, recordSale, searchCustomers, createCustomer, patchSaleDebtLink } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReceiptService from '../services/ReceiptService';
 import DebtService from '../services/DebtService';
 
@@ -102,7 +103,19 @@ export default function SalesScreen({ route, navigation }) {
     };
 
     useEffect(() => {
-        loadInventory();
+        const checkRole = async () => {
+            const userDataStr = await AsyncStorage.getItem('userData');
+            if (userDataStr) {
+                const user = JSON.parse(userDataStr);
+                if (user.role === 'driver') {
+                    console.log('🚫 Driver tried to access sales screen');
+                    navigation.replace('Stock', { vehicleId: user.assignedVehicleId });
+                    return;
+                }
+            }
+            loadInventory();
+        };
+        checkRole();
     }, []);
 
     // Debounced customer search

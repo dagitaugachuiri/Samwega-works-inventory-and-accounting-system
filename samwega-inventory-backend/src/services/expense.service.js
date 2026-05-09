@@ -482,7 +482,7 @@ class ExpenseService {
             if (type === 'submitted') {
                 // Notify approvers (admin and store managers)
                 const usersSnapshot = await this.db.collection('users')
-                    .where('role', 'in', ['admin', 'store_manager'])
+                    .where('role', '==', 'admin')
                     .get();
                 recipients = serializeDocs(usersSnapshot).map(u => u.phoneNumber).filter(Boolean);
 

@@ -76,9 +76,23 @@ export default function UsersPage() {
         const badges = {
             admin: "bg-rose-100 text-rose-800",
             store_manager: "bg-violet-100 text-violet-800",
-            sales_rep: "bg-sky-100 text-sky-800"
+            sales_rep: "bg-sky-100 text-sky-800",
+            driver: "bg-emerald-100 text-emerald-800"
         };
         return badges[role] || "bg-slate-100 text-slate-800";
+    };
+
+    const handleRoleChange = async (user, newRole) => {
+        if (user.role === newRole) return;
+        if (!confirm(`Change ${user.fullName}'s role to ${newRole.replace('_', ' ')}?`)) return;
+
+        try {
+            await api.updateUser(user.id, { role: newRole });
+            fetchUsers();
+        } catch (error) {
+            console.error("Failed to update role:", error);
+            alert("Failed to update role: " + error.message);
+        }
     };
 
     if (loading) {
@@ -189,9 +203,16 @@ export default function UsersPage() {
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-900">{user.email}</td>
                                         <td className="px-4 py-3">
-                                            <span className={`text-xs px-2 py-1 rounded ${getRoleBadge(user.role)}`}>
-                                                {user.role?.replace('_', ' ')}
-                                            </span>
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => handleRoleChange(user, e.target.value)}
+                                                className={`text-xs px-2 py-1 rounded border-none focus:ring-1 focus:ring-sky-500 font-medium ${getRoleBadge(user.role)}`}
+                                            >
+                                                <option value="admin">Admin</option>
+                                                <option value="store_manager">Store Manager</option>
+                                                <option value="sales_rep">Sales Rep</option>
+                                                <option value="driver">Driver</option>
+                                            </select>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-900">
                                             {assignedVehicle ? assignedVehicle.vehicleName : "-"}

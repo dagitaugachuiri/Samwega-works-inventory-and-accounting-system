@@ -1,6 +1,6 @@
 /**
  * Debt Service — proxy for the external Samwega Debt Management API.
- * Base URL: https://smwoks-kzpo.onrender.com/api
+ * Base URL: https://samwega-works-debt-server.onrender.com/api
  *
  * This service does NOT write to the debt system — it reads only.
  * It is used to enrich sale records with live debt status on dashboard refresh.
@@ -361,6 +361,25 @@ const getDebtsBySaleIds = async (saleIds) => {
 };
 
 /**
+ * Fetch a single debt record by its debtCode (6-digit account number).
+ * @param {string} debtCode
+ * @returns {Promise<object|null>}
+ */
+const getDebtByCode = async (debtCode) => {
+    try {
+        const response = await debtApi.get(`debts`, { params: { debtCode, limit: 1 } });
+        const debts = response.data?.data || response.data || [];
+        const debt = Array.isArray(debts) ? debts[0] : (debts.id ? debts : null);
+        
+        if (!debt) return null;
+        return { ...debt, displayStatus: resolveDebtDisplayStatus(debt) };
+    } catch (error) {
+        logger.warn(`[DebtService] Failed to fetch debt by code ${debtCode}: ${error.message}`);
+        return null;
+    }
+};
+
+/**
  * Create a new debt record in the external debt system.
  * @param {object} debtData
  * @returns {Promise<object|null>}
@@ -389,6 +408,7 @@ const createDebt = async (debtData) => {
 
 module.exports = {
     getDebtById,
+    getDebtByCode,
     getDebtsByIds,
     getDashboardSummary,
     getDebtsBySaleIds,

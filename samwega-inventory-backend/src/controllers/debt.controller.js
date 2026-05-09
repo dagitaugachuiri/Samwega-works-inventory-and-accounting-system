@@ -97,4 +97,61 @@ const enrichSales = async (req, res) => {
     }
 };
 
-module.exports = { getDashboardSummary, enrichSales };
+/**
+ * GET /api/v1/debt/:id
+ * Fetches a single debt record by its ID from the external system.
+ */
+const getDebtById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const debt = await debtService.getDebtById(id);
+        if (!debt) {
+            return res.status(404).json(errorResponse('Debt record not found'));
+        }
+        return res.status(200).json(successResponse(debt, 'Debt record retrieved successfully'));
+    } catch (error) {
+        logger.error('Get debt by ID error:', error);
+        return res.status(500).json(errorResponse('Failed to retrieve debt record'));
+    }
+};
+
+/**
+ * GET /api/v1/debt/code/:code
+ * Fetches a single debt record by its debtCode (6-digit account number).
+ */
+const getDebtByCode = async (req, res) => {
+    try {
+        const { code } = req.params;
+        const debt = await debtService.getDebtByCode(code);
+        if (!debt) {
+            return res.status(404).json(errorResponse('Debt record not found'));
+        }
+        return res.status(200).json(successResponse(debt, 'Debt record retrieved successfully'));
+    } catch (error) {
+        logger.error('Get debt by code error:', error);
+        return res.status(500).json(errorResponse('Failed to retrieve debt record'));
+    }
+};
+
+/**
+ * POST /api/v1/debt
+ * Creates a new debt record in the external system.
+ */
+const createDebt = async (req, res) => {
+    try {
+        const debtData = req.body;
+        const createdDebt = await debtService.createDebt(debtData);
+        return res.status(201).json(successResponse(createdDebt, 'Debt record created successfully'));
+    } catch (error) {
+        logger.error('Create debt error:', error);
+        return res.status(500).json(errorResponse('Failed to create debt record'));
+    }
+};
+
+module.exports = { 
+    getDashboardSummary, 
+    enrichSales,
+    getDebtById,
+    getDebtByCode,
+    createDebt
+};

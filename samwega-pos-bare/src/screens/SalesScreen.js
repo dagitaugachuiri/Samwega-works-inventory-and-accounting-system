@@ -14,7 +14,6 @@ import {
 import { getVehicleInventory, recordSale, searchCustomers, createCustomer, patchSaleDebtLink } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReceiptService from '../services/ReceiptService';
-import DebtService from '../services/DebtService';
 
 const BANKS = [
     'Equity',

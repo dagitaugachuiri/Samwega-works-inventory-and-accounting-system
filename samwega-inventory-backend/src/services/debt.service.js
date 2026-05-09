@@ -50,7 +50,7 @@ const getDebtById = async (debtId) => {
             debtCache.delete(debtId);
         }
 
-        const response = await debtApi.get(`debts/${debtId}`);
+        const response = await debtApi.get(`${debtId}`);
         const debt = response.data?.data || response.data;
         if (!debt) return null;
 
@@ -101,7 +101,7 @@ const getDebtsByIds = async (debtIds) => {
         const CHUNK_SIZE = 100;
         for (let i = 0; i < idsToFetch.length; i += CHUNK_SIZE) {
             const chunk = idsToFetch.slice(i, i + CHUNK_SIZE);
-            const response = await debtApi.post('debts/batch', { ids: chunk });
+            const response = await debtApi.post('batch', { ids: chunk });
 
             const debts = response.data?.data || [];
             debts.forEach(debt => {
@@ -183,7 +183,7 @@ const legacyGetDashboardSummary = async (filters = {}) => {
         const params = { limit: 1000, offset: 0 };
         if (filters.vehiclePlate) params.vehiclePlate = filters.vehiclePlate;
 
-        const response = await debtApi.get('debts', { params });
+        const response = await debtApi.get('', { params });
         const debts = response.data?.data || [];
 
         let totalOutstanding = 0;
@@ -367,7 +367,7 @@ const getDebtsBySaleIds = async (saleIds) => {
  */
 const getDebtByCode = async (debtCode) => {
     try {
-        const response = await debtApi.get(`debts`, { params: { debtCode, limit: 1 } });
+        const response = await debtApi.get('', { params: { debtCode, limit: 1 } });
         const debts = response.data?.data || response.data || [];
         const debt = Array.isArray(debts) ? debts[0] : (debts.id ? debts : null);
         
@@ -388,7 +388,7 @@ const createDebt = async (debtData) => {
     try {
         logger.info(`[DebtService] Creating debt in external API for ${debtData.customerName || 'customer'}...`);
 
-        const response = await debtApi.post('debts', debtData);
+        const response = await debtApi.post('', debtData);
         const result = response.data?.data || response.data;
 
         if (result && (result.id || result.debtCode)) {

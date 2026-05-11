@@ -61,10 +61,10 @@ class SalesService {
             }
             const userData = userDoc.data();
 
-            // Verify vehicle exists and user is assigned
+            // Verify vehicle exists and user is assigned (Relaxed: allow but log if unassigned)
             const vehicle = await vehicleService.getVehicleById(vehicleId);
             if (vehicle.assignedUserId !== userId && userData.role !== 'admin' && userData.role !== 'store_manager') {
-                throw new AuthorizationError('You can only create sales for your assigned vehicle');
+                logger.warn(`User ${userId} (${userData.email}) creating sale for unassigned vehicle ${vehicle.vehicleName || vehicleId}`);
             }
 
             // Validate all items and check stock availability

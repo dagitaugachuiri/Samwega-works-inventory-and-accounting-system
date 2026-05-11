@@ -15,6 +15,7 @@ import ExpensesScreen from './src/screens/ExpensesScreen';
 import RecordExpenseScreen from './src/screens/RecordExpenseScreen';
 import ReportsScreen from './src/screens/ReportsScreen';
 import ReportPreviewScreen from './src/screens/ReportPreviewScreen';
+import CustomerDebtsScreen from './src/screens/CustomerDebtsScreen';
 import SessionProvider from './src/providers/SessionProvider';
 import { LogBox } from 'react-native';
 
@@ -96,6 +97,11 @@ const App = () => {
             <Stack.Screen
               name="ReportPreview"
               component={ReportPreviewScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CustomerDebts"
+              component={CustomerDebtsScreen}
               options={{ headerShown: false }}
             />
           </Stack.Navigator>

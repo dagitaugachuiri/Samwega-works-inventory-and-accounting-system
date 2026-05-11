@@ -50,6 +50,20 @@ const DebtService = {
             return null;
         }
     },
+
+    /**
+     * Fetch all debts for a specific customer by phone number or name.
+     * Proxied through Inventory Backend: GET /api/v1/debt/customer-debts
+     */
+    fetchCustomerDebts: async (params) => {
+        try {
+            const response = await api.get('/debt/customer-debts', { params });
+            return response.data?.data || [];
+        } catch (error) {
+            console.error('[DebtService] Error fetching customer debts:', error);
+            return [];
+        }
+    },
 };
 
 export default DebtService;

@@ -370,7 +370,7 @@ const getDebtByCode = async (debtCode) => {
         const response = await debtApi.get('', { params: { debtCode, limit: 1 } });
         const debts = response.data?.data || response.data || [];
         const debt = Array.isArray(debts) ? debts[0] : (debts.id ? debts : null);
-        
+
         if (!debt) return null;
         return { ...debt, displayStatus: resolveDebtDisplayStatus(debt) };
     } catch (error) {
@@ -406,6 +406,28 @@ const createDebt = async (debtData) => {
     }
 };
 
+/**
+ * Fetch debts for a specific customer by phone number or name.
+ * @param {object} params { phoneNumber, name }
+ * @returns {Promise<Array>}
+ */
+const getCustomerDebts = async (params) => {
+    try {
+        const response = await debtApi.get('customer-debts', { params });
+        const debts = response.data?.data || [];
+        console.log("[customer debt]", debts);
+
+        // Enrich debts with display status
+        return debts.map(debt => ({
+            ...debt,
+            displayStatus: resolveDebtDisplayStatus(debt)
+        }));
+    } catch (error) {
+        logger.error(`[DebtService] Failed to fetch customer debts: ${error.message}`);
+        return [];
+    }
+};
+
 module.exports = {
     getDebtById,
     getDebtByCode,
@@ -413,5 +435,6 @@ module.exports = {
     getDashboardSummary,
     getDebtsBySaleIds,
     resolveDebtDisplayStatus,
-    createDebt
+    createDebt,
+    getCustomerDebts
 };

@@ -41,6 +41,18 @@ router.get(
 );
 
 /**
+ * @route   GET /api/v1/debt/customer-debts
+ * @desc    Fetch debts for a specific customer by phone number or name
+ * @access  Verified users
+ */
+router.get(
+    '/customer-debts',
+    verifyToken,
+    requireVerified,
+    debtController.getCustomerDebts
+);
+
+/**
  * @route   GET /api/v1/debt/:id
  * @desc    Fetch a single debt record by its ID
  * @access  Verified users

@@ -7,6 +7,7 @@ const { serializeDoc, serializeDocs } = require('../utils/serializer');
 const vehicleService = require('./vehicle.service');
 const inventoryService = require('./inventory.service');
 const debtService = require('./debt.service');
+const smsService = require('./sms.service');
 
 class SalesService {
     constructor() {
@@ -414,7 +415,8 @@ class SalesService {
                             location: location?.address || 'Unknown Location'
                         },
                         vehiclePlate: vehicle.vehicleName || 'Unknown Vehicle',
-                        salesRep: userData.fullName || userData.email || 'Sales Rep',
+                        salesRep: (userData.fullName || userData.email || 'Sales Rep').trim(),
+                        salesRepEmail: userData.email || '',
                         amount: Number(debtPayment.amount),
                         remainingAmount: Number(debtPayment.amount),
                         paidAmount: 0,
@@ -458,7 +460,17 @@ class SalesService {
             await cache.delPattern(`${this.cachePrefix}*`);
             await cache.delPattern(`vehicle:inventory:${vehicleId}*`);
 
-            return await this.getSaleById(saleId);
+            const sale = await this.getSaleById(saleId);
+
+            // Send automated SMS confirmation to customer
+            if (sale.customerPhone) {
+                // Run in background via SmsService
+                smsService.sendSaleConfirmationSMS(sale).catch(err => 
+                    logger.error(`[SalesService] Error in background SMS task: ${err.message}`)
+                );
+            }
+
+            return sale;
         } catch (error) {
             logger.error('Create sale error:', error);
             throw error;

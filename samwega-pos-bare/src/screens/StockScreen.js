@@ -391,6 +391,14 @@ export default function StockScreen({ route, navigation }) {
                             <Text style={styles.actionIcon}>📄</Text>
                             <Text style={styles.actionLabel}>Reports</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.actionCard}
+                            onPress={() => navigation.navigate('CustomerDebts')}
+                        >
+                            <Text style={styles.actionIcon}>💰</Text>
+                            <Text style={styles.actionLabel}>Debts</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
 

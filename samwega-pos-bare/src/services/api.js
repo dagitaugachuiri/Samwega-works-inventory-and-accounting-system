@@ -143,6 +143,27 @@ export const searchCustomers = async (query) => {
     return response.data;
 };
 
+// Debt API Proxy Methods
+export const getDebtDashboardSummary = async (params = {}) => {
+    const response = await api.get('/debt/dashboard-summary', { params });
+    return response.data;
+};
+
+export const getCustomerDebts = async (params = {}) => {
+    const response = await api.get('/debt/customer-debts', { params });
+    return response.data;
+};
+
+export const getDebtById = async (id) => {
+    const response = await api.get(`/debt/${id}`);
+    return response.data;
+};
+
+export const getDebtByCode = async (code) => {
+    const response = await api.get(`/debt/code/${code}`);
+    return response.data;
+};
+
 export const createCustomer = async (customerData) => {
     const response = await api.post('/customers', customerData);
     return response.data;

@@ -148,10 +148,30 @@ const createDebt = async (req, res) => {
     }
 };
 
+/**
+ * GET /api/v1/debt/customer-debts
+ * Fetches debts for a specific customer by phone number or name.
+ */
+const getCustomerDebts = async (req, res) => {
+    try {
+        const { phoneNumber, name } = req.query;
+        if (!phoneNumber && !name) {
+            return res.status(400).json(errorResponse('Either phoneNumber or name query parameter is required'));
+        }
+
+        const debts = await debtService.getCustomerDebts({ phoneNumber, name });
+        return res.status(200).json(successResponse(debts, 'Customer debts retrieved successfully'));
+    } catch (error) {
+        logger.error('Get customer debts error:', error);
+        return res.status(500).json(errorResponse('Failed to retrieve customer debts'));
+    }
+};
+
 module.exports = { 
     getDashboardSummary, 
     enrichSales,
     getDebtById,
     getDebtByCode,
-    createDebt
+    createDebt,
+    getCustomerDebts
 };

@@ -11876,3 +11876,447 @@
 {"duration":"14110ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"POST","requestId":"1778225115211-78ot97l1w","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-08 10:25:29","url":"/api/v1/sales","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
 {"level":"debug","message":"Activity logged: CREATE sale by Edward ","service":"samwega-backend","timestamp":"2026-05-08 10:25:29"}
 {"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-08 10:56:34"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 11:00:04"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:00:06"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 11:13:54"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 11:13:55"}
+{"level":"http","message":"GET /api/v1/auth/me 304 3913.738 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:13:55"}
+{"duration":"3916ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778487231811-7j5to498e","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:13:55","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 11:13:56"}
+{"level":"http","message":"GET /api/v1/inventory 304 3265.091 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:13:57"}
+{"duration":"3268ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778487233943-bg56ywfrv","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:13:57","url":"/api/v1/inventory","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1493.042 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:13:57"}
+{"duration":"1494ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778487235737-3gsvnck8x","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:13:57","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 11:13:57"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1396.632 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:13:58"}
+{"duration":"1400ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778487237245-aaovdnwby","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:13:58","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"User logged in successfully: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:00","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"POST /api/v1/auth/login 200 4042.117 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:00"}
+{"duration":"4051ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"POST","requestId":"1778488916427-2zte3z7al","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 11:42:00","url":"/api/v1/auth/login","userId":"anonymous"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:42:00"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:42:00"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:01"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:02"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:02"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:02"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:02"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 3004.568 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:03"}
+{"duration":"3007ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488920928-fxjylbiee","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:03","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:42:03"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3074.828 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:03"}
+{"duration":"3077ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488920886-wiczr0xsr","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:03","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:42:04"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 200 3092.117 ms - 626","service":"samwega-backend","timestamp":"2026-05-11 11:42:04"}
+{"duration":"3095ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488920913-7vp7s59zi","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 11:42:04","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 200 3102.212 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:04"}
+{"duration":"3127ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488920920-4rkc1smmw","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 11:42:04","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:42:04"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:42:04"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4732.178 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"duration":"4735ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488920903-y8sy9q7ly","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:05","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1626.480 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"duration":"1628ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488924027-p6ycv4eed","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:05","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:42:05"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:42:06"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:06"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:07"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:42:07"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 3000.709 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:07"}
+{"duration":"3003ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488924085-8ssrzbefy","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:07","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2483.716 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"duration":"2486ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488925707-hp9rmidcc","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:08","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2495.422 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"duration":"2498ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488925722-r2xh3xcwy","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:08","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 4031.060 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"duration":"4033ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488924195-c2vix383u","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:08","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4460.362 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:08"}
+{"duration":"4463ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488924094-cttftf6x7","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:08","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 2248.197 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:42:09"}
+{"duration":"2250ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778488927206-g7atsbx7t","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:42:09","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:47:59"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:47:59"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2046.062 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:01"}
+{"duration":"2048ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489279671-b7u4156ie","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:01","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:48:02"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:02"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 3097.428 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:02"}
+{"duration":"3100ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489279710-39twv6mba","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:02","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:48:03"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 4046.743 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:03"}
+{"duration":"4048ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489279664-2phbhyjcm","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:03","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:48:03"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 4476.945 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"duration":"4479ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489279699-gb37dkdpf","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:04","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1902.769 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"duration":"1905ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489282305-lv1m4ytnh","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:04","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:48:04"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 5553.081 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"duration":"5556ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489279716-tmvkdr9a9","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:05","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:05"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:48:06"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 3971.518 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:06"}
+{"duration":"3973ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489282896-8qan7igq9","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:06","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:48:06"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2754.683 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:07"}
+{"duration":"2756ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489284306-qf2o3sn06","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:07","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 1902.182 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:07"}
+{"duration":"1904ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489285432-7rbofty4l","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:07","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:07"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:48:08"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4482.400 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:08"}
+{"duration":"4485ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489283819-7ksx9ycwd","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:08","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 4011.032 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:08"}
+{"duration":"4012ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489284299-tdnr0343f","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:08","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1467.446 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:08"}
+{"duration":"1468ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489286893-wov2pdnys","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:08","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:48:20"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:48:20"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 2261.018 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:22"}
+{"duration":"2263ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489300633-glxj2632o","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:22","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:48:23"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2817.162 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:23"}
+{"duration":"2818ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489300699-owt0r29r0","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:23","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2874.259 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:23"}
+{"duration":"2875ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489300675-x0uhtfvkj","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:23","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 11:48:23"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:23"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:48:24"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:48:24"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 4253.425 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:24"}
+{"duration":"4257ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489300687-you9eqxu7","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:24","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:24"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:25"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 2073.489 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:25"}
+{"duration":"2076ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489303088-npq3g74n5","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:25","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:48:25"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4689.065 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:25"}
+{"duration":"4691ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489300661-wuuotbudm","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:25","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 11:48:25"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 3217.223 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:26"}
+{"duration":"3220ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489303699-an66tg6ac","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:26","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 11:48:27"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2473.413 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:27"}
+{"duration":"2475ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489305355-th2vi8duw","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:27","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2399.892 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:27"}
+{"duration":"2402ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489305550-qf7xare2q","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:27","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:48:28"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3431.580 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:28"}
+{"duration":"3433ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489305061-hq7v0h48c","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:28","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 11:48:28"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4815.973 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:28"}
+{"duration":"4817ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489303708-5il03wgve","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:28","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1955.542 ms - -","service":"samwega-backend","timestamp":"2026-05-11 11:48:29"}
+{"duration":"1958ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489307128-lguki3ql3","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 11:48:29","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:56:23"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 404","service":"samwega-backend","timestamp":"2026-05-11 11:56:24"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 2569.871 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 11:56:24"}
+{"duration":"2571ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489782058-876hm302l","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 11:56:24","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 11:56:56"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 11:57:00"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 11:57:03"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:57:08"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 11:57:09"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 3048.503 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 11:57:09"}
+{"duration":"3056ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489826000-d1i1c92ck","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 11:57:09","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:57:57"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 11:57:57"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 340.095 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 11:57:57"}
+{"duration":"343ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489877160-edv01o2hg","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 11:57:57","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 11:59:27"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 11:59:27"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 320.773 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 11:59:27"}
+{"duration":"324ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778489967159-2tgpih8uo","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 11:59:27","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:20"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 12:00:20"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 379.854 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 12:00:20"}
+{"duration":"385ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490019836-sxdcaroyd","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 12:00:20","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 12:00:43"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 12:00:43"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:43"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:45"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:45"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:45"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:45"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 1464.847 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:45"}
+{"duration":"1466ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490043646-ec15bmba7","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:45","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2772.923 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"duration":"2775ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490043665-xj4o787yx","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:46","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 2924.336 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"duration":"2926ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490043655-3t1l5wn8k","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:46","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3071.332 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:46"}
+{"duration":"3073ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490043670-zbxco9qm1","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:46","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 12:00:47"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 2596.656 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:47"}
+{"duration":"2598ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490045206-xr7grzze1","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:47","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 12:00:48"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4424.006 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:00:48"}
+{"duration":"4426ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490043676-u3jd961pl","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:00:48","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:00:51"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 12:00:51"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 331.617 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 12:00:51"}
+{"duration":"334ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490051397-h6oro8hl1","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 12:00:51","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:04:36"}
+{"level":"warn","message":"[DebtService] Failed to fetch debt customer-debts: Request failed with status code 400","service":"samwega-backend","timestamp":"2026-05-11 12:04:36"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 404 1655.384 ms - 66","service":"samwega-backend","timestamp":"2026-05-11 12:04:36"}
+{"duration":"1658ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490275071-ek1evxnt8","service":"samwega-backend","statusCode":404,"timestamp":"2026-05-11 12:04:36","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 12:06:25"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 12:06:30"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:06:32"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:06:39"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 200 3316.668 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:06:41"}
+{"duration":"3322ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490397729-9p8azxsax","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:06:41","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:07:49"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 304 995.251 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:07:50"}
+{"duration":"997ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490469540-buhp9n9nr","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:07:50","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 12:08:22"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 12:08:27"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:08:28"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:08:35"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 304 3578.265 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:08:36"}
+{"duration":"3582ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490512444-todxz086b","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:08:36","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:11:09"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 200 973.330 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:11:10"}
+{"duration":"979ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490669147-3ybz06xgu","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:11:10","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:11:16"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=743466032 200 958.533 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:11:16"}
+{"duration":"964ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490675642-7esp6f4bp","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:11:16","url":"/api/v1/debt/customer-debts?phoneNumber=743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:12:23"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=074346603 200 1206.293 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:12:24"}
+{"duration":"1210ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490743073-isenjdxa5","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:12:24","url":"/api/v1/debt/customer-debts?phoneNumber=074346603","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:12:38"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 304 886.686 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:12:38"}
+{"duration":"889ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490758055-kh2mploqu","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:12:38","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:13:23"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 304 1341.467 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:13:24"}
+{"duration":"1345ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490802832-pdu4daba9","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:13:24","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:16:34"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=%2B254743466032 200 1204.906 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:16:35"}
+{"duration":"1209ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778490994495-gnzco21n4","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:16:35","url":"/api/v1/debt/customer-debts?name=%2B254743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:18:43"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 304 1436.636 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:18:45"}
+{"duration":"1439ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491123595-3s7kdxltr","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:18:45","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:19:00"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=254743466032 200 883.558 ms - 76","service":"samwega-backend","timestamp":"2026-05-11 12:19:00"}
+{"duration":"886ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491139981-i130nh9cn","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:19:00","url":"/api/v1/debt/customer-debts?phoneNumber=254743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:19:07"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=%2B254743466032 304 865.038 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:19:07"}
+{"duration":"867ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491146938-ra7s8i5ji","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:19:07","url":"/api/v1/debt/customer-debts?name=%2B254743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:19:14"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 304 1379.690 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:19:15"}
+{"duration":"1383ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491153763-al68pmv1x","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:19:15","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:20:39"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 304 1197.088 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:20:40"}
+{"duration":"1200ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491239528-er082u83p","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:20:40","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:21:34"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 200 1598.682 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:21:35"}
+{"duration":"1613ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491293837-dykedu98p","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:21:35","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:23:09"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 200 1867.162 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:23:10"}
+{"duration":"1873ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491388964-e0n0rimo4","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:23:10","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:31:26"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 200 2651.848 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:31:27"}
+{"duration":"2657ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778491884376-p8t5ufkdb","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:31:27","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:34:46"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?phoneNumber=0743466032 304 1420.482 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:34:47"}
+{"duration":"1422ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492085843-cw9vfgobj","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:34:47","url":"/api/v1/debt/customer-debts?phoneNumber=0743466032","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 12:37:20"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 12:37:20"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:21"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:22"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:22"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 12:37:22"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2805.140 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:23"}
+{"duration":"2807ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492240723-apqmbzq7i","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:23","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3041.040 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:23"}
+{"duration":"3043ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492240666-1yx637l2i","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:23","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 12:37:23"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 3034.258 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:23"}
+{"duration":"3036ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492240712-ctlzja7xa","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:23","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:37:24"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 3517.433 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:24"}
+{"duration":"3519ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492240702-hq5xz05py","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:24","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:25"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 12:37:25"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4437.557 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:25"}
+{"duration":"4438ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492240685-6jwta54j6","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:25","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1731.653 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:25"}
+{"duration":"1735ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492243711-srkbe763i","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:25","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 12:37:28"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 12:37:28"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:28"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:29"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-05-11 12:37:29"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 2720.016 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"duration":"2722ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492248533-j32dqkjp6","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:31","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2739.010 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"duration":"2740ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492248521-ofbufkuwy","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:31","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=3700, PM Sum=0, Mixed=3700). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 2788.719 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"duration":"2790ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492248489-w9q2c99d2","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:31","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3128.057 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:31"}
+{"duration":"3129ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492248515-h6wv6pg2w","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:31","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 12:37:32"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=all 200 4128.332 ms - 375","service":"samwega-backend","timestamp":"2026-05-11 12:37:32"}
+{"duration":"4149ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492248481-o85du7e43","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:37:32","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=all","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:37:32"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1556.357 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:37:32"}
+{"duration":"1558ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492251374-a809nza4e","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:37:32","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 12:46:28"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 12:46:28"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:28"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:29"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:29"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2099.801 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:30"}
+{"duration":"2103ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492787989-bye57hzk8","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:30","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 12:46:30"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 304 3079.806 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"duration":"3081ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492788086-ie1j96iye","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:31","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 3330.293 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"duration":"3338ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492787935-g57ocfcda","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:31","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 3501.963 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"duration":"3504ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492788129-q9a1mmxss","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:31","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1525.101 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:31"}
+{"duration":"1528ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492790137-8clzol0m3","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:31","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:32"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 12:46:32"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 304 4639.865 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:32"}
+{"duration":"4643ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492788065-pzc6erht8","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:32","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:46:33"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 2578.917 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:46:33"}
+{"duration":"2581ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492791337-w5qdoz23e","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:46:33","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 12:46:42"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 12:46:47"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 12:46:49"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:46:52"}
+{"level":"http","message":"GET /api/v1/customers/search?q=Edwa&limit=10 200 3230.424 ms - 519","service":"samwega-backend","timestamp":"2026-05-11 12:46:52"}
+{"duration":"3237ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492809510-m1tn5afbo","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:46:52","url":"/api/v1/customers/search?q=Edwa&limit=10","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: POST /","service":"samwega-backend","timestamp":"2026-05-11 12:47:20"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:47:20"}
+{"grandTotal":1500,"id":"R68j2TRLWng5Gx7c21Up","level":"info","message":"Sale created: RCP-2026-0004","service":"samwega-backend","timestamp":"2026-05-11 12:47:27","vehicleId":"93HUNmrjjHPwKyxjL7zy"}
+{"level":"info","message":"[SalesService] Initiating automated debt creation for receipt: RCP-2026-0004","service":"samwega-backend","timestamp":"2026-05-11 12:47:27"}
+{"level":"info","message":"[DebtService] Creating debt in external API for customer...","service":"samwega-backend","timestamp":"2026-05-11 12:47:27"}
+{"level":"info","message":"[DebtService] Successfully created debt. External ID: W8qdDWRlnJE1un6Sw6Z0, Code: 439442","service":"samwega-backend","timestamp":"2026-05-11 12:47:32"}
+{"level":"info","message":"[SalesService] Debt created successfully. ID: W8qdDWRlnJE1un6Sw6Z0, Code: 439442","service":"samwega-backend","timestamp":"2026-05-11 12:47:32"}
+{"level":"info","message":"[SalesService] Sale RCP-2026-0004 linked to debt 439442","service":"samwega-backend","timestamp":"2026-05-11 12:47:32"}
+{"level":"info","message":"[SmsService] Sending sale confirmation SMS to +254743466032","service":"samwega-backend","timestamp":"2026-05-11 12:47:34"}
+{"level":"http","message":"POST /api/v1/sales 201 13839.280 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:47:34"}
+{"duration":"13851ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"POST","requestId":"1778492840279-eoqvnd7cz","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 12:47:34","url":"/api/v1/sales","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"Activity logged: CREATE sale by Edward ","service":"samwega-backend","timestamp":"2026-05-11 12:47:34"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:47:39"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:47:40"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 200 1772.873 ms - 626","service":"samwega-backend","timestamp":"2026-05-11 12:47:40"}
+{"duration":"1775ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492858721-lwomc9hcf","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:47:40","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-05-11 12:48:15"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-05-11 12:48:15"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:15"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:16"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:16"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:16"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:16"}
+{"level":"http","message":"GET /api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000 200 1407.261 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:16"}
+{"duration":"1412ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492895548-1noppo1yq","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:48:16","url":"/api/v1/sales?vehicleId=93HUNmrjjHPwKyxjL7zy&limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2729.760 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"duration":"2729ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492895571-vbdse0onc","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:48:18","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"=== STATS CALCULATION (today) ===","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"level":"info","message":"VehicleService.getVehicleInventory: Found 2 items for vehicle 93HUNmrjjHPwKyxjL7zy","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory 304 2867.706 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"duration":"2869ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492895556-j66qhiyzv","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:48:18","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/inventory","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"http","message":"GET /api/v1/inventory?limit=1000 304 1503.013 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:18"}
+{"duration":"1505ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492897079-iaecyfms7","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:48:18","url":"/api/v1/inventory?limit=1000","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=1500, PM Sum=0, Mixed=1500). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-05-11 12:48:19"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-05-11 12:48:19"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances 304 4069.677 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:19"}
+{"duration":"4070ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492895579-w5xvyer3j","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 12:48:19","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy/issuances","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-05-11 12:48:19"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today 200 4375.311 ms - 343","service":"samwega-backend","timestamp":"2026-05-11 12:48:19"}
+{"duration":"4380ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492895561-d7bqf0s25","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:48:19","url":"/api/v1/sales/dashboard-stats?vehicleId=93HUNmrjjHPwKyxjL7zy&type=today","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"debug","message":"User authenticated: edward@gmail.com","service":"samwega-backend","timestamp":"2026-05-11 12:48:23"}
+{"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 200 893.512 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:23"}
+{"duration":"898ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492902900-kn6g9dg7a","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:48:23","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 12:49:48"}

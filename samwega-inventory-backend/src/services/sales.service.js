@@ -2,7 +2,7 @@ const { getFirestore } = require('../config/firebase.config');
 const { admin } = require('../config/firebase.config');
 const logger = require('../utils/logger');
 const cache = require('../utils/cache');
-const { NotFoundError, ValidationError, UnauthorizedError } = require('../utils/errors');
+const { NotFoundError, ValidationError, AuthorizationError } = require('../utils/errors');
 const { serializeDoc, serializeDocs } = require('../utils/serializer');
 const vehicleService = require('./vehicle.service');
 const inventoryService = require('./inventory.service');
@@ -64,7 +64,7 @@ class SalesService {
             // Verify vehicle exists and user is assigned
             const vehicle = await vehicleService.getVehicleById(vehicleId);
             if (vehicle.assignedUserId !== userId && userData.role !== 'admin' && userData.role !== 'store_manager') {
-                throw new UnauthorizedError('You can only create sales for your assigned vehicle');
+                throw new AuthorizationError('You can only create sales for your assigned vehicle');
             }
 
             // Validate all items and check stock availability
@@ -716,7 +716,7 @@ class SalesService {
             }
 
             if (sale.salesRepId !== userId) {
-                throw new UnauthorizedError('You can only update your own sales');
+                throw new AuthorizationError('You can only update your own sales');
             }
 
             const updates = { ...updateData };

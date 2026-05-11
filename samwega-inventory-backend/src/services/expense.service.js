@@ -6,6 +6,32 @@ const { NotFoundError, ValidationError, UnauthorizedError } = require('../utils/
 const { serializeDoc, serializeDocs } = require('../utils/serializer');
 const textSMSService = require('../config/textsms.config');
 
+const CATEGORY_NAMES = {
+    fuel: "Fuel",
+    maintenance: "Maintenance",
+    salaries: "Salaries & Allowances",
+    rent: "Rent & Rates",
+    utilities: "Utilities (Water/Elec)",
+    supplies: "Supplies & Consumables",
+    insurance: "Insurance",
+    taxes: "Taxes (KRA/VAT)",
+    licenses: "Licenses & Permits",
+    permits: "Permits",
+    marketing: "Marketing & Promo",
+    travel: "Travel & Transport",
+    meals: "Meals & Entertainment",
+    communication: "Communication & Airtime",
+    office: "Office Expenses",
+    legal: "Legal Fees",
+    professional_fees: "Professional Fees",
+    bank_charges: "Bank Charges",
+    fines: "Fines & Penalties",
+    security: "Security",
+    equipment: "Equipment & Assets",
+    loans: "Loan Repayments",
+    other: "Other Expenses"
+};
+
 class ExpenseService {
     constructor() {
         this.db = getFirestore();
@@ -114,6 +140,114 @@ class ExpenseService {
             return await this.getExpenseById(docRef.id);
         } catch (error) {
             logger.error('Create expense error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create multiple expenses at once (Batch)
+     * @param {Object} batchData { expenses: [], expenseDate }
+     * @param {string} userId
+     * @returns {Promise<Array>}
+     */
+    async createExpenseBatch(batchData, userId) {
+        try {
+            const { expenses, expenseDate } = batchData;
+            
+            // Get user details
+            const userDoc = await this.db.collection('users').doc(userId).get();
+            if (!userDoc.exists) {
+                throw new NotFoundError('User');
+            }
+            const userData = userDoc.data();
+            const userName = userData.fullName || userData.email;
+
+            const results = [];
+            let totalAmount = 0;
+            
+            // Start a Firestore batch
+            const batch = this.db.batch();
+            
+            // Get starting expense number
+            let lastExpNum = await this.generateExpenseNumber();
+            let baseNum = parseInt(lastExpNum.split('-')[2]);
+            const year = new Date().getFullYear();
+
+            for (let i = 0; i < expenses.length; i++) {
+                const item = expenses[i];
+                const expNum = `EXP-${year}-${String(baseNum + i).padStart(4, '0')}`;
+                
+                let vehicleName = null;
+                if (item.vehicleId) {
+                    const vehicleDoc = await this.db.collection('vehicles').doc(item.vehicleId).get();
+                    if (vehicleDoc.exists) {
+                        vehicleName = vehicleDoc.data().vehicleName;
+                    }
+                }
+
+                const expense = {
+                    expenseNumber: expNum,
+                    submittedBy: userId,
+                    submittedByName: userName,
+                    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    category: item.category,
+                    description: item.description,
+                    amount: parseFloat(item.amount),
+                    currency: item.currency || 'KES',
+                    expenseDate: new Date(expenseDate || item.expenseDate),
+                    vehicleId: item.vehicleId || null,
+                    vehicleName,
+                    status: 'pending',
+                    approvalHistory: [
+                        {
+                            action: 'submitted',
+                            by: userId,
+                            byName: userName,
+                            at: new Date()
+                        }
+                    ],
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                };
+
+                const docRef = this.db.collection(this.collection).doc();
+                batch.set(docRef, expense);
+                
+                results.push({ id: docRef.id, ...expense });
+                totalAmount += expense.amount;
+            }
+
+            await batch.commit();
+            logger.info(`Batch expenses created by ${userName}: ${results.length} items, Total: ${totalAmount}`);
+
+            // Send single summary SMS notification
+            try {
+                // Get admin/approver phone numbers
+                const adminsSnapshot = await this.db.collection('users')
+                    .where('role', 'in', ['admin', 'store_manager', 'accountant'])
+                    .get();
+                const recipients = serializeDocs(adminsSnapshot).map(u => u.phoneNumber).filter(Boolean);
+
+                const itemsList = results.map(r => {
+                    const catName = CATEGORY_NAMES[r.category] || r.category;
+                    return `• ${catName}: KSh ${r.amount.toLocaleString()}`;
+                }).join('\n');
+
+                const message = `SAMWEGA: Expense Receipt\nSubmitted by: ${userName}\nItems:\n${itemsList}\nTOTAL: KSh ${totalAmount.toLocaleString()}\nPlease review.`;
+                
+                for (const phone of recipients) {
+                    await textSMSService.sendSMS(phone, message);
+                }
+            } catch (smsError) {
+                logger.error('Batch expense SMS notification error:', smsError);
+            }
+
+            // Invalidate cache
+            await cache.delPattern(`${this.cachePrefix}*`);
+
+            return results;
+        } catch (error) {
+            logger.error('Create expense batch error:', error);
             throw error;
         }
     }

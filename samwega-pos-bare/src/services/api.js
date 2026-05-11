@@ -195,6 +195,11 @@ export const createExpense = async (expenseData) => {
     return response.data;
 };
 
+export const createExpenseBatch = async (batchData) => {
+    const response = await api.post('/expenses/batch', batchData);
+    return response.data;
+};
+
 export const getExpenses = async (params = {}) => {
     const response = await api.get('/expenses', { params });
     return response.data;

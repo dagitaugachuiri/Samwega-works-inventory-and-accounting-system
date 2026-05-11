@@ -368,6 +368,13 @@ class APIClient {
         });
     }
 
+    async createExpenseBatch(data) {
+        return this.request('/expenses/batch', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
     async updateExpense(id, data) {
         return this.request(`/expenses/${id}`, {
             method: 'PUT',

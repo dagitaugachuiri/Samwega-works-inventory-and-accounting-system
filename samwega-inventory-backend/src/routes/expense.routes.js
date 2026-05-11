@@ -29,6 +29,20 @@ router.post(
 );
 
 /**
+ * @route   POST /api/v1/expenses/batch
+ * @desc    Create multiple expenses
+ * @access  All verified users
+ */
+router.post(
+    '/batch',
+    verifyToken,
+    requireVerified,
+    logActivity('CREATE_BATCH', 'expense'),
+    writeLimiter,
+    expenseController.createExpenseBatch
+);
+
+/**
  * @route   GET /api/v1/expenses
  * @desc    Get all expenses (filtered by role)
  * @access  All verified users

@@ -1,7 +1,33 @@
 "use client"
 import { useState, useEffect } from "react";
-import { Plus, Search, CheckCircle, XCircle, Clock, Calendar, Filter, Truck, User, Fuel, Wrench, Briefcase, Calculator } from "lucide-react";
+import { Plus, Search, CheckCircle, XCircle, Clock, Calendar, Filter, Truck, User, Fuel, Wrench, Briefcase, Calculator, Trash2, DollarSign, Loader2 } from "lucide-react";
 import api from "../../lib/api";
+
+const CATEGORY_NAMES = {
+    fuel: "Fuel",
+    maintenance: "Maintenance",
+    salaries: "Salaries & Allowances",
+    rent: "Rent & Rates",
+    utilities: "Utilities (Water/Elec)",
+    supplies: "Supplies & Consumables",
+    insurance: "Insurance",
+    taxes: "Taxes (KRA/VAT)",
+    licenses: "Licenses & Permits",
+    permits: "Permits",
+    marketing: "Marketing & Promo",
+    travel: "Travel & Transport",
+    meals: "Meals & Entertainment",
+    communication: "Communication & Airtime",
+    office: "Office Expenses",
+    legal: "Legal Fees",
+    professional_fees: "Professional Fees",
+    bank_charges: "Bank Charges",
+    fines: "Fines & Penalties",
+    security: "Security",
+    equipment: "Equipment & Assets",
+    loans: "Loan Repayments",
+    other: "Other Expenses"
+};
 
 const CATEGORY_ICONS = {
     fuel: Fuel,
@@ -47,15 +73,12 @@ export default function ExpensesPage() {
     const [vehicles, setVehicles] = useState([]);
     const [categoryStats, setCategoryStats] = useState(null);
 
-    // Form
-    const [formData, setFormData] = useState({
-        category: "",
-        amount: "",
-        description: "",
-        vehicleId: "",
-        expenseDate: new Date().toISOString().split('T')[0],
-        receiptUrl: ""
-    });
+    // Batch Form State
+    const [expenseRows, setExpenseRows] = useState([
+        { id: Date.now(), category: "", amount: "", description: "", vehicleId: "" }
+    ]);
+    const [batchDate, setBatchDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         fetchVehicles();
@@ -116,30 +139,60 @@ export default function ExpensesPage() {
         }
     };
 
+    const addRow = () => {
+        setExpenseRows([...expenseRows, { id: Date.now(), category: "", amount: "", description: "", vehicleId: "" }]);
+    };
+
+    const removeRow = (id) => {
+        if (expenseRows.length > 1) {
+            setExpenseRows(expenseRows.filter(row => row.id !== id));
+        }
+    };
+
+    const updateRow = (id, field, value) => {
+        setExpenseRows(expenseRows.map(row => row.id === id ? { ...row, [field]: value } : row));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            // Create payload and remove empty optional fields
-            const payload = { ...formData };
-            if (!payload.vehicleId) delete payload.vehicleId;
-            if (!payload.receiptUrl) delete payload.receiptUrl;
-            if (!payload.notes) delete payload.notes;
+        
+        // Filter out empty rows
+        const activeRows = expenseRows.filter(row => row.category && row.amount);
+        
+        if (activeRows.length === 0) {
+            alert("Please fill in at least one expense row");
+            return;
+        }
 
-            await api.createExpense(payload);
+        try {
+            setIsSubmitting(true);
+            
+            // Use batch creation API to send only one request
+            const batchPayload = {
+                expenses: activeRows.map(row => ({
+                    category: row.category,
+                    amount: parseFloat(row.amount),
+                    description: row.description,
+                    vehicleId: row.vehicleId || null
+                })),
+                expenseDate: batchDate
+            };
+            
+            await api.createExpenseBatch(batchPayload);
+
             setShowAddModal(false);
-            setFormData({
-                category: "",
-                amount: "",
-                description: "",
-                vehicleId: "",
-                expenseDate: new Date().toISOString().split('T')[0],
-                receiptUrl: ""
-            });
+            // Reset to initial state
+            setExpenseRows([{ id: Date.now(), category: "", amount: "", description: "", vehicleId: "" }]);
+            setBatchDate(new Date().toISOString().split('T')[0]);
+            
+            // Refresh data
             fetchExpenses();
             fetchCategoryStats();
         } catch (error) {
-            console.error("Failed to create expense:", error);
-            alert("Failed to create expense");
+            console.error("Failed to create expenses:", error);
+            alert("Failed to record some expenses. Please check your data and try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -276,7 +329,7 @@ export default function ExpensesPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className="text-xs px-2 py-1 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200 uppercase">
-                                                {expense.category}
+                                                {CATEGORY_NAMES[expense.category] || expense.category}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate" title={expense.description}>
@@ -300,95 +353,179 @@ export default function ExpensesPage() {
                 </div>
             </div>
 
-            {/* Add Expense Modal */}
+            {/* Add Expense Modal - Batch Mode */}
             {showAddModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="glass-panel p-6 max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-xl font-semibold text-slate-900">New Expense</h2>
-                            <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                    <div className="glass-panel p-0 max-w-5xl w-full animate-in fade-in zoom-in-95 duration-200 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white/50">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900">Record Multiple Expenses</h2>
+                                <p className="text-xs text-slate-500 mt-1">Add details for all expenses incurred. You can add multiple rows.</p>
+                            </div>
+                            <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
                                 <XCircle size={24} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
-                                    <input
-                                        type="date"
-                                        value={formData.expenseDate}
-                                        onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
-                                        className="input-field w-full"
-                                        required
-                                    />
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                            <div className="mb-6 flex items-center gap-4">
+                                <div className="w-48">
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Expense Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                                        <input
+                                            type="date"
+                                            value={batchDate}
+                                            onChange={(e) => setBatchDate(e.target.value)}
+                                            className="input-field pl-9 w-full text-sm font-medium"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Amount (KSh)</label>
-                                    <input
-                                        type="number"
-                                        value={formData.amount}
-                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                        className="input-field w-full"
-                                        placeholder="0.00"
-                                        required
-                                    />
+                                <div className="flex-1"></div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Amount</p>
+                                    <p className="text-2xl font-black text-sky-600">
+                                        KSh {expenseRows.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0).toLocaleString()}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
-                                <select
-                                    value={formData.category}
-                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                    className="input-field w-full"
-                                    required
-                                >
-                                    <option value="">Select category</option>
-                                    <option value="fuel">Fuel</option>
-                                    <option value="maintenance">Maintenance</option>
-                                    <option value="salary">Salary</option>
-                                    <option value="rent">Rent</option>
-                                    <option value="utilities">Utilities</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="space-y-3">
+                                    {expenseRows.map((row, index) => (
+                                        <div key={row.id} className="flex flex-col md:flex-row gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-sky-200 transition-all group">
+                                            <div className="w-full md:w-1/4">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Category</label>
+                                                <select
+                                                    value={row.category}
+                                                    onChange={(e) => updateRow(row.id, 'category', e.target.value)}
+                                                    className="input-field w-full text-sm"
+                                                    required
+                                                >
+                                                    <option value="">Select Category</option>
+                                                    <option value="fuel">Fuel</option>
+                                                    <option value="maintenance">Maintenance</option>
+                                                    <option value="salaries">Salaries & Allowances</option>
+                                                    <option value="rent">Rent & Rates</option>
+                                                    <option value="utilities">Utilities (Water/Elec)</option>
+                                                    <option value="supplies">Supplies & Consumables</option>
+                                                    <option value="insurance">Insurance</option>
+                                                    <option value="taxes">Taxes (KRA/VAT)</option>
+                                                    <option value="licenses">Licenses & Permits</option>
+                                                    <option value="marketing">Marketing & Promo</option>
+                                                    <option value="travel">Travel & Transport</option>
+                                                    <option value="meals">Meals & Entertainment</option>
+                                                    <option value="communication">Communication & Airtime</option>
+                                                    <option value="office">Office Expenses</option>
+                                                    <option value="professional_fees">Professional Fees</option>
+                                                    <option value="bank_charges">Bank Charges</option>
+                                                    <option value="fines">Fines & Penalties</option>
+                                                    <option value="security">Security</option>
+                                                    <option value="equipment">Equipment & Assets</option>
+                                                    <option value="loans">Loan Repayments</option>
+                                                    <option value="other">Other Expenses</option>
+                                                </select>
+                                            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Assign to Vehicle (Optional)</label>
-                                <select
-                                    value={formData.vehicleId}
-                                    onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                                    className="input-field w-full"
-                                >
-                                    <option value="">None (General Expense)</option>
-                                    {vehicles.map(v => (
-                                        <option key={v.id} value={v.id}>{v.vehicleName} - {v.registrationNumber}</option>
+                                            <div className="w-full md:w-1/5">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Amount (KSh)</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">KSh</span>
+                                                    <input
+                                                        type="number"
+                                                        value={row.amount}
+                                                        onChange={(e) => updateRow(row.id, 'amount', e.target.value)}
+                                                        className="input-field pl-10 w-full text-sm font-semibold"
+                                                        placeholder="0.00"
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="w-full md:w-1/4">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Vehicle (Optional)</label>
+                                                <select
+                                                    value={row.vehicleId}
+                                                    onChange={(e) => updateRow(row.id, 'vehicleId', e.target.value)}
+                                                    className="input-field w-full text-sm"
+                                                >
+                                                    <option value="">General Expense</option>
+                                                    {vehicles.map(v => (
+                                                        <option key={v.id} value={v.id}>{v.vehicleName}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Description</label>
+                                                <input
+                                                    type="text"
+                                                    value={row.description}
+                                                    onChange={(e) => updateRow(row.id, 'description', e.target.value)}
+                                                    className="input-field w-full text-sm"
+                                                    placeholder="Enter details..."
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="flex items-end pb-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeRow(row.id)}
+                                                    disabled={expenseRows.length === 1}
+                                                    className="p-2 text-slate-300 hover:text-rose-500 disabled:opacity-0 transition-colors"
+                                                    title="Remove Row"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
-                                </select>
-                            </div>
+                                </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="input-field w-full"
-                                    rows="3"
-                                    placeholder="Enter details about this expense..."
-                                    required
-                                />
-                            </div>
+                                <button
+                                    type="button"
+                                    onClick={addRow}
+                                    className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:text-sky-600 hover:border-sky-300 hover:bg-sky-50/50 transition-all flex items-center justify-center gap-2 font-medium"
+                                >
+                                    <Plus size={18} />
+                                    Add Another Expense Row
+                                </button>
+                            </form>
+                        </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="btn-ghost flex-1">
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn-primary flex-1">
-                                    Create Expense
-                                </button>
-                            </div>
-                        </form>
+                        {/* Modal Footer */}
+                        <div className="p-6 border-t border-slate-100 bg-white flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddModal(false)}
+                                className="btn-ghost flex-1 py-3"
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="btn-primary flex-[2] py-3 shadow-lg shadow-sky-200 flex items-center justify-center gap-2"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" />
+                                        Recording {expenseRows.filter(r => r.category && r.amount).length} Expenses...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle size={18} />
+                                        Record All Expenses
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

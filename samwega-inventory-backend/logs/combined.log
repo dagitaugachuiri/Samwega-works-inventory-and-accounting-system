@@ -12320,3 +12320,253 @@
 {"level":"http","message":"GET /api/v1/debt/customer-debts?name=Edward 200 893.512 ms - -","service":"samwega-backend","timestamp":"2026-05-11 12:48:23"}
 {"duration":"898ms","ip":"192.168.100.4","level":"info","message":"Request completed","method":"GET","requestId":"1778492902900-kn6g9dg7a","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 12:48:23","url":"/api/v1/debt/customer-debts?name=Edward","userId":"ymeqNbzKLNSmTnYJ6QUThRvLzjf2"}
 {"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 12:49:48"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 15:43:31"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:43:34"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:27"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:27"}
+{"level":"http","message":"GET /api/v1/auth/me 304 4893.154 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:28"}
+{"duration":"4901ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503463207-4pjnd2j6f","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:28","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:29"}
+{"level":"http","message":"GET /api/v1/inventory 304 5992.145 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:29"}
+{"duration":"6003ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503463241-79jz82wcp","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:29","url":"/api/v1/inventory","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1404.290 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:29"}
+{"duration":"1419ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503468120-u5ojbci6n","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:29","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:30"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1647.688 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:31"}
+{"duration":"1651ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503469556-hvjmvpetf","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:31","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:49"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:50"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:50"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 15:44:50","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:50"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 15:44:50"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 15:44:50","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1459.471 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:51"}
+{"duration":"1470ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503489537-cr73jbp59","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:51","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 1708.601 ms - 336","service":"samwega-backend","timestamp":"2026-05-11 15:44:51"}
+{"duration":"1717ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503489557-yq7c3z05b","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 15:44:51","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"http","message":"GET /api/v1/expenses 200 2777.986 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"duration":"2794ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503489549-bgs0f5crd","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 15:44:52","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 15:44:52","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:44:52"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 15:44:53","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 2723.116 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"duration":"2727ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503491011-oxp9a7aqc","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:53","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"level":"http","message":"GET /api/v1/expenses 304 1423.545 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"duration":"1427ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503492346-scwdbl0vk","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:53","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 304 2500.125 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:44:53"}
+{"duration":"2501ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778503491278-cvbrbptyg","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:44:53","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:45:42"}
+{"ip":"192.168.100.5","level":"error","message":"Validation failed","method":"POST","service":"samwega-backend","stack":"ValidationError: Validation failed\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\validation.middleware.js:26:37\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:807:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:691:5","timestamp":"2026-05-11 15:45:42","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/expenses 400 348.335 ms - 884","service":"samwega-backend","timestamp":"2026-05-11 15:45:42"}
+{"duration":"345ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778503542539-q5bqtp3zw","service":"samwega-backend","statusCode":400,"timestamp":"2026-05-11 15:45:42","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:46:27"}
+{"ip":"192.168.100.5","level":"error","message":"Validation failed","method":"POST","service":"samwega-backend","stack":"ValidationError: Validation failed\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\validation.middleware.js:26:37\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:807:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:691:5","timestamp":"2026-05-11 15:46:27","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/expenses 400 349.235 ms - 884","service":"samwega-backend","timestamp":"2026-05-11 15:46:27"}
+{"duration":"357ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778503587234-317yxoka6","service":"samwega-backend","statusCode":400,"timestamp":"2026-05-11 15:46:27","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 15:47:20"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 15:47:22"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:47:23"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:54:43"}
+{"amount":2000,"category":"fuel","id":"3KLBYGCWRGlu0skkfOml","level":"info","message":"Expense created: EXP-2026-0005","service":"samwega-backend","timestamp":"2026-05-11 15:54:45"}
+{"level":"http","message":"POST /api/v1/expenses 201 13685.657 ms - 771","service":"samwega-backend","timestamp":"2026-05-11 15:54:49"}
+{"duration":"13691ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504076031-sxuufecks","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 15:54:49","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 15:54:50"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:54:51"}
+{"ip":"192.168.100.5","level":"error","message":"Validation failed","method":"POST","service":"samwega-backend","stack":"ValidationError: Validation failed\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\validation.middleware.js:26:37\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:807:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:691:5","timestamp":"2026-05-11 15:54:51","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/expenses 400 1345.814 ms - 954","service":"samwega-backend","timestamp":"2026-05-11 15:54:51"}
+{"duration":"1350ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504089781-3d6a44q7h","service":"samwega-backend","statusCode":400,"timestamp":"2026-05-11 15:54:51","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 15:55:16"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 15:55:22"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:55:25"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 15:55:33","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"level":"http","message":"GET /api/v1/auth/me 304 3352.871 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:33"}
+{"duration":"3357ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504130262-pawxf6xiy","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:55:33","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 3108.495 ms - 336","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"duration":"3117ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504131594-3gx4lbwwy","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 15:55:34","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 15:55:34","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 3176.250 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"duration":"3178ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504131561-d5slbe2cp","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:55:34","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"level":"http","message":"GET /api/v1/expenses 200 3187.538 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:34"}
+{"duration":"3245ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504131584-i7y3dvups","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 15:55:34","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:35"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 304 1441.747 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"duration":"1445ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504134786-b1oljyhyn","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:55:36","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 15:55:36","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 15:55:36","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1737.830 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:36"}
+{"duration":"1743ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504134801-dxzkp8i5a","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:55:36","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 15:55:37"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 15:55:37"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 15:55:37"}
+{"level":"http","message":"GET /api/v1/expenses 304 2770.605 ms - -","service":"samwega-backend","timestamp":"2026-05-11 15:55:37"}
+{"duration":"2772ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504134833-px17bxkja","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 15:55:37","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:56:31"}
+{"ip":"192.168.100.5","level":"error","message":"Validation failed","method":"POST","service":"samwega-backend","stack":"ValidationError: Validation failed\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\validation.middleware.js:26:37\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:807:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\express-rate-limit\\dist\\index.cjs:691:5","timestamp":"2026-05-11 15:56:31","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/expenses 400 352.702 ms - 954","service":"samwega-backend","timestamp":"2026-05-11 15:56:31"}
+{"duration":"360ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504191189-f56vz9ju1","service":"samwega-backend","statusCode":400,"timestamp":"2026-05-11 15:56:31","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 15:58:16"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 15:58:18"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 15:59:58"}
+{"amount":2000,"category":"travel","id":"K72R1oeMyitysvNXlan0","level":"info","message":"Expense created: EXP-2026-0006","service":"samwega-backend","timestamp":"2026-05-11 16:00:00"}
+{"level":"http","message":"POST /api/v1/expenses 201 10466.036 ms - 774","service":"samwega-backend","timestamp":"2026-05-11 16:00:05"}
+{"duration":"10477ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504394725-ctd2x1alj","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:00:05","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:00:05"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:00:06"}
+{"amount":200,"category":"taxes","id":"sSpGpmczbYWAHRiPQ3KS","level":"info","message":"Expense created: EXP-2026-0007","service":"samwega-backend","timestamp":"2026-05-11 16:00:08"}
+{"level":"http","message":"POST /api/v1/expenses 201 7224.609 ms - 769","service":"samwega-backend","timestamp":"2026-05-11 16:00:12"}
+{"duration":"7231ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504405255-drecwoggi","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:00:12","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:00:13"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:00:13"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:00:13","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:00:13"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:00:13"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:00:14"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:00:14"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:00:14"}
+{"level":"http","message":"GET /api/v1/expenses 200 1688.620 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:00:14"}
+{"duration":"1702ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504412539-odxrri5su","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:00:14","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 2716.625 ms - 436","service":"samwega-backend","timestamp":"2026-05-11 16:00:15"}
+{"duration":"2719ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504412550-wil8u7ejd","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:00:15","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 16:07:08"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:07:10"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:07:42"}
+{"amount":2000,"category":"meals","id":"guCV50kciRiZEEp6OUiz","level":"info","message":"Expense created: EXP-2026-0008","service":"samwega-backend","timestamp":"2026-05-11 16:07:44"}
+{"level":"http","message":"POST /api/v1/expenses 201 10543.894 ms - 770","service":"samwega-backend","timestamp":"2026-05-11 16:07:48"}
+{"duration":"10553ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504857770-tt75l60bb","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:07:48","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:07:49"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:07:49"}
+{"amount":10000,"category":"loans","id":"dNlmG2M37tBwNSLCBlZA","level":"info","message":"Expense created: EXP-2026-0009","service":"samwega-backend","timestamp":"2026-05-11 16:07:51"}
+{"level":"http","message":"POST /api/v1/expenses 201 7038.253 ms - 771","service":"samwega-backend","timestamp":"2026-05-11 16:07:55"}
+{"duration":"7050ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778504868361-d5wa4o8br","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:07:55","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:07:56"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:07:56"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:07:56","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:07:56"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:07:56"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:07:57"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:07:57"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:07:57"}
+{"level":"http","message":"GET /api/v1/expenses 200 1695.916 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:07:57"}
+{"duration":"1703ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504875445-mtcb4y085","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:07:57","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 2758.629 ms - 537","service":"samwega-backend","timestamp":"2026-05-11 16:07:58"}
+{"duration":"2761ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778504875452-blilmz54v","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:07:58","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:10:33"}
+{"amount":3676,"category":"licenses","id":"LYatkMpPHPwhPJoq7n0a","level":"info","message":"Expense created: EXP-2026-0010","service":"samwega-backend","timestamp":"2026-05-11 16:10:35"}
+{"level":"http","message":"POST /api/v1/expenses 201 6867.569 ms - 773","service":"samwega-backend","timestamp":"2026-05-11 16:10:39"}
+{"duration":"6872ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778505032970-kek57u082","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:10:39","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:10:40"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:10:41"}
+{"amount":4000,"category":"bank_charges","id":"NS2FmJIx57TMak449Dep","level":"info","message":"Expense created: EXP-2026-0011","service":"samwega-backend","timestamp":"2026-05-11 16:10:42"}
+{"level":"http","message":"POST /api/v1/expenses 201 7102.523 ms - 777","service":"samwega-backend","timestamp":"2026-05-11 16:10:46"}
+{"duration":"7108ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778505039866-j8n08u6zh","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:10:46","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:10:47"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:10:48"}
+{"amount":3000,"category":"office","id":"HasJvwpHN8YcLqk0xG8e","level":"info","message":"Expense created: EXP-2026-0012","service":"samwega-backend","timestamp":"2026-05-11 16:10:50"}
+{"level":"http","message":"POST /api/v1/expenses 201 7053.627 ms - 771","service":"samwega-backend","timestamp":"2026-05-11 16:10:54"}
+{"duration":"7065ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778505047008-9rsgbo0t3","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:10:54","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:10:54"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:10:55","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"level":"http","message":"GET /api/v1/expenses 200 1696.880 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:10:55"}
+{"duration":"1709ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505054138-xma32yfpo","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:10:55","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 2710.352 ms - 699","service":"samwega-backend","timestamp":"2026-05-11 16:10:56"}
+{"duration":"2716ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505054148-l00xkj5wm","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:10:56","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-05-11 16:11:16"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 16:11:23"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}

@@ -16,6 +16,19 @@ const createExpense = async (req, res) => {
 };
 
 /**
+ * Create expense batch
+ */
+const createExpenseBatch = async (req, res) => {
+    try {
+        const expenses = await expenseService.createExpenseBatch(req.body, req.user.uid);
+        return res.status(201).json(successResponse(expenses, 'Batch expenses created successfully'));
+    } catch (error) {
+        logger.error('Create expense batch controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+/**
  * Get all expenses
  */
 const getAllExpenses = async (req, res) => {
@@ -106,6 +119,7 @@ const getExpensesByCategory = async (req, res) => {
 
 module.exports = {
     createExpense,
+    createExpenseBatch,
     getAllExpenses,
     getExpenseById,
     updateExpense,

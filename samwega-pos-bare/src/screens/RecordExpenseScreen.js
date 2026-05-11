@@ -8,7 +8,7 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
-import { createExpense } from '../services/api';
+import { createExpenseBatch } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
 
@@ -21,9 +21,12 @@ import CustomAlert from '../components/ui/CustomAlert';
 const EXPENSE_CATEGORIES = [
     { id: 'fuel', label: 'Fuel', icon: '⛽', color: colors.warning },
     { id: 'maintenance', label: 'Maintenance', icon: '🔧', color: colors.error },
-    { id: 'salaries', label: 'Allowances', icon: '💰', color: colors.success },
+    { id: 'salaries', label: 'Allowances / Wages', icon: '💰', color: colors.success },
     { id: 'supplies', label: 'Supplies', icon: '📦', color: colors.info },
-    { id: 'other', label: 'Other (Tolls/Parking)', icon: '📋', color: colors.textSecondary },
+    { id: 'meals', label: 'Meals & Water', icon: '🥤', color: colors.warning },
+    { id: 'communication', label: 'Airtime/Data', icon: '📱', color: colors.info },
+    { id: 'fines', label: 'Tolls / Parking / Fines', icon: '👮', color: colors.textSecondary },
+    { id: 'other', label: 'Other Expenses', icon: '📋', color: colors.textSecondary },
 ];
 
 export default function RecordExpenseScreen({ route, navigation }) {
@@ -94,16 +97,17 @@ export default function RecordExpenseScreen({ route, navigation }) {
         });
 
         try {
-            for (const item of activeExpenses) {
-                const expenseData = {
+            const batchPayload = {
+                expenseDate: new Date().toISOString(),
+                expenses: activeExpenses.map(item => ({
                     vehicleId,
                     category: item.category,
                     amount: item.amount,
-                    description: globalDescription.trim(),
-                    expenseDate: new Date().toISOString()
-                };
-                await createExpense(expenseData);
-            }
+                    description: globalDescription.trim() || `Recorded via mobile app`
+                }))
+            };
+
+            await createExpenseBatch(batchPayload);
 
             setAlertConfig({
                 visible: true,

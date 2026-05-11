@@ -11,6 +11,21 @@ const EXPENSE_CATEGORIES = [
     'salaries',
     'rent',
     'marketing',
+    'insurance',
+    'taxes',
+    'licenses',
+    'permits',
+    'travel',
+    'meals',
+    'communication',
+    'office',
+    'legal',
+    'professional_fees',
+    'bank_charges',
+    'fines',
+    'security',
+    'equipment',
+    'loans',
     'other'
 ];
 
@@ -58,6 +73,7 @@ const createExpenseSchema = Joi.object({
 
     vehicleId: Joi.string()
         .optional()
+        .allow(null, '')
         .messages({
             'string.base': 'Vehicle ID must be a string'
         }),
@@ -65,12 +81,14 @@ const createExpenseSchema = Joi.object({
     receiptUrl: Joi.string()
         .uri()
         .optional()
+        .allow(null, '')
         .messages({
             'string.uri': 'Receipt URL must be a valid URI'
         }),
 
     receiptPublicId: Joi.string()
-        .optional(),
+        .optional()
+        .allow(null, ''),
 
     notes: Joi.string()
         .max(1000)

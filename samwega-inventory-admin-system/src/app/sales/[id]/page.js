@@ -10,6 +10,7 @@ import {
     CreditCard,
     Package,
     Receipt,
+    Printer,
     AlertCircle,
     CheckCircle,
     XCircle
@@ -25,6 +26,8 @@ export default function SaleDetailPage() {
     const [vehicle, setVehicle] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [downloading, setDownloading] = useState(false);
+    const [printing, setPrinting] = useState(false);
 
     // Helper function to convert Firestore timestamp to Date
     const convertTimestamp = (timestamp) => {
@@ -66,6 +69,49 @@ export default function SaleDetailPage() {
             setError(err.message || "Failed to load sale details");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDownloadReceipt = async () => {
+        try {
+            setDownloading(true);
+            const response = await api.generateSaleReceiptPDF(saleId);
+            
+            if (response.success && response.data.pdfUrl) {
+                const link = document.createElement("a");
+                link.href = response.data.pdfUrl;
+                link.download = response.data.reportName || `receipt-${saleId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert("Failed to generate PDF. Please try again.");
+            }
+        } catch (err) {
+            console.error("Error generating receipt PDF:", err);
+            alert(err.message || "An error occurred while generating PDF");
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const handlePrintReceipt = async () => {
+        try {
+            setPrinting(true);
+            const response = await api.generateSaleReceiptPDF(saleId);
+            if (response.success && response.data.pdfUrl) {
+                const printWindow = window.open(response.data.pdfUrl, '_blank');
+                if (printWindow) {
+                    printWindow.onload = () => { printWindow.print(); };
+                }
+            } else {
+                alert("Failed to generate PDF for printing.");
+            }
+        } catch (err) {
+            console.error("Error printing receipt:", err);
+            alert(err.message || "An error occurred while preparing print");
+        } finally {
+            setPrinting(false);
         }
     };
 
@@ -120,6 +166,42 @@ export default function SaleDetailPage() {
                         <ArrowLeft size={20} />
                         <span className="font-medium">Back to Dashboard</span>
                     </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handlePrintReceipt}
+                            disabled={printing || downloading}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg transition-colors disabled:opacity-50 font-semibold text-sm shadow-sm"
+                        >
+                            {printing ? (
+                                <>
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    <span>Preparing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Printer size={16} />
+                                    <span>Print Receipt</span>
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={handleDownloadReceipt}
+                            disabled={downloading || printing}
+                            className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors disabled:opacity-50 font-semibold text-sm shadow-sm"
+                        >
+                            {downloading ? (
+                                <>
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    <span>Generating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Receipt size={16} />
+                                    <span>Download Receipt</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Sale Header Card */}

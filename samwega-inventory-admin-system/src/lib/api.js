@@ -484,6 +484,10 @@ class APIClient {
         return this.pdfRequest('/reports/generate/sales-pdf', { startDate, endDate, vehicleId });
     }
 
+    async generateSaleReceiptPDF(saleId) {
+        return this.pdfRequest('/reports/generate/sale-receipt-pdf', { saleId });
+    }
+
     async generateInventoryPDF() {
         return this.pdfRequest('/reports/generate/inventory-pdf', {});
     }

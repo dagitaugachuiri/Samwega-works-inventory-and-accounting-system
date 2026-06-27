@@ -76,6 +76,191 @@ class PDFService {
     }
 
     /**
+     * Generate Single Sale Receipt PDF (Narrow Receipt-Style)
+     * @param {Object} receipt
+     * @returns {Promise<Buffer>}
+     */
+    async generateSaleReceiptPDF(receipt) {
+        return new Promise((resolve, reject) => {
+            try {
+                const pageWidth = 302;
+                const margin = 18;
+                const contentWidth = pageWidth - margin * 2;
+
+                const items = receipt.items || [];
+                const payments = Array.isArray(receipt.payments) ? receipt.payments : [];
+                const isMixed = receipt.paymentMethod === 'mixed';
+                const extraPaymentRows = isMixed ? payments.length : 1;
+                const notesHeight = receipt.notes ? 40 : 0;
+                const pageHeight = 430 + items.length * 30 + extraPaymentRows * 14 + notesHeight;
+
+                const doc = new PDFDocument({ size: [pageWidth, pageHeight], margin: 0, bufferPages: true });
+                const chunks = [];
+                doc.on('data', chunk => chunks.push(chunk));
+                doc.on('end', () => resolve(Buffer.concat(chunks)));
+                doc.on('error', reject);
+
+                const dashedLine = (y, color) => {
+                    doc.moveTo(margin, y).lineTo(pageWidth - margin, y)
+                       .dash(3, { space: 3 }).strokeColor(color || '#94a3b8').lineWidth(0.6).stroke().undash();
+                };
+                const solidLine = (y, color) => {
+                    doc.moveTo(margin, y).lineTo(pageWidth - margin, y)
+                       .undash().strokeColor(color || '#334155').lineWidth(1).stroke();
+                };
+                const doubleLine = (y) => { solidLine(y, '#1e293b'); solidLine(y + 3, '#1e293b'); };
+
+                const row = (left, right, y, opts) => {
+                    const o = opts || {};
+                    const fs = o.fontSize || 6.5;
+                    doc.font(o.leftBold ? 'Helvetica-Bold' : 'Helvetica')
+                       .fontSize(fs).fillColor(o.color || '#1e293b')
+                       .text(left, margin, y, { width: contentWidth * 0.58, lineBreak: false });
+                    doc.font(o.rightBold ? 'Helvetica-Bold' : 'Helvetica')
+                       .fontSize(fs).fillColor(o.rightColor || o.color || '#1e293b')
+                       .text(right, margin + contentWidth * 0.58, y, { width: contentWidth * 0.42, align: 'right', lineBreak: false });
+                };
+
+                let y = margin + 8;
+
+                // ── Company Header (centered) ──
+                doc.font('Helvetica-Bold').fontSize(9).fillColor('#0f172a')
+                   .text(receipt.company?.name || 'SAMWEGA WORKS LTD', margin, y, { width: contentWidth, align: 'center' });
+                y += 12;
+                doc.font('Helvetica').fontSize(6).fillColor('#475569')
+                   .text(receipt.company?.address || 'P.O. Box 12345, Nairobi', margin, y, { width: contentWidth, align: 'center' });
+                y += 9;
+                doc.text(`Tel: ${receipt.company?.phone || '+254 712 345 678'}`, margin, y, { width: contentWidth, align: 'center' });
+                y += 9;
+                doc.text(`PIN: ${receipt.company?.pin || 'P051234567X'}`, margin, y, { width: contentWidth, align: 'center' });
+                y += 11;
+
+                solidLine(y); solidLine(y + 2); y += 8;
+                doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0284c7')
+                   .text('SALES RECEIPT', margin, y, { width: contentWidth, align: 'center' });
+                y += 11;
+                solidLine(y); solidLine(y + 2); y += 8;
+
+                // ── Receipt Meta ──
+                row('Receipt No:', receipt.receiptNumber || 'N/A', y, { rightBold: true }); y += 10;
+
+                const saleDate = receipt.date
+                    ? (receipt.date._seconds ? new Date(receipt.date._seconds * 1000) : new Date(receipt.date))
+                    : null;
+                row('Date:', saleDate ? saleDate.toLocaleDateString() : 'N/A', y); y += 10;
+                row('Time:', saleDate ? saleDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A', y); y += 10;
+
+                const rawStatus = (receipt.paymentStatus || 'completed').replace(/_/g, ' ').toUpperCase();
+                const statusColor = receipt.paymentStatus === 'voided' ? '#e11d48'
+                    : receipt.paymentStatus === 'partially_paid' ? '#d97706' : '#059669';
+                row('Status:', rawStatus, y, { rightBold: true, rightColor: statusColor }); y += 12;
+
+                dashedLine(y); y += 6;
+
+                // ── Customer & Sale Details ──
+                if (receipt.customer?.name) {
+                    row('Customer:', receipt.customer.name, y, { leftBold: true }); y += 10;
+                    if (receipt.customer.phone) { row('Phone:', receipt.customer.phone, y); y += 10; }
+                }
+                row('Vehicle:', receipt.vehicle?.name || 'N/A', y); y += 10;
+                row('Sales Rep:', receipt.salesRep?.name || 'N/A', y); y += 11;
+
+                // ── Items Table ──
+                solidLine(y); y += 4;
+
+                const colQty = margin + contentWidth * 0.54;
+                const colPrice = margin + contentWidth * 0.72;
+
+                doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#1e293b');
+                doc.text('ITEM', margin, y, { width: contentWidth * 0.52, lineBreak: false });
+                doc.text('QTY', colQty, y, { width: contentWidth * 0.16, align: 'center', lineBreak: false });
+                doc.text('AMOUNT', colPrice, y, { width: contentWidth * 0.28, align: 'right', lineBreak: false });
+                y += 10;
+                solidLine(y, '#94a3b8'); y += 4;
+
+                doc.font('Helvetica').fontSize(6.5).fillColor('#1e293b');
+                items.forEach((item) => {
+                    const name = item.productName || 'Unknown Product';
+                    const qty = String(item.quantity ?? 0);
+                    const total = `KSh ${parseFloat(item.totalPrice || 0).toLocaleString()}`;
+                    const nameHeight = doc.heightOfString(name, { width: contentWidth * 0.52 });
+
+                    doc.text(name, margin, y, { width: contentWidth * 0.52 });
+                    doc.text(qty, colQty, y, { width: contentWidth * 0.16, align: 'center', lineBreak: false });
+                    doc.text(total, colPrice, y, { width: contentWidth * 0.28, align: 'right', lineBreak: false });
+                    y += Math.max(nameHeight, 9);
+
+                    doc.font('Helvetica').fontSize(5.5).fillColor('#64748b')
+                       .text(`@ KSh ${parseFloat(item.unitPrice || 0).toLocaleString()} each`, margin + 4, y, { lineBreak: false });
+                    y += 10;
+                    dashedLine(y - 2, '#e2e8f0'); y += 3;
+                    doc.fontSize(6.5).fillColor('#1e293b');
+                });
+
+                solidLine(y); y += 6;
+
+                // ── Totals ──
+                if (receipt.discountAmount > 0) {
+                    row('Subtotal:', `KSh ${parseFloat(receipt.subtotal || 0).toLocaleString()}`, y); y += 10;
+                    row('Discount:', `- KSh ${parseFloat(receipt.discountAmount).toLocaleString()}`, y, { rightColor: '#e11d48' }); y += 10;
+                }
+                if (receipt.taxAmount > 0) {
+                    row('Tax (VAT):', `KSh ${parseFloat(receipt.taxAmount).toLocaleString()}`, y); y += 10;
+                }
+                solidLine(y, '#1e293b'); y += 4;
+
+                doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a')
+                   .text('TOTAL', margin, y, { width: contentWidth * 0.55, lineBreak: false });
+                doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0284c7')
+                   .text(`KSh ${parseFloat(receipt.grandTotal || 0).toLocaleString()}`, margin + contentWidth * 0.55, y, { width: contentWidth * 0.45, align: 'right', lineBreak: false });
+                y += 12;
+                doubleLine(y); y += 8;
+
+                // ── Payment Breakdown ──
+                doc.font('Helvetica-Bold').fontSize(6.5).fillColor('#475569')
+                   .text('PAYMENT', margin, y, { width: contentWidth, align: 'center' });
+                y += 10;
+
+                if (isMixed && payments.length > 0) {
+                    payments.forEach(p => {
+                        row((p.method || 'Unknown').toUpperCase() + ':', `KSh ${parseFloat(p.amount || 0).toLocaleString()}`, y, { fontSize: 6.5 });
+                        y += 10;
+                    });
+                } else {
+                    const paidAmt = payments[0]?.amount ?? receipt.grandTotal ?? 0;
+                    row((receipt.paymentMethod || 'N/A').toUpperCase() + ':', `KSh ${parseFloat(paidAmt).toLocaleString()}`, y, { fontSize: 6.5 });
+                    y += 10;
+                    if (receipt.change > 0) {
+                        row('Change:', `KSh ${parseFloat(receipt.change).toLocaleString()}`, y, { fontSize: 6.5, rightColor: '#059669' });
+                        y += 10;
+                    }
+                }
+
+                y += 3; dashedLine(y); y += 8;
+
+                // ── Notes ──
+                if (receipt.notes) {
+                    doc.font('Helvetica-Oblique').fontSize(6).fillColor('#64748b')
+                       .text(`Note: ${receipt.notes}`, margin, y, { width: contentWidth, align: 'center' });
+                    y += doc.heightOfString(receipt.notes, { width: contentWidth }) + 5;
+                }
+
+                // ── Footer ──
+                dashedLine(y); y += 7;
+                doc.font('Helvetica-Bold').fontSize(7).fillColor('#0f172a')
+                   .text(receipt.footer || 'Thank you for your business!', margin, y, { width: contentWidth, align: 'center' });
+                y += 10;
+                doc.font('Helvetica').fontSize(5.5).fillColor('#94a3b8')
+                   .text(`Ref: ${receipt.receiptNumber || 'N/A'}`, margin, y, { width: contentWidth, align: 'center' });
+
+                doc.end();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    /**
      * Generate Detailed Sales Report PDF (Tabulated)
      * @param {Object} reportData
      * @returns {Promise<Buffer>}

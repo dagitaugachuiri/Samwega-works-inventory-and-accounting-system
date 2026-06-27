@@ -1,5 +1,8 @@
-import { Alert, Platform, PermissionsAndroid } from 'react-native';
+import { Alert, Platform, PermissionsAndroid, LogBox } from 'react-native';
 import { BLEPrinter } from 'react-native-thermal-receipt-printer';
+
+// Suppress the NativeEventEmitter warnings caused by react-native-thermal-receipt-printer
+LogBox.ignoreLogs(['new NativeEventEmitter() was called with a non-null argument without the required `addListener` method', 'new NativeEventEmitter() was called with a non-null argument without the required `removeListeners` method']);
 
 // Constants for 58mm printer
 // Standard 58mm thermal printers usually support 32 characters per line with normal font
@@ -330,7 +333,13 @@ class ReceiptService {
                         console.log(`[ReceiptService] Attempting to connect to ${deviceName} (${device.inner_mac_address})`);
 
                         if (BLEPrinter && typeof BLEPrinter.connectPrinter === 'function') {
-                            await BLEPrinter.connectPrinter(device.inner_mac_address);
+                            const connectPromise = BLEPrinter.connectPrinter(device.inner_mac_address);
+                            const timeoutPromise = new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error('Connection timeout - printer may be off or out of range')), 8000)
+                            );
+                            
+                            await Promise.race([connectPromise, timeoutPromise]);
+                            
                             this.isConnected = true;
                             console.log(`[ReceiptService] Connected successfully to ${deviceName}`);
                             return true;

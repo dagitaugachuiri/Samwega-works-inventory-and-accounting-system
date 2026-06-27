@@ -12570,3 +12570,514 @@
 {"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
 {"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
 {"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:11:25"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-05-11 16:15:00"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-05-11 16:15:03"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:16:26","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:26"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:27"}
+{"level":"http","message":"GET /api/v1/auth/me 304 3786.243 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:27"}
+{"duration":"3791ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505383568-mzslga5en","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:27","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"level":"http","message":"GET /api/v1/expenses 304 3561.924 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"duration":"3567ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505384976-q8eul0ttr","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:28","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:16:28","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 3607.711 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"duration":"3610ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505384965-rutus0yij","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:28","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 304 3637.442 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"duration":"3631ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505384994-0tbrgv12k","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:28","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:16:28","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:28"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"http","message":"GET /api/v1/expenses 304 1500.022 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"duration":"1506ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505388631-xakjfdkzq","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:30","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:16:30","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1776.034 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:30"}
+{"duration":"1778ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505388648-apa8tr049","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:30","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 304 2793.634 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:31"}
+{"duration":"2797ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505388661-mcdn131su","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:16:31","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:50"}
+{"level":"info","message":"Batch expenses created by System Administrator: 3 items, Total: 650","service":"samwega-backend","timestamp":"2026-05-11 16:16:52"}
+{"level":"http","message":"POST /api/v1/expenses/batch 201 7195.075 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:57"}
+{"duration":"7216ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778505410136-x43fp19tq","service":"samwega-backend","statusCode":201,"timestamp":"2026-05-11 16:16:57","url":"/api/v1/expenses/batch","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: CREATE_BATCH expense by admin","service":"samwega-backend","timestamp":"2026-05-11 16:16:57"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:58"}
+{"filters":{},"level":"info","message":"[ExpenseService] getAllExpenses called","service":"samwega-backend","timestamp":"2026-05-11 16:16:58","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2","userRole":"admin"}
+{"level":"info","message":"[ExpenseService] Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:16:58"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:16:58"}
+{"level":"info","message":"[ExpenseService] Query complete, docs found:","service":"samwega-backend","timestamp":"2026-05-11 16:16:59"}
+{"level":"info","message":"[ExpenseService] Starting serialization...","service":"samwega-backend","timestamp":"2026-05-11 16:16:59"}
+{"level":"info","message":"[ExpenseService] Serialization complete, count:","service":"samwega-backend","timestamp":"2026-05-11 16:16:59"}
+{"level":"http","message":"GET /api/v1/expenses 200 1682.816 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:16:59"}
+{"duration":"1687ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505417394-cg1rvbvy7","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:16:59","url":"/api/v1/expenses","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11 200 2731.963 ms - 806","service":"samwega-backend","timestamp":"2026-05-11 16:17:00"}
+{"duration":"2734ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505417406-p8bh6y70w","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:17:00","url":"/api/v1/expenses/summary/category?startDate=2020-01-01&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:17:44"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:17:45","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1425.460 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"duration":"1429ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505464015-d9n20wqe5","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:17:45","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:17:45"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:17:46"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:17:46","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1441.639 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:46"}
+{"duration":"1449ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505465449-wb9x75nti","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:17:46","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:47"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1413.514 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:48"}
+{"duration":"1417ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505466949-nuij6esof","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:17:48","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:48"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1378.164 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:49"}
+{"duration":"1381ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505468375-fpnoo26nv","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:17:49","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:49"}
+{"level":"info","message":"Controller: calling getAccountingStats service...","service":"samwega-backend","timestamp":"2026-05-11 16:17:49"}
+{"level":"info","message":"Starting getAccountingStats...","service":"samwega-backend","timestamp":"2026-05-11 16:17:49"}
+{"level":"info","message":"Fetching sales for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:49"}
+{"level":"info","message":"Sales fetched: 4 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:50"}
+{"level":"info","message":"Sales after filtering: 4 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:50"}
+{"level":"info","message":"Fetching expenses for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:50"}
+{"level":"info","message":"Expenses fetched: 15 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:51"}
+{"level":"info","message":"Expenses after filtering: 13 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:51"}
+{"level":"info","message":"Fetching invoices for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:51"}
+{"level":"info","message":"Invoices fetched: 2 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:51"}
+{"level":"info","message":"Invoices after filtering: 0 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:51"}
+{"level":"info","message":"Accounting stats calculated successfully.","service":"samwega-backend","timestamp":"2026-05-11 16:17:53"}
+{"level":"info","message":"Controller: service returned. Sending response...","service":"samwega-backend","timestamp":"2026-05-11 16:17:53"}
+{"level":"http","message":"GET /api/v1/analytics/accounting?startDate=2026-04-11&endDate=2026-05-11 200 4812.380 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:53"}
+{"duration":"4818ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505468398-t89tuamdm","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:17:53","url":"/api/v1/analytics/accounting?startDate=2026-04-11&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Controller: calling getAccountingStats service...","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Starting getAccountingStats...","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Fetching sales for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Sales fetched: 4 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Sales after filtering: 4 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Fetching expenses for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:54"}
+{"level":"info","message":"Expenses fetched: 15 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:55"}
+{"level":"info","message":"Expenses after filtering: 13 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:55"}
+{"level":"info","message":"Fetching invoices for accounting...","service":"samwega-backend","timestamp":"2026-05-11 16:17:55"}
+{"level":"info","message":"Invoices fetched: 2 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:56"}
+{"level":"info","message":"Invoices after filtering: 0 docs","service":"samwega-backend","timestamp":"2026-05-11 16:17:56"}
+{"level":"info","message":"Accounting stats calculated successfully.","service":"samwega-backend","timestamp":"2026-05-11 16:17:57"}
+{"level":"info","message":"Controller: service returned. Sending response...","service":"samwega-backend","timestamp":"2026-05-11 16:17:57"}
+{"level":"http","message":"GET /api/v1/analytics/accounting?startDate=2026-04-11&endDate=2026-05-11 200 4158.783 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:17:57"}
+{"duration":"4165ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505473222-htqion7oi","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:17:57","url":"/api/v1/analytics/accounting?startDate=2026-04-11&endDate=2026-05-11","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:18:09"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:18:10"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:18:10","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1389.817 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:18:10"}
+{"duration":"1393ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505489384-1427rt21w","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:18:10","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-05-11 16:18:11"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-05-11 16:18:12"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-05-11 16:18:12","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1365.847 ms - -","service":"samwega-backend","timestamp":"2026-05-11 16:18:12"}
+{"duration":"1369ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"GET","requestId":"1778505490780-t5qdqbze5","service":"samwega-backend","statusCode":304,"timestamp":"2026-05-11 16:18:12","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-05-11 16:18:25"}
+{"level":"http","message":"POST /api/v1/reports/generate/expense-pdf 200 1557.664 ms - 2779","service":"samwega-backend","timestamp":"2026-05-11 16:18:26"}
+{"duration":"1562ms","ip":"192.168.100.5","level":"info","message":"Request completed","method":"POST","requestId":"1778505505242-g0trcfxfe","service":"samwega-backend","statusCode":200,"timestamp":"2026-05-11 16:18:26","url":"/api/v1/reports/generate/expense-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_REPORT expense_pdf by admin","service":"samwega-backend","timestamp":"2026-05-11 16:18:27"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 15:35:35"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 15:35:32"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:11"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 15:36:39"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 15:36:43"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 16:59:21"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 16:59:29"}
+{"ip":"127.0.0.1","level":"error","message":"No token provided","method":"GET","service":"samwega-backend","stack":"AuthenticationError: No token provided\n    at verifyToken (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\auth.middleware.js:15:19)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at Route.dispatch (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:117:3)\n    at handle (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:435:11)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:295:15\n    at processParams (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:582:12)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:291:5)\n    at Function.handle (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:186:3)","timestamp":"2026-06-27 22:19:40","url":"/api/v1/auth/me","userId":"anonymous"}
+{"level":"info","message":"Sales Route Hit: GET /Cz7tRb0u5R8zvXqFJ1Ps","service":"samwega-backend","timestamp":"2026-06-27 22:19:40"}
+{"ip":"127.0.0.1","level":"error","message":"No token provided","method":"GET","service":"samwega-backend","stack":"AuthenticationError: No token provided\n    at verifyToken (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\auth.middleware.js:15:19)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at Route.dispatch (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:117:3)\n    at handle (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:435:11)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:295:15\n    at param (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:600:14)\n    at param (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:610:14)\n    at processParams (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:664:3)","timestamp":"2026-06-27 22:19:40","url":"/api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps","userId":"anonymous"}
+{"level":"http","message":"GET /api/v1/auth/me 401 80.636 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:40"}
+{"duration":"245ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587980401-a0ibzat7r","service":"samwega-backend","statusCode":401,"timestamp":"2026-06-27 22:19:40","url":"/api/v1/auth/me","userId":"anonymous"}
+{"level":"http","message":"GET /api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps 401 8.677 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:40"}
+{"duration":"146ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587980506-305htgld7","service":"samwega-backend","statusCode":401,"timestamp":"2026-06-27 22:19:40","url":"/api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps","userId":"anonymous"}
+{"level":"info","message":"User logged in successfully: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:43","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/auth/login 200 19655.234 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:43"}
+{"duration":"19659ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782587963816-03t7htdnq","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:43","url":"/api/v1/auth/login","userId":"anonymous"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:46"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:47"}
+{"level":"http","message":"GET /api/v1/auth/me 200 1686.253 ms - 437","service":"samwega-backend","timestamp":"2026-06-27 22:19:47"}
+{"duration":"1702ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587986296-wshu1ai77","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:47","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/inventory 200 2044.484 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:48"}
+{"duration":"2051ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587986341-n7347z6kx","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:48","url":"/api/v1/inventory","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:49"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1838.330 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:49"}
+{"duration":"1839ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587988028-5b3fanscp","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:19:49","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:51"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1526.965 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:51"}
+{"duration":"1528ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587989879-hv1gtyroo","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:19:51","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:19:55"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:56"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:56"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:19:57"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:19:57"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:19:57","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 200 1903.840 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:57"}
+{"duration":"1921ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587995231-4cdyvhmte","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:57","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 200 1849.413 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:19:57"}
+{"duration":"1857ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587995544-9tz0y83uw","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:57","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:19:57"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 200 3729.868 ms - 376","service":"samwega-backend","timestamp":"2026-06-27 22:19:58"}
+{"duration":"3737ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587995246-3ncoaxk6w","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:19:58","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:19:59"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:20:00","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 2868.339 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"duration":"2870ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587997160-6fdvhs8ji","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:00","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 304 2810.204 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"duration":"2811ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587997405-2j7ap871q","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:00","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:00"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:20:01"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:20:01"}
+{"level":"http","message":"GET /api/v1/auth/me 304 2715.000 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:01"}
+{"duration":"2720ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587999117-4j589j232","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:01","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:20:03"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:20:03"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 304 4323.876 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:03"}
+{"duration":"4329ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782587999091-hy3g9zvyo","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:03","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:03"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:20:03"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:04"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1794.554 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:05"}
+{"duration":"1796ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588003430-fuxvjlmo1","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:05","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 200 2657.415 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:05"}
+{"duration":"2664ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588003286-nokf9iphq","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:20:05","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:20:05"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:06"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:20:06"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 304 1564.373 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:07"}
+{"duration":"1566ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588005959-w37yaos6u","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:07","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:07"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 200 1976.671 ms - 408","service":"samwega-backend","timestamp":"2026-06-27 22:20:07"}
+{"duration":"1979ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588005974-ts9ku0wtd","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:20:07","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:09"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 1531.079 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:20:09"}
+{"duration":"1532ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588007962-niiahouh0","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:20:09","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:20:10"}
+{"level":"info","message":"Receipt PDF generation requested for RCP-2026-0004","service":"samwega-backend","timestamp":"2026-06-27 22:20:11"}
+{"level":"http","message":"POST /api/v1/reports/generate/sale-receipt-pdf 200 1930.118 ms - 3511","service":"samwega-backend","timestamp":"2026-06-27 22:20:12"}
+{"duration":"1932ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782588010265-2onckm24o","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:20:12","url":"/api/v1/reports/generate/sale-receipt-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_RECEIPT sale_receipt_pdf by admin","service":"samwega-backend","timestamp":"2026-06-27 22:20:12"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:32:38"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:32:38"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:32:45"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:34:00"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:34:00"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:34:07"}
+{"level":"info","message":"Sales Route Hit: GET /Cz7tRb0u5R8zvXqFJ1Ps","service":"samwega-backend","timestamp":"2026-06-27 22:35:33"}
+{"ip":"127.0.0.1","level":"error","message":"No token provided","method":"GET","service":"samwega-backend","stack":"AuthenticationError: No token provided\n    at verifyToken (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\src\\middleware\\auth.middleware.js:15:19)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:157:13)\n    at Route.dispatch (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\route.js:117:3)\n    at handle (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:435:11)\n    at Layer.handleRequest (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\lib\\layer.js:152:17)\n    at C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:295:15\n    at param (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:600:14)\n    at param (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:610:14)\n    at processParams (C:\\Users\\dell\\Desktop\\SWIPS\\samwega-inventory-backend\\node_modules\\router\\index.js:664:3)","timestamp":"2026-06-27 22:35:33","url":"/api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps","userId":"anonymous"}
+{"level":"http","message":"GET /api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps 401 116.502 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:35:33"}
+{"duration":"214ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782588933081-vyqhzly12","service":"samwega-backend","statusCode":401,"timestamp":"2026-06-27 22:35:33","url":"/api/v1/sales/Cz7tRb0u5R8zvXqFJ1Ps","userId":"anonymous"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:35:38"}
+{"level":"info","message":"User logged in successfully: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:21","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"POST /api/v1/auth/login 200 5683.885 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:21"}
+{"duration":"5705ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782589096232-a5gop732e","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:38:21","url":"/api/v1/auth/login","userId":"anonymous"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:23"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:24"}
+{"level":"http","message":"GET /api/v1/auth/me 200 1439.187 ms - 437","service":"samwega-backend","timestamp":"2026-06-27 22:38:24"}
+{"duration":"1445ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589103152-cngstgb2j","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:38:24","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:24"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1377.551 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:25"}
+{"duration":"1378ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589104605-dpadg3r03","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:25","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/inventory 304 2796.306 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:25"}
+{"duration":"2801ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589103195-am8k6y4xw","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:25","url":"/api/v1/inventory","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:26"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1347.290 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:27"}
+{"duration":"1348ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589106000-vurstzva5","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:27","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:38:28"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:29"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:38:29"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:38:29"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:38:29","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1400.319 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:29"}
+{"duration":"1403ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589108584-5ei22zznc","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:29","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:38:30"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:38:30"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:30"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 304 2770.804 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"duration":"2772ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589108598-02en746cv","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:31","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 304 2728.041 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"duration":"2729ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589108922-3zph6z1t5","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:31","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:38:31","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1672.637 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:31"}
+{"duration":"1675ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589109997-pc059zop9","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:31","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:32"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:38:32"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:32"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:32"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:38:33"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:38:33"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 304 2399.282 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:34"}
+{"duration":"2401ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589111653-4vndv0q3n","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:34","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/auth/me 304 2380.177 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:34"}
+{"duration":"2382ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589111683-en37a15ye","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:34","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:38:34"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 304 2980.549 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:34"}
+{"duration":"2982ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589111379-n4qymn5cx","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:34","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:35"}
+{"level":"http","message":"GET /api/v1/auth/me 304 2087.059 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:36"}
+{"duration":"2088ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589114366-7h1jhonl2","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:36","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:38:39"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:40"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:38:40"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 304 1382.087 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:41"}
+{"duration":"1382ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589119905-110kmcx42","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:41","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:38:41"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:41"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:38:41"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:42"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 304 1359.255 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:42"}
+{"duration":"1361ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589121294-8rlbizdyr","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:42","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 1631.259 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:42"}
+{"duration":"1633ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589121300-d6unt02ro","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:42","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:43"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 1359.623 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:38:44"}
+{"duration":"1368ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589122937-ux4m3jj7e","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:38:44","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:38:45"}
+{"level":"info","message":"Receipt PDF generation requested for RCP-2026-0004","service":"samwega-backend","timestamp":"2026-06-27 22:38:46"}
+{"level":"http","message":"POST /api/v1/reports/generate/sale-receipt-pdf 200 1617.574 ms - 2502","service":"samwega-backend","timestamp":"2026-06-27 22:38:46"}
+{"duration":"1619ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782589125197-bu1dip3l7","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:38:46","url":"/api/v1/reports/generate/sale-receipt-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_RECEIPT sale_receipt_pdf by admin","service":"samwega-backend","timestamp":"2026-06-27 22:38:47"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:40:46"}
+{"level":"info","message":"Receipt PDF generation requested for RCP-2026-0004","service":"samwega-backend","timestamp":"2026-06-27 22:40:46"}
+{"level":"http","message":"POST /api/v1/reports/generate/sale-receipt-pdf 200 1988.604 ms - 2502","service":"samwega-backend","timestamp":"2026-06-27 22:40:46"}
+{"duration":"1992ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782589244717-3ck7eva1o","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:40:46","url":"/api/v1/reports/generate/sale-receipt-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_RECEIPT sale_receipt_pdf by admin","service":"samwega-backend","timestamp":"2026-06-27 22:40:47"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:41:45"}
+{"level":"info","message":"⚠️ Cache disabled - no caching active","service":"samwega-backend","timestamp":"2026-06-27 22:41:45"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🚀 Initializing Samwega Backend...","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🚀 SAMWEGA BACKEND SERVER STARTED","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"📍 Environment: development","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🌐 Server running on: http://0.0.0.0:8080","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"🏥 Health check: http://0.0.0.0:8080/health","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"📚 API Base URL: http://0.0.0.0:8080/api","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"═══════════════════════════════════════════════════════","service":"samwega-backend","timestamp":"2026-06-27 22:41:49"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:43:32"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:43:32"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:43:34"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:35"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:43:35"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:35"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:43:35"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:43:35","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 4561.366 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:35"}
+{"duration":"4559ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589410903-ilcf8qgtj","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:35","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"getAllVehicles: Controller started","query":{},"service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"getAllVehicles: Calling service...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"filters":{},"level":"info","message":"VehicleService.getAllVehicles: Starting...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"VehicleService.getAllVehicles: Building query...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"VehicleService.getAllVehicles: Executing Firestore query...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 304 4313.719 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"duration":"4316ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589412432-v6mvrht7s","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:36","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /","service":"samwega-backend","timestamp":"2026-06-27 22:43:36"}
+{"docCount":4,"level":"info","message":"VehicleService.getAllVehicles: Query complete","service":"samwega-backend","timestamp":"2026-06-27 22:43:37"}
+{"level":"info","message":"getAllVehicles: Service returned","service":"samwega-backend","timestamp":"2026-06-27 22:43:37","vehicleCount":4}
+{"level":"http","message":"GET /api/v1/vehicles 304 1713.183 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:37"}
+{"duration":"1715ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589415471-8rst9r1oc","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:37","url":"/api/v1/vehicles","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 304 5753.624 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"duration":"5755ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589412413-gvbmu8vve","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:38","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /dashboard-stats","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"level":"info","message":"=== STATS CALCULATION (all) ===","service":"samwega-backend","timestamp":"2026-06-27 22:43:38"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:39"}
+{"level":"http","message":"GET /api/v1/sales?type=all&limit=2000 304 2987.859 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:39"}
+{"duration":"2993ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589416768-eqol8xijo","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:39","url":"/api/v1/sales?type=all&limit=2000","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Summary data incomplete or has mixed payments (Revenue=5200, PM Sum=0, Mixed=5200). Proceeding to fallback...","service":"samwega-backend","timestamp":"2026-06-27 22:43:40"}
+{"level":"info","message":"Performing deep aggregation from sales collection...","service":"samwega-backend","timestamp":"2026-06-27 22:43:40"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1915.991 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:40"}
+{"duration":"1919ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589418179-j7b5ltwf3","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:40","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Stats aggregated successfully from sales records.","service":"samwega-backend","timestamp":"2026-06-27 22:43:41"}
+{"level":"http","message":"GET /api/v1/sales/dashboard-stats?type=all 304 3140.803 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:41"}
+{"duration":"3150ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589418173-f2p8dp82f","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:41","url":"/api/v1/sales/dashboard-stats?type=all","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:41"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:43:41"}
+{"level":"http","message":"GET /api/v1/auth/me 304 1595.639 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:42"}
+{"duration":"1596ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589421350-r07zz2qho","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:42","url":"/api/v1/auth/me","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:43"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:43:43"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 304 1843.086 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:43"}
+{"duration":"1845ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589421803-ewhw7chsg","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:43","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"info","message":"Sales Route Hit: GET /R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:43:43"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:44"}
+{"level":"info","message":"Getting sale by ID: R68j2TRLWng5Gx7c21Up","service":"samwega-backend","timestamp":"2026-06-27 22:43:44"}
+{"level":"http","message":"GET /api/v1/sales/R68j2TRLWng5Gx7c21Up 304 1548.861 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:45"}
+{"duration":"1550ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589423651-2eeo1ttl9","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:45","url":"/api/v1/sales/R68j2TRLWng5Gx7c21Up","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:45"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 2703.455 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:46"}
+{"duration":"2706ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589423661-newiv297j","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:46","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:46"}
+{"level":"http","message":"GET /api/v1/vehicles/93HUNmrjjHPwKyxjL7zy 304 1516.946 ms - -","service":"samwega-backend","timestamp":"2026-06-27 22:43:47"}
+{"duration":"1518ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"GET","requestId":"1782589426373-261l42mwp","service":"samwega-backend","statusCode":304,"timestamp":"2026-06-27 22:43:47","url":"/api/v1/vehicles/93HUNmrjjHPwKyxjL7zy","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:43:48"}
+{"level":"info","message":"Receipt PDF generation requested for RCP-2026-0004","service":"samwega-backend","timestamp":"2026-06-27 22:43:49"}
+{"level":"http","message":"POST /api/v1/reports/generate/sale-receipt-pdf 200 1722.700 ms - 2497","service":"samwega-backend","timestamp":"2026-06-27 22:43:49"}
+{"duration":"1726ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782589427869-fxckpsrd1","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:43:49","url":"/api/v1/reports/generate/sale-receipt-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_RECEIPT sale_receipt_pdf by admin","service":"samwega-backend","timestamp":"2026-06-27 22:43:50"}
+{"level":"debug","message":"User authenticated: admin@samwega.com","service":"samwega-backend","timestamp":"2026-06-27 22:44:00"}
+{"level":"info","message":"Receipt PDF generation requested for RCP-2026-0004","service":"samwega-backend","timestamp":"2026-06-27 22:44:02"}
+{"level":"http","message":"POST /api/v1/reports/generate/sale-receipt-pdf 200 1632.122 ms - 2497","service":"samwega-backend","timestamp":"2026-06-27 22:44:02"}
+{"duration":"1634ms","ip":"127.0.0.1","level":"info","message":"Request completed","method":"POST","requestId":"1782589440504-vpfu02c7r","service":"samwega-backend","statusCode":200,"timestamp":"2026-06-27 22:44:02","url":"/api/v1/reports/generate/sale-receipt-pdf","userId":"QTWOxuIs7PNMHSfudAHjesiOCbP2"}
+{"level":"debug","message":"Activity logged: GENERATE_RECEIPT sale_receipt_pdf by admin","service":"samwega-backend","timestamp":"2026-06-27 22:44:02"}
+{"level":"info","message":"SIGINT signal received: closing HTTP server","service":"samwega-backend","timestamp":"2026-06-27 22:44:24"}

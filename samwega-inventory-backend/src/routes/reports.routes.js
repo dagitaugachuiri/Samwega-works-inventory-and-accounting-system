@@ -275,4 +275,17 @@ router.post(
 
 
 
+/**
+ * @route   POST /api/v1/reports/generate/sale-receipt-pdf
+ * @desc    Generate single sale receipt PDF
+ * @access  All verified users
+ */
+router.post(
+    '/generate/sale-receipt-pdf',
+    verifyToken,
+    requireVerified,
+    logActivity('GENERATE_RECEIPT', 'sale_receipt_pdf'),
+    reportsController.generateSaleReceiptPDF
+);
+
 module.exports = router;

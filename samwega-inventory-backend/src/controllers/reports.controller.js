@@ -3,6 +3,7 @@ const vehicleReportService = require('../services/vehicle-report.service');
 const { successResponse } = require('../utils/response');
 const logger = require('../utils/logger');
 const pdfService = require('../services/pdf.service');
+const receiptService = require('../services/receipt.service');
 
 /**
  * Helper function to send PDF as download
@@ -347,7 +348,23 @@ const getExpenseReport = async (req, res, next) => {
     }
 };
 
-
+/**
+ * Generate Single Sale Receipt PDF
+ */
+const generateSaleReceiptPDF = async (req, res, next) => {
+    try {
+        const { saleId } = req.body;
+        if (!saleId) {
+            return res.status(400).json({ success: false, message: 'saleId is required' });
+        }
+        const pdfBuffer = await receiptService.generateReceiptPDF(saleId);
+        const reportName = `receipt-${saleId}-${Date.now()}.pdf`;
+        sendPDFDownload(res, pdfBuffer, reportName);
+    } catch (error) {
+        logger.error('Generate sale receipt PDF controller error:', error);
+        next(error);
+    }
+};
 
 module.exports = {
     getSalesReport,
@@ -365,6 +382,7 @@ module.exports = {
     generateStockMovementPDF,
     generateInventoryTurnoverPDF,
     generateEnhancedVehicleInventoryPDF,
+    generateSaleReceiptPDF,
     getVehicleInventoryReport,
     getStockMovementReport,
     getInventoryTurnoverReport,

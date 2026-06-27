@@ -1,5 +1,6 @@
 const salesService = require('./sales.service');
 const logger = require('../utils/logger');
+const pdfService = require('./pdf.service');
 
 class ReceiptService {
     /**
@@ -214,23 +215,9 @@ class ReceiptService {
      */
     async generateReceiptPDF(saleId) {
         try {
-            // Note: PDF generation would require a library like PDFKit or Puppeteer
-            // For now, we'll return a placeholder
-            // In production, implement actual PDF generation
-
             const receipt = await this.generateReceipt(saleId);
-
             logger.info(`Receipt PDF generation requested for ${receipt.receiptNumber}`);
-
-            // TODO: Implement PDF generation using PDFKit
-            // const PDFDocument = require('pdfkit');
-            // const doc = new PDFDocument();
-            // ... PDF generation logic
-
-            return {
-                message: 'PDF generation not yet implemented',
-                receipt
-            };
+            return await pdfService.generateSaleReceiptPDF(receipt);
         } catch (error) {
             logger.error('Generate receipt PDF error:', error);
             throw error;

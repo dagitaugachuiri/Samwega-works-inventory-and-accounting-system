@@ -156,8 +156,14 @@ export default function IssueStockUnified() {
         };
       });
 
-      console.log('[FE] Mapped Vehicle Inventory:', mapped);
-      setReturnItems(mapped);
+console.log('[FE] Mapped Vehicle Inventory:', mapped);
+
+      const sorted = [...mapped].sort((a, b) =>
+        (a.productName || '').localeCompare(b.productName || '')
+      );
+
+      setReturnItems(sorted);
+      
     } catch (e) {
       console.error("Failed to load vehicle inventory", e);
       setReturnItems([]);

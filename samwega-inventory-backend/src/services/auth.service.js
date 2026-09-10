@@ -92,7 +92,7 @@ class AuthService {
         }
     }
 
-    /**
+  /**
      * Login user
      * @param {string} email
      * @param {string} password

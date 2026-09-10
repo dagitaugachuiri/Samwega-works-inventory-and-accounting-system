@@ -96,13 +96,10 @@ class InventoryController {
      */
     async adjustStock(req, res, next) {
         try {
+
             const { adjustment, reason, notes } = req.body;
-            const item = await inventoryService.adjustStock(
-                req.params.id,
-                adjustment,
-                reason,
-                notes
-            );
+            const item = await inventoryService.adjustStock(req.params.id, { adjustment, reason, notes });
+             
 
             res.json(successResponse(
                 item,

@@ -588,7 +588,7 @@ class SalesService {
 
             // Apply sorting at DB level if no amount filters (which require post-processing)
             // Note: This requires relevant indexes in Firestore. If missing, it will throw an error.
-            if (minAmount === undefined && maxAmount === undefined) {
+            if (minAmount === undefined && maxAmount === undefined && !filters.status) {
                 // Firestore Restriction: If you include a filter with a range comparison (<, <=, >, >=), 
                 // your first ordering must be on the same field.
 
@@ -620,6 +620,14 @@ class SalesService {
             // Get documents
             const snapshot = await query.get();
             let sales = serializeDocs(snapshot);
+            // Sort in-memory when a status filter is active (avoids needing a composite index)
+              if (filters.status) {
+                 sales.sort((a, b) => {
+                                  const aVal = a[sortBy] || '';
+                                 const bVal = b[sortBy] || '';
+                return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+              });
+            }
 
             // Default exclusion of voided sales
             if (!status) {
@@ -627,7 +635,7 @@ class SalesService {
             }
 
             // If we did DB-level limit
-            if (minAmount === undefined && maxAmount === undefined && page === 1) {
+            if (minAmount === undefined && maxAmount === undefined && !filters.status) {
                 // We don't have total count readily available without a separate count query or aggregation
                 // For now, let's assume if we got 'limit' items, there might be more.
                 // This is a trade-off for performance. To get real total, we need snapshot.size of a count() query.

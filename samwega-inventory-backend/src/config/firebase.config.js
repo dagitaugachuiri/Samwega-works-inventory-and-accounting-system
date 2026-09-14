@@ -14,7 +14,13 @@ const initializeFirebase = () => {
 
     try {
         // Check if service account key file exists
-        const serviceAccount = require('../../serviceAccountKey.json');
+        const serviceAccount = {
+    type: 'service_account',
+    project_id: config.FIREBASE.PROJECT_ID,
+    private_key: config.FIREBASE.PRIVATE_KEY.replace(/\\n/g, '\n'),
+    client_email: config.FIREBASE.CLIENT_EMAIL,
+    token_uri: 'https://oauth2.googleapis.com/token'
+     };
 
         firebaseApp = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),

@@ -17,7 +17,7 @@ const initializeFirebase = () => {
         const serviceAccount = {
     type: 'service_account',
     project_id: config.FIREBASE.PROJECT_ID,
-    private_key: config.FIREBASE.PRIVATE_KEY.replace(/\\n/g, '\n'),
+    private_key: Buffer.from(config.FIREBASE.PRIVATE_KEY_BASE64, 'base64').toString('utf-8'),
     client_email: config.FIREBASE.CLIENT_EMAIL,
     token_uri: 'https://oauth2.googleapis.com/token'
      };

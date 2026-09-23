@@ -34,17 +34,21 @@ class InvoiceService {
             if (!existingInvoice.empty) {
                 throw new ValidationError('Invoice number already exists');
             }
+            // ↓↓↓ NEW — calculate itemsTotal and itemsCount directly from the items array,
+        // instead of leaving them at 0 and relying on addItemToInvoice() later
+        const items = invoiceData.items || [];
+        const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-            const data = {
-                ...invoiceData,
-                totalAmount: invoiceData.totalAmount || 0,
-                itemsTotal: 0, // Will be updated as items are linked
-                itemsCount: 0, // Number of linked items
-                balanceRemaining: (invoiceData.totalAmount || 0) - (invoiceData.amountPaid || 0),
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-
+        const data = {
+            ...invoiceData,
+            items,                                  // ← NEW — the actual line items, stored on the invoice itself
+            totalAmount: invoiceData.totalAmount || 0,
+            itemsTotal: calculatedItemsTotal,        // ← CHANGED — was hardcoded to 0, now calculated from items
+            itemsCount: items.length,                // ← CHANGED — was hardcoded to 0, now the real count
+            balanceRemaining: (invoiceData.totalAmount || 0) - (invoiceData.amountPaid || 0),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+         };
             const docRef = await this.db.collection(this.collection).add(data);
             const invoiceId = docRef.id;
 

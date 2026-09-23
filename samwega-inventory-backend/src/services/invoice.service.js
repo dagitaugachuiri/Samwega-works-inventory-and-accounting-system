@@ -49,6 +49,7 @@ class InvoiceService {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
          };
+         //Added docRef to get the invoice ID after creation, and log the invoice number for easier debugging
             const docRef = await this.db.collection(this.collection).add(data);
             const invoiceId = docRef.id;
 

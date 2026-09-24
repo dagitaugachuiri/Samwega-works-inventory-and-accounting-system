@@ -16,6 +16,7 @@ export default function InvoicesPage() {
     const [form, setForm] = useState({
         supplierId: "",
         invoiceDate: new Date().toISOString().split('T')[0],
+        items: [],
         totalAmount: "",
         paidAmount: "0",
         notes: "",
@@ -108,6 +109,7 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: "",
                 invoiceDate: new Date().toISOString().split('T')[0],
+                items: [],
                 totalAmount: "",
                 paidAmount: "0",
                 notes: "",
@@ -148,6 +150,7 @@ export default function InvoicesPage() {
                     supplierId: form.supplierId,
                     invoiceNumber,
                     invoiceDate: new Date(form.invoiceDate).toISOString(),
+                    items: form.items, //NEW
                     totalAmount,
                     amountPaid,
                     paymentStatus: amountPaid >= totalAmount ? 'paid' : (amountPaid > 0 ? 'partial' : 'pending'),
@@ -260,10 +263,12 @@ export default function InvoicesPage() {
                                 <tr key={inv.id} className="hover:bg-slate-50">
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
+                                             <Link href={`/invoices/${inv.id}`} className="flex items-center gap-2 hover:underline">
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
                                             </span>
+                                            </Link>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -372,6 +377,74 @@ export default function InvoicesPage() {
                                     return null;
                                 })()}
                             </div>
+                            {/* Items */}
+                         <div>
+                         <label className="block text-sm font-medium text-slate-700 mb-2">
+                           Items
+                         </label>
+                        <div className="space-y-2">
+                         {form.items.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                    <input
+                    type="text"
+                    placeholder="Description"
+                    value={item.description}
+                    onChange={(e) => {
+                        const items = [...form.items];
+                        items[idx] = { ...items[idx], description: e.target.value };
+                        setForm({ ...form, items });
+                    }}
+                    className="input-field flex-1 text-sm"
+                     />
+                    <input
+                    type="number"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onChange={(e) => {
+                        const items = [...form.items];
+                        items[idx] = { ...items[idx], quantity: parseFloat(e.target.value) || 0 };
+                        setForm({ ...form, items });
+                    }}
+                    className="input-field w-20 text-sm"
+                    />
+                     <input
+                    type="number"
+                    placeholder="Unit price"
+                    value={item.unitPrice}
+                    onChange={(e) => {
+                        const items = [...form.items];
+                        items[idx] = { ...items[idx], unitPrice: parseFloat(e.target.value) || 0 };
+                        setForm({ ...form, items });
+                    }}
+                    className="input-field w-28 text-sm"
+                  />
+                   <button
+                    type="button"
+                    onClick={() => {
+                        const items = form.items.filter((_, i) => i !== idx);
+                        const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+                        setForm({ ...form, items, totalAmount: newTotal.toString() });
+                    }}
+                    className="p-2 text-rose-500 hover:bg-rose-50 rounded"
+                    >
+                    <X size={16} />
+                   </button>
+                      </div>
+                  ))}
+                  <button
+            type="button"
+            onClick={() => setForm({ ...form, items: [...form.items, { description: "", quantity: 1, unitPrice: 0 }] })}
+            className="text-sm text-sky-600 hover:underline flex items-center gap-1"
+                >
+            <Plus size={14} /> Add item
+              </button>
+                    </div>
+               {form.items.length > 0 && (
+                <p className="text-xs text-slate-500 mt-2">
+                Items total: KES {form.items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0).toLocaleString()}
+                   </p>
+                      )}
+                      </div>
 
                             {/* Invoice Date */}
                             <div>

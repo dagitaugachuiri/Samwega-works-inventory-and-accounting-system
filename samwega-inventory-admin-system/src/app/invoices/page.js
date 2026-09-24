@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, Plus, Search, Edit, Trash2, Building2, Calendar, DollarSign, X, CreditCard } from "lucide-react";
 import api from "../../lib/api";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import PaymentModal from "../../components/PaymentModal";
 import AlertContainer, { useAlert } from "../../components/Alert";
 
 export default function InvoicesPage() {
+    const router = useRouter();
     const [invoices, setInvoices] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -100,6 +102,7 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: invoice.supplierId || "",
                 invoiceDate: invoice.invoiceDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+                items: [],
                 totalAmount: invoice.totalAmount?.toString() || "",
                 paidAmount: (invoice.amountPaid || invoice.paidAmount || 0).toString(),
                 notes: invoice.notes || "",
@@ -260,15 +263,15 @@ export default function InvoicesPage() {
                             </tr>
                         ) : (
                             filteredInvoices.map((inv) => (
-                                <tr key={inv.id} className="hover:bg-slate-50">
+                                <tr  key={inv.id}
+                                onClick={() => router.push(`/invoices/${inv.id}`)}
+                                className="hover:bg-slate-50 cursor-pointer">
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                             <Link href={`/invoices/${inv.id}`} className="flex items-center gap-2 hover:underline">
+                                        <div className="flex items-center gap-2"> 
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
                                             </span>
-                                            </Link>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -291,7 +294,7 @@ export default function InvoicesPage() {
                                             {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-1">
                                             {(inv.balanceRemaining || 0) > 0 && (
                                                 <button
@@ -412,10 +415,11 @@ export default function InvoicesPage() {
                     placeholder="Unit price"
                     value={item.unitPrice}
                     onChange={(e) => {
-                        const items = [...form.items];
-                        items[idx] = { ...items[idx], unitPrice: parseFloat(e.target.value) || 0 };
-                        setForm({ ...form, items });
-                    }}
+                    const items = [...form.items];
+                    items[idx] = { ...items[idx], description: e.target.value };
+                    const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+                    setForm({ ...form, items, totalAmount: newTotal.toString() });
+            }}
                     className="input-field w-28 text-sm"
                   />
                    <button

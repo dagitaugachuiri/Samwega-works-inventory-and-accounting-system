@@ -21,7 +21,7 @@ const createInvoiceSchema = Joi.object({
         .required()
         .messages({
             'any.required': 'Invoice date is required'
-        }),itesms
+        }),
         //Added items to the schema to allow for invoice items to be included in the creation of an invoice. Each item must have a description, quantity, and unit price.
     items: Joi.array().items(
     Joi.object({

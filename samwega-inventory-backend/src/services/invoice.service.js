@@ -52,6 +52,18 @@ class InvoiceService {
          //Added docRef to get the invoice ID after creation, and log the invoice number for easier debugging
             const docRef = await this.db.collection(this.collection).add(data);
             const invoiceId = docRef.id;
+            // NEW — sync each invoice item into inventory (updates stock + price)
+           const inventoryService = require('./inventory.service');
+           for (const item of items) {
+        if (item.inventoryId) {
+        await inventoryService.replenishItem(item.inventoryId, {
+            invoiceId,
+            quantity: item.quantity,
+            buyingPrice: item.unitPrice,
+            notes: `From invoice ${invoiceData.invoiceNumber}`
+        });
+      }
+            }
 
             logger.info(`Invoice created: ${invoiceData.invoiceNumber}`, { id: invoiceId });
 

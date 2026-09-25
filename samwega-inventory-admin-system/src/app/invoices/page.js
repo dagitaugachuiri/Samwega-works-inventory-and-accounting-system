@@ -102,7 +102,7 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: invoice.supplierId || "",
                 invoiceDate: invoice.invoiceDate?.split('T')[0] || new Date().toISOString().split('T')[0],
-                items: [],
+                items: invoice.items || [],
                 totalAmount: invoice.totalAmount?.toString() || "",
                 paidAmount: (invoice.amountPaid || invoice.paidAmount || 0).toString(),
                 notes: invoice.notes || "",
@@ -416,7 +416,7 @@ export default function InvoicesPage() {
                     value={item.unitPrice}
                     onChange={(e) => {
                     const items = [...form.items];
-                    items[idx] = { ...items[idx], description: e.target.value };
+                    items[idx] = { ...items[idx], unitPrice: parseFloat(e.target.value) || 0 };
                     const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
                     setForm({ ...form, items, totalAmount: newTotal.toString() });
             }}

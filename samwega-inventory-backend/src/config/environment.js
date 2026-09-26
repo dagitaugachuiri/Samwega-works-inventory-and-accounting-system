@@ -8,7 +8,7 @@ module.exports = {
     // Firebase Configuration
     FIREBASE: {
         PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
-        PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY,
+        PRIVATE_KEY_BASE64: process.env.FIREBASE_PRIVATE_KEY_BASE64,
         CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL,
         DB_URL: process.env.FIREBASE_DB_URL,
         API_KEY: process.env.FIREBASE_API_KEY

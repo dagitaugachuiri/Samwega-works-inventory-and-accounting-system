@@ -1,3 +1,6 @@
 node_modules/
 serviceAccountKey.json
 .envlogs/
+logs/
+.env
+EOF

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FileText, Plus, Search, Edit, Trash2, Building2, Calendar, DollarSign, X, CreditCard } from "lucide-react";
 import api from "../../lib/api";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import PaymentModal from "../../components/PaymentModal";
 import AlertContainer, { useAlert } from "../../components/Alert";
 
 export default function InvoicesPage() {
+    const router = useRouter();
     const [invoices, setInvoices] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -16,23 +18,26 @@ export default function InvoicesPage() {
     const [form, setForm] = useState({
         supplierId: "",
         invoiceDate: new Date().toISOString().split('T')[0],
+        items: [],
         totalAmount: "",
         paidAmount: "0",
         notes: "",
     });
     const [saving, setSaving] = useState(false);
+    const [page, setPage] = useState(1);              // ← add
+    const [pagination, setPagination] = useState(null); 
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
     const alert = useAlert();
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [page]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const [invoicesRes, suppliersRes] = await Promise.all([
-                api.getInvoices(),
+                api.getInvoices({page, limit: 20}),
                 api.getSuppliers()
             ]);
 
@@ -46,6 +51,7 @@ export default function InvoicesPage() {
             // Process invoices with supplier names
             if (invoicesRes.success && invoicesRes.data) {
                 const invoiceData = invoicesRes.data.invoices || invoicesRes.data;
+                setPagination(invoicesRes.data.pagination || null); 
 
                 // Create supplier lookup map
                 const supplierMap = {};
@@ -99,6 +105,7 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: invoice.supplierId || "",
                 invoiceDate: invoice.invoiceDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+                items: invoice.items || [],
                 totalAmount: invoice.totalAmount?.toString() || "",
                 paidAmount: (invoice.amountPaid || invoice.paidAmount || 0).toString(),
                 notes: invoice.notes || "",
@@ -108,6 +115,7 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: "",
                 invoiceDate: new Date().toISOString().split('T')[0],
+                items: [],
                 totalAmount: "",
                 paidAmount: "0",
                 notes: "",
@@ -148,6 +156,7 @@ export default function InvoicesPage() {
                     supplierId: form.supplierId,
                     invoiceNumber,
                     invoiceDate: new Date(form.invoiceDate).toISOString(),
+                    items: form.items, //NEW
                     totalAmount,
                     amountPaid,
                     paymentStatus: amountPaid >= totalAmount ? 'paid' : (amountPaid > 0 ? 'partial' : 'pending'),
@@ -257,9 +266,11 @@ export default function InvoicesPage() {
                             </tr>
                         ) : (
                             filteredInvoices.map((inv) => (
-                                <tr key={inv.id} className="hover:bg-slate-50">
+                                <tr  key={inv.id}
+                                onClick={() => router.push(`/invoices/${inv.id}`)}
+                                className="hover:bg-slate-50 cursor-pointer">
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2"> 
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
@@ -286,7 +297,7 @@ export default function InvoicesPage() {
                                             {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-1">
                                             {(inv.balanceRemaining || 0) > 0 && (
                                                 <button
@@ -316,6 +327,27 @@ export default function InvoicesPage() {
                         )}
                     </tbody>
                 </table>
+                                {pagination && pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={!pagination.hasPrevPage}
+                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-slate-500">
+                            Page {pagination.page} of {pagination.totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={!pagination.hasNextPage}
+                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}
@@ -372,6 +404,75 @@ export default function InvoicesPage() {
                                     return null;
                                 })()}
                             </div>
+                            {/* Items */}
+                         <div>
+                         <label className="block text-sm font-medium text-slate-700 mb-2">
+                           Items
+                         </label>
+                        <div className="space-y-2">
+                         {form.items.map((item, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                    <input
+                    type="text"
+                    placeholder="Description"
+                    value={item.description}
+                    onChange={(e) => {
+                        const items = [...form.items];
+                        items[idx] = { ...items[idx], description: e.target.value };
+                        setForm({ ...form, items });
+                    }}
+                    className="input-field flex-1 text-sm"
+                     />
+                    <input
+                    type="number"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onChange={(e) => {
+                        const items = [...form.items];
+                        items[idx] = { ...items[idx], quantity: parseFloat(e.target.value) || 0 };
+                        setForm({ ...form, items });
+                    }}
+                    className="input-field w-20 text-sm"
+                    />
+                     <input
+                    type="number"
+                    placeholder="Unit price"
+                    value={item.unitPrice}
+                    onChange={(e) => {
+                    const items = [...form.items];
+                    items[idx] = { ...items[idx], unitPrice: parseFloat(e.target.value) || 0 };
+                    const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+                    setForm({ ...form, items, totalAmount: newTotal.toString() });
+            }}
+                    className="input-field w-28 text-sm"
+                  />
+                   <button
+                    type="button"
+                    onClick={() => {
+                        const items = form.items.filter((_, i) => i !== idx);
+                        const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+                        setForm({ ...form, items, totalAmount: newTotal.toString() });
+                    }}
+                    className="p-2 text-rose-500 hover:bg-rose-50 rounded"
+                    >
+                    <X size={16} />
+                   </button>
+                      </div>
+                  ))}
+                  <button
+            type="button"
+            onClick={() => setForm({ ...form, items: [...form.items, { description: "", quantity: 1, unitPrice: 0 }] })}
+            className="text-sm text-sky-600 hover:underline flex items-center gap-1"
+                >
+            <Plus size={14} /> Add item
+              </button>
+                    </div>
+               {form.items.length > 0 && (
+                <p className="text-xs text-slate-500 mt-2">
+                Items total: KES {form.items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0).toLocaleString()}
+                   </p>
+                      )}
+                      </div>
 
                             {/* Invoice Date */}
                             <div>

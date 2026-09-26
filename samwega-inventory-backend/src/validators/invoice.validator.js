@@ -22,6 +22,14 @@ const createInvoiceSchema = Joi.object({
         .messages({
             'any.required': 'Invoice date is required'
         }),
+        //Added items to the schema to allow for invoice items to be included in the creation of an invoice. Each item must have a description, quantity, and unit price.
+    items: Joi.array().items(
+    Joi.object({
+        description: Joi.string().required(),
+        quantity: Joi.number().positive().required(),
+        unitPrice: Joi.number().min(0).required()
+    })
+    ).optional(),
 
     dueDate: Joi.date()
         .iso()
@@ -54,6 +62,10 @@ const createInvoiceSchema = Joi.object({
         .valid('cash', 'mpesa', 'bank_transfer', 'cheque', 'credit')
         .optional(),
 
+    entryStatus: Joi.string()
+        .valid('draft', 'finalized')
+        .default('draft'),
+
     notes: Joi.string()
         .max(1000)
         .optional(),
@@ -76,7 +88,10 @@ const updateInvoiceSchema = Joi.object({
     paymentStatus: Joi.string().valid('pending', 'partial', 'paid').optional(),
     amountPaid: Joi.number().min(0).optional(),
     paymentMethod: Joi.string().valid('cash', 'mpesa', 'bank_transfer', 'cheque', 'credit').optional(),
+    entryStatus: Joi.string().valid('draft', 'finalized').optional(),
     notes: Joi.string().max(1000).optional()
+
+
 }).min(1);
 
 /**

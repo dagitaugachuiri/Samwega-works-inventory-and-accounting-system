@@ -626,6 +626,8 @@ class InventoryService {
 
             await this.db.collection(this.collection).doc(itemId).update({
                 stock: currentStock + stockToAdd,
+                buyingPrice: buyingPrice || item.buyingPrice,        // 
+                sellingPrice: replenishData.sellingPrice || item.sellingPrice,  // 
                 packagingStructure: updatedPackagingStructure,
                 lastPurchaseInvoiceId: invoiceId,
                 lastReplenishedAt: admin.firestore.FieldValue.serverTimestamp(),

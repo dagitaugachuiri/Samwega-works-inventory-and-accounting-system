@@ -24,18 +24,20 @@ export default function InvoicesPage() {
         notes: "",
     });
     const [saving, setSaving] = useState(false);
+    const [page, setPage] = useState(1);              // ← add
+    const [pagination, setPagination] = useState(null); 
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
     const alert = useAlert();
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [page]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const [invoicesRes, suppliersRes] = await Promise.all([
-                api.getInvoices(),
+                api.getInvoices({page, limit: 20}),
                 api.getSuppliers()
             ]);
 
@@ -49,6 +51,7 @@ export default function InvoicesPage() {
             // Process invoices with supplier names
             if (invoicesRes.success && invoicesRes.data) {
                 const invoiceData = invoicesRes.data.invoices || invoicesRes.data;
+                setPagination(invoicesRes.data.pagination || null); 
 
                 // Create supplier lookup map
                 const supplierMap = {};
@@ -324,6 +327,27 @@ export default function InvoicesPage() {
                         )}
                     </tbody>
                 </table>
+                                {pagination && pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={!pagination.hasPrevPage}
+                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-slate-500">
+                            Page {pagination.page} of {pagination.totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={!pagination.hasNextPage}
+                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}

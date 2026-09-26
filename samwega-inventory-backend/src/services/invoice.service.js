@@ -20,10 +20,10 @@ class InvoiceService {
      * @param {Object} invoiceData
      * @returns {Promise<Object>}
      */
-    async createInvoice(invoiceData) {
+        async createInvoice(invoiceData) {
         try {
-            // Verify supplier exists
-            await supplierService.getSupplierById(invoiceData.supplierId);
+            // Verify supplier exists — now stored, so we can check ETR status below
+            const supplier = await supplierService.getSupplierById(invoiceData.supplierId);
 
             // Check for duplicate invoice number
             const existingInvoice = await this.db.collection(this.collection)
@@ -34,47 +34,56 @@ class InvoiceService {
             if (!existingInvoice.empty) {
                 throw new ValidationError('Invoice number already exists');
             }
-            // ↓↓↓ NEW — calculate itemsTotal and itemsCount directly from the items array,
-        // instead of leaving them at 0 and relying on addItemToInvoice() later
-        const items = invoiceData.items || [];
-        const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-        const data = {
-            ...invoiceData,
-            items,                                  // ← NEW — the actual line items, stored on the invoice itself
-            totalAmount: invoiceData.totalAmount || 0,
-            itemsTotal: calculatedItemsTotal,        // ← CHANGED — was hardcoded to 0, now calculated from items
-            itemsCount: items.length,                // ← CHANGED — was hardcoded to 0, now the real count
-            balanceRemaining: (invoiceData.totalAmount || 0) - (invoiceData.amountPaid || 0),
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-         };
-         //Added docRef to get the invoice ID after creation, and log the invoice number for easier debugging
+            const items = invoiceData.items || [];
+            const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+
+            // NEW — Total Amount defaults to the real items total when not explicitly typed
+            // (Add Stock always sends 0; Invoices-page sends a real typed value, which wins)
+            const resolvedTotal = invoiceData.totalAmount || calculatedItemsTotal;
+
+            // NEW — automatic 16% VAT, only for ETR-registered suppliers
+            const VAT_RATE = 0.16;
+            const taxAmount = supplier.etrStatus === 'etr'
+                ? calculatedItemsTotal * VAT_RATE
+                : 0;
+
+            const data = {
+                ...invoiceData,
+                items,
+                totalAmount: resolvedTotal,
+                itemsTotal: calculatedItemsTotal,
+                itemsCount: items.length,
+                taxAmount,
+                balanceRemaining: resolvedTotal - (invoiceData.amountPaid || 0),
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+
             const docRef = await this.db.collection(this.collection).add(data);
             const invoiceId = docRef.id;
-            // NEW — sync each invoice item into inventory (updates stock + price)
-           const inventoryService = require('./inventory.service');
-           for (const item of items) {
-        if (item.inventoryId) {
-        await inventoryService.replenishItem(item.inventoryId, {
-            invoiceId,
-            quantity: item.quantity,
-            buyingPrice: item.unitPrice,
-            notes: `From invoice ${invoiceData.invoiceNumber}`
-        });
-      }
+
+            const inventoryService = require('./inventory.service');
+            for (const item of items) {
+                if (item.inventoryId) {
+                    await inventoryService.replenishItem(item.inventoryId, {
+                        invoiceId,
+                        quantity: item.quantity,
+                        buyingPrice: item.unitPrice,
+                        notes: `From invoice ${invoiceData.invoiceNumber}`
+                    });
+                }
             }
 
             logger.info(`Invoice created: ${invoiceData.invoiceNumber}`, { id: invoiceId });
 
-            // Update supplier financial stats
+            // Update supplier financial stats — use resolvedTotal, matching what was actually saved
             await supplierService.updateFinancialStats(
                 invoiceData.supplierId,
-                invoiceData.totalAmount || 0,
+                resolvedTotal,
                 invoiceData.amountPaid || 0
             );
 
-            // Invalidate cache
             await cache.delPattern(`${this.cachePrefix}list:*`);
 
             return await this.getInvoiceById(invoiceId);
@@ -180,6 +189,8 @@ class InvoiceService {
             // Get supplier details
             const supplier = await supplierService.getSupplierById(invoice.supplierId);
             invoice.supplierName = supplier.name;
+
+            invoice.etrStatus = supplier.etrStatus || null;
 
             // Calculate remaining amount that can be allocated to items
             invoice.remainingToAllocate = invoice.totalAmount - invoice.itemsTotal;

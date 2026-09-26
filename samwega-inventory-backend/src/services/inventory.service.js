@@ -22,9 +22,14 @@ class InventoryService {
     async createItem(itemData) {
         try {
             // If invoice ID provided, validate and update invoice
+              // If invoice ID provided, validate and update invoice
             if (itemData.invoiceId) {
                 const itemCost = itemData.buyingPrice * itemData.stock;
-                await invoiceService.addItemToInvoice(itemData.invoiceId, itemCost);
+                await invoiceService.addItemToInvoice(itemData.invoiceId, itemCost, {
+                    description: itemData.productName,
+                    quantity: itemData.stock,
+                    unitPrice: itemData.buyingPrice
+                });
             }
 
             // Check for existing item with same name (and optionally same warehouse)
@@ -566,7 +571,13 @@ class InventoryService {
             const itemCost = (buyingPrice || item.buyingPrice || 0) * quantity;
 
             // Validate and update invoice
-            await invoiceService.addItemToInvoice(invoiceId, itemCost);
+                        // Validate and update invoice
+            await invoiceService.addItemToInvoice(invoiceId, itemCost, {
+                inventoryId: itemId,
+                description: item.productName,
+                quantity,
+                unitPrice: buyingPrice || item.buyingPrice
+            });
 
             // Calculate new stock based on layer
             let stockToAdd = quantity;

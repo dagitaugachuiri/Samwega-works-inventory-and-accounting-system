@@ -91,7 +91,7 @@ class InvoiceService {
      * @param {number} itemCost
      * @returns {Promise<void>}
      */
-    async addItemToInvoice(invoiceId, itemCost) {
+    async addItemToInvoice(invoiceId, itemCost, itemDetails = null) {
         try {
             const invoice = await this.getInvoiceById(invoiceId);
 
@@ -99,13 +99,22 @@ class InvoiceService {
 
             // No longer strict validate that items total doesn't exceed invoice total
             // as requested to remove this feature.
-
-            await this.db.collection(this.collection).doc(invoiceId).update({
-                itemsTotal: newItemsTotal,
+            const updates ={
+                 itemsTotal: newItemsTotal,
                 itemsCount: admin.firestore.FieldValue.increment(1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
+            }
 
+             // NEW — push the real item onto the invoice so the detail page can show it
+            if (itemDetails) {
+                updates.items = admin.firestore.FieldValue.arrayUnion(itemDetails);
+            }
+            
+
+            await this.db.collection(this.collection).doc(invoiceId).update(updates);
+
+            
+                
             logger.info(`Item added to invoice: ${invoiceId}`, {
                 itemCost,
                 newItemsTotal,
@@ -286,15 +295,7 @@ class InvoiceService {
 
             const invoice = doc.data();
 
-            // If updating total amount, validate against items total
-            if (updateData.totalAmount !== undefined) {
-                if (updateData.totalAmount < invoice.itemsTotal) {
-                    throw new ValidationError(
-                        `Cannot set invoice total (${updateData.totalAmount}) below items total (${invoice.itemsTotal})`
-                    );
-                }
-            }
-
+            //
             const updates = {
                 ...updateData,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -308,6 +309,13 @@ class InvoiceService {
             }
 
             await this.db.collection(this.collection).doc(invoiceId).update(updates);
+
+            // NEW — if totalAmount changed, adjust the supplier's running total by the difference
+            if (updateData.totalAmount !== undefined && updateData.totalAmount !== invoice.totalAmount) {
+                const totalDelta = updateData.totalAmount - (invoice.totalAmount || 0);
+                await supplierService.updateFinancialStats(invoice.supplierId, totalDelta, 0);
+            }
+
 
             logger.info(`Invoice updated: ${invoiceId}`);
 

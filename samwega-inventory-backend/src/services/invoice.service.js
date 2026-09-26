@@ -48,6 +48,8 @@ class InvoiceService {
                 ? calculatedItemsTotal * VAT_RATE
                 : 0;
 
+            const autoTotal = !invoiceData.totalAmount;
+
             const data = {
                 ...invoiceData,
                 items,
@@ -118,6 +120,13 @@ class InvoiceService {
             if (itemDetails) {
                 updates.items = admin.firestore.FieldValue.arrayUnion(itemDetails);
             }
+
+            if (invoice.autoTotal) {
+            const supplier = await supplierService.getSupplierById(invoice.supplierId);
+            updates.totalAmount = newItemsTotal;
+            updates.taxAmount = supplier.etrStatus === 'etr' ? newItemsTotal * 0.16 : 0;
+            updates.balanceRemaining = newItemsTotal - (invoice.amountPaid || 0);
+        }
             
 
             await this.db.collection(this.collection).doc(invoiceId).update(updates);

@@ -51,7 +51,7 @@ export default function InvoicesPage() {
             // Process invoices with supplier names
             if (invoicesRes.success && invoicesRes.data) {
                 const invoiceData = invoicesRes.data.invoices || invoicesRes.data;
-                setPagination(invoicesRes.data.pagination || null); 
+                setPagination(invoicesRes.meta || invoicesRes.data?.pagination || null);
 
                 // Create supplier lookup map
                 const supplierMap = {};

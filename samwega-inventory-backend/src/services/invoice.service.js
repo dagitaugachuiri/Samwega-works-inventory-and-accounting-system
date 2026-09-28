@@ -265,6 +265,9 @@ class InvoiceService {
             invoices.sort((a, b) => {
                 const aVal = a[sortBy];
                 const bVal = b[sortBy];
+                if (aVal === bVal) {
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                }
                 return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
             });
 

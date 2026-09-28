@@ -54,6 +54,7 @@ class InvoiceService {
                 ...invoiceData,
                 items,
                 totalAmount: resolvedTotal,
+                autoTotal,
                 itemsTotal: calculatedItemsTotal,
                 itemsCount: items.length,
                 taxAmount,
@@ -95,51 +96,45 @@ class InvoiceService {
         }
     }
 
-    /**
-     * Update invoice items total when inventory is linked
-     * Called from inventory service in Phase 3
-     * @param {string} invoiceId
-     * @param {number} itemCost
-     * @returns {Promise<void>}
-     */
-    async addItemToInvoice(invoiceId, itemCost, itemDetails = null) {
+        async addItemToInvoice(invoiceId, itemCost, itemDetails = null) {
         try {
             const invoice = await this.getInvoiceById(invoiceId);
 
             const newItemsTotal = (invoice.itemsTotal || 0) + itemCost;
 
-            // No longer strict validate that items total doesn't exceed invoice total
-            // as requested to remove this feature.
-            const updates ={
-                 itemsTotal: newItemsTotal,
+            const updates = {
+                itemsTotal: newItemsTotal,
                 itemsCount: admin.firestore.FieldValue.increment(1),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            }
+            };
 
-             // NEW — push the real item onto the invoice so the detail page can show it
             if (itemDetails) {
                 updates.items = admin.firestore.FieldValue.arrayUnion(itemDetails);
             }
 
-            if (invoice.autoTotal) {
-            const supplier = await supplierService.getSupplierById(invoice.supplierId);
-            updates.totalAmount = newItemsTotal;
-            updates.taxAmount = supplier.etrStatus === 'etr' ? newItemsTotal * 0.16 : 0;
-            updates.balanceRemaining = newItemsTotal - (invoice.amountPaid || 0);
-        }
-            
+            // Add Stock invoices start at total 0, so keep the total synced with items
+            let totalDelta = 0;
+            if (invoice.autoTotal || !invoice.totalAmount) {
+                const supplier = await supplierService.getSupplierById(invoice.supplierId);
+                totalDelta = newItemsTotal - (invoice.totalAmount || 0);
+                updates.totalAmount = newItemsTotal;
+                updates.autoTotal = true;
+                updates.taxAmount = supplier.etrStatus === 'etr' ? newItemsTotal * 0.16 : 0;
+                updates.balanceRemaining = newItemsTotal - (invoice.amountPaid || 0);
+            }
 
             await this.db.collection(this.collection).doc(invoiceId).update(updates);
 
-            
-                
+            // Push the new total to the supplier's Total Purchases
+            if (totalDelta !== 0) {
+                await supplierService.updateFinancialStats(invoice.supplierId, totalDelta, 0);
+            }
+
             logger.info(`Item added to invoice: ${invoiceId}`, {
                 itemCost,
-                newItemsTotal,
-                remaining: invoice.totalAmount - newItemsTotal
+                newItemsTotal
             });
 
-            // Invalidate cache
             await cache.del(`${this.cachePrefix}${invoiceId}`);
             await cache.delPattern(`${this.cachePrefix}list:*`);
         } catch (error) {

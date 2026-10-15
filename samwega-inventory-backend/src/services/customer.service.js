@@ -250,6 +250,32 @@ class CustomerService {
 
             await this.db.collection(this.collection).doc(customerId).update(updates);
 
+              const oldPhone = doc.data().customerPhone;
+                const newPhone = updateData.customerPhone;
+
+            if (newPhone && oldPhone && newPhone !== oldPhone) {
+            const salesSnap = await this.db.collection('sales')
+                  .where('customerPhone', '==', oldPhone)
+                 .get();
+
+           let batch = this.db.batch();
+           let count = 0;
+           for (const saleDoc of salesSnap.docs) {
+               batch.update(saleDoc.ref, {
+               customerPhone: newPhone,
+               updatedAt: admin.firestore.FieldValue.serverTimestamp()
+           });
+           count++;
+                   if (count % 450 === 0) {
+                   await batch.commit();
+                   batch = this.db.batch();
+        }
+        }
+        await batch.commit();
+        await cache.delPattern('sale:*');
+        logger.info(`Updated ${count} sales from ${oldPhone} to ${newPhone}`);
+}
+
             logger.info(`Customer updated: ${customerId}`);
 
             // Invalidate cache

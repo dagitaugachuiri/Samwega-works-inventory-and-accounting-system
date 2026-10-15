@@ -69,12 +69,12 @@ router.get(
 /**
  * @route   PUT /api/v1/customers/:id
  * @desc    Update customer
- * @access  All verified users
+ * @access  Admin and Store Manager only
  */
 router.put(
     '/:id',
     verifyToken,
-    requireVerified,
+    requireRole('admin', 'store_manager'),
     writeLimiter,
     validateParams(customerIdSchema),
     validateBody(updateCustomerSchema),
@@ -84,12 +84,12 @@ router.put(
 /**
  * @route   DELETE /api/v1/customers/:id
  * @desc    Delete customer
- * @access  Admin, Store Manager only
+ * @access  Admin only
  */
 router.delete(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     writeLimiter,
     validateParams(customerIdSchema),
     customerController.deleteCustomer

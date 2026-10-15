@@ -7,20 +7,28 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalPages: 1, total: 0 });
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      try {
-        const qs = new URLSearchParams({ limit: '50', ...(search ? { search } : {}) }).toString();
-        const res = await api.getCustomers(qs);
-        setCustomers(res?.data?.customers ?? res?.customers ?? []);
-        setError('');
-      } catch (e) {
-        setError(e.message);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [search]);
+  const t = setTimeout(async () => {
+    try {
+      const qs = new URLSearchParams({
+        page: String(page),
+        limit: '20',
+        ...(search ? { search } : {}),
+      }).toString();
+      const res = await api.getCustomers(qs);
+      const data = res?.data ?? res;
+      setCustomers(data.customers ?? []);
+      setPagination(data.pagination ?? { totalPages: 1, total: 0 });
+      setError('');
+    } catch (e) {
+      setError(e.message);
+    }
+  }, 300);
+  return () => clearTimeout(t);
+}, [search, page]);
 
   return (
     <div className="p-6">
@@ -29,7 +37,7 @@ export default function CustomersPage() {
         className="border rounded px-3 py-2 mb-4 w-full max-w-md"
         placeholder="Search name, store or phone"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+       onChange={(e) => { setSearch(e.target.value); setPage(1); }} 
       />
       {error && <p className="text-red-600 mb-2">{error}</p>}
       <table className="w-full text-sm">
@@ -42,6 +50,23 @@ export default function CustomersPage() {
             <th className="text-right">Debt</th>
           </tr>
         </thead>
+        <div className="flex items-center gap-3 mt-4 text-sm">
+       <button
+        disabled={page <= 1}
+        onClick={() => setPage((p) => p - 1)}
+        className="border rounded px-3 py-1 disabled:opacity-40">
+        Previous
+       </button>
+       <span>
+       Page {page} of {pagination.totalPages || 1} · {pagination.total} customers
+      </span>
+       <button
+       disabled={page >= (pagination.totalPages || 1)}
+       onClick={() => setPage((p) => p + 1)}
+       className="border rounded px-3 py-1 disabled:opacity-40" >
+          Next
+          </button>
+        </div>
         <tbody>
           {customers.map((c) => (
             <tr key={c.id} className="border-b hover:bg-slate-50">

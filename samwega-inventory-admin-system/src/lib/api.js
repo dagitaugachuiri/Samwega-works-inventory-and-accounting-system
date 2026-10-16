@@ -647,11 +647,23 @@ class APIClient {
         });
     }
 
+    async  getCustomersSummary() {
+        return this.request('/customers/summary');
+    }
+
+    async setCustomerMessagesStopped(id, stopped) {
+        return this.request(`/customers/${id}/messages`, {
+            method: 'PATCH',
+            body: JSON.stringify({ stopped }),
+        });
+    }
+
     async deleteCustomer(id) {
         return this.request(`/customers/${id}`, {
             method: 'DELETE',
         });
     }
+
 
 
 

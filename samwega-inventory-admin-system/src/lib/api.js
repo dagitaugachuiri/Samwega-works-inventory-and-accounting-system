@@ -629,6 +629,9 @@ class APIClient {
     async getCustomerById(id) {
         return this.request(`/customers/${id}`);
     }
+    async getCustomersByVehicle() {
+        return this.request(`/customers/by-vehicle`);
+    }
 
     async createCustomer(data) {
         return this.request('/customers', {

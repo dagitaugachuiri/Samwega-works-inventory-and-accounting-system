@@ -295,8 +295,8 @@ class CustomerService {
      */    
         async getSummary() {
         const [totalSnap, optedOutSnap] = await Promise.all([
-            db.collection('customers').count().get(),
-            db.collection('customers').where('messagesStopped', '==', true).count().get(),
+            this.db.collection(this.collection).count().get(),
+            this.db.collection(this.collection).where('messagesStopped', '==', true).count().get(),
         ]);
 
         const vehicles = await this.getCustomersGroupedByVehicle();
@@ -306,7 +306,7 @@ class CustomerService {
             optedOutCustomers: optedOutSnap.data().count,
             vehicleCount: vehicles.length,
         };
-    }
+     }
 
     /**
      * Search customers (autocomplete)

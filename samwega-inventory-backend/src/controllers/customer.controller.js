@@ -76,6 +76,16 @@ const updateCustomer = async (req, res) => {
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
+const setMessagesStopped = async (req, res) => {
+    try {
+        const stopped = req.body.stopped;
+        const customer = await customerService.setMessagesStopped(req.params.id, stopped, req.user.uid);
+        return res.status(200).json(successResponse(customer, stopped ? 'Messages stopped' : 'Messages resumed'));
+    } catch (error) {
+        logger.error('Set messages stopped controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
 
 /**
  * Delete customer
@@ -103,6 +113,16 @@ const recordPayment = async (req, res) => {
     }
 };
 
+const getSummary = async (req, res) => {
+    try {
+        const summary = await customerService.getSummary();
+        return res.status(200).json(successResponse(summary, 'Summary retrieved'));
+    } catch (error) {
+        logger.error('Get customer summary controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
 module.exports = {
     createCustomer,
     getAllCustomers,
@@ -111,5 +131,7 @@ module.exports = {
     updateCustomer,
     deleteCustomer,
     recordPayment,
-    getCustomersByVehicle
+    getCustomersByVehicle,
+    setMessagesStopped,
+    getSummary
 };

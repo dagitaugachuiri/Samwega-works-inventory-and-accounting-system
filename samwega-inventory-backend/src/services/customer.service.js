@@ -1,5 +1,6 @@
 const { getFirestore } = require('../config/firebase.config');
 const { admin } = require('../config/firebase.config');
+const { optOutService } = require('./optout.service');
 const logger = require('../utils/logger');
 const cache = require('../utils/cache');
 const { NotFoundError, ValidationError, ConflictError } = require('../utils/errors');
@@ -49,7 +50,8 @@ class CustomerService {
                 lastPurchaseDate: null,
                 createdBy: userId,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                messagesStopped: await optOutService.isStopped(customerPhone),
             };
 
             const docRef = await this.db.collection(this.collection).add(data);
@@ -93,6 +95,34 @@ class CustomerService {
             logger.error('Get customer by ID error:', error);
             throw error;
         }
+    }
+
+        async attachLastVehicle(customers) {
+        const ids = customers.map((c) => c.id).filter(Boolean);
+        const latest = new Map();
+
+        for (let i = 0; i < ids.length; i += 10) {
+            const chunk = ids.slice(i, i + 10);
+            const snap = await this.db.collection('sales')
+                .where('customerId', 'in', chunk)
+                .get();
+
+            snap.docs.forEach((doc) => {
+                const s = doc.data();
+                if (s.status === 'voided') return;
+                const d = this.toDate(s.saleDate);
+                if (!d) return;
+                const current = latest.get(s.customerId);
+                if (!current || d > current.date) {
+                    latest.set(s.customerId, { date: d, vehicleName: s.vehicleName });
+                }
+            });
+        }
+
+        return customers.map((c) => ({
+            ...c,
+            lastVehicle: latest.get(c.id)?.vehicleName ?? null
+        }));
     }
 
     /**
@@ -147,7 +177,7 @@ class CustomerService {
             const total = customers.length;
             const startIndex = (page - 1) * limit;
             const endIndex = startIndex + limit;
-            const paginatedCustomers = customers.slice(startIndex, endIndex);
+            const paginatedCustomers = await this.attachLastVehicle(customers.slice(startIndex, endIndex));
 
             const result = {
                 customers: paginatedCustomers,
@@ -178,6 +208,9 @@ class CustomerService {
 }
 
 async getCustomersGroupedByVehicle() {
+    const cacheKey = `${this.cachePrefix}by-vehicle`;
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
     const snap = await this.db.collection('sales').get();
     const vehicles = new Map();
 
@@ -224,14 +257,31 @@ async getCustomersGroupedByVehicle() {
             row.lastSaleDate = saleDate.toISOString();
         }
     });
+                    const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
+        const info = new Map();
+        for (let i = 0; i < ids.length; i += 10) {
+            const snap = await this.db.collection(this.collection)
+                .where(admin.firestore.FieldPath.documentId(), 'in', ids.slice(i, i + 10))
+                .get();
+            snap.docs.forEach((d) => info.set(d.id, d.data()));
+        }
 
-    return [...vehicles.values()]
-        .map((v) => ({
-            vehicleId: v.vehicleId,
-            vehicleName: v.vehicleName,
-            customers: [...v.customers.values()].sort((a, b) => b.totalPurchases - a.totalPurchases)
-        }))
-        .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName));
+    const result = [...vehicles.values()]
+            .map((v) => ({
+                vehicleId: v.vehicleId,
+                vehicleName: v.vehicleName,
+                customers: [...v.customers.values()]
+                    .map((c) => ({
+                        ...c,
+                        storeName: info.get(c.customerId)?.storeName || null,
+                        totalDebt: Number(info.get(c.customerId)?.totalDebt || 0),
+                        messagesStopped: Boolean(info.get(c.customerId)?.messagesStopped)
+                    }))
+                    .sort((a, b) => b.totalPurchases - a.totalPurchases)
+            }))
+            .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName)); 
+            await cache.set(cacheKey, result, 120);
+            return result;
 }
 
     /**
@@ -311,7 +361,10 @@ async getCustomersGroupedByVehicle() {
 
             updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
-            await this.db.collection(this.collection).doc(customerId).update(updates);
+                if (updateData.customerPhone) {
+                const stopped = await optOutService.isStopped(updateData.customerPhone);
+                await this.db.collection(this.collection).doc(customerId).update({ messagesStopped: stopped });
+            }
 
               const oldPhone = doc.data().customerPhone;
                 const newPhone = updateData.customerPhone;
@@ -449,6 +502,35 @@ async getCustomersGroupedByVehicle() {
             throw error;
         }
     }
-}
+        /**
+     * Stop or resume messages for a customer's phone number
+     */
+    async setMessagesStopped(customerId, stopped, userId) {
+        if (typeof stopped !== 'boolean') {
+            throw new ValidationError('stopped must be true or false');
+        }
 
+        const ref = this.db.collection(this.collection).doc(customerId);
+        const snap = await ref.get();
+        if (!snap.exists) throw new NotFoundError('Customer');
+
+        const phone = snap.data().customerPhone;
+        if (!phone) throw new ValidationError('Customer has no phone number');
+
+        await optOutService.setStopped(phone, stopped, userId);
+        await ref.update({
+            messagesStopped: stopped,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        logger.info(`Messages ${stopped ? 'stopped' : 'resumed'} for customer ${customerId} by ${userId}`);
+
+        await cache.del(`${this.cachePrefix}${customerId}`);
+        await cache.delPattern(`${this.cachePrefix}list:*`);
+        await cache.delPattern(`${this.cachePrefix}search:*`);
+
+        return await this.getCustomerById(customerId);
+    }
+
+}
 module.exports = new CustomerService();

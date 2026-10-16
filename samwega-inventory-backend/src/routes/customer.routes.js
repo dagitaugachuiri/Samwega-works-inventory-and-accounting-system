@@ -28,19 +28,6 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/customers
- * @desc    Get all customers
- * @access  All verified users
- */
-router.get(
-    '/',
-    verifyToken,
-    requireVerified,
-    validateQuery(getAllCustomersSchema),
-    customerController.getAllCustomers
-);
-
-/**
  * @route   GET /api/v1/customers/search
  * @desc    Search customers (autocomplete)
  * @access  All verified users
@@ -59,6 +46,14 @@ router.get(
     customerController.getCustomersByVehicle
 );
 
+router.get(
+    '/summary',
+    verifyToken,
+    requireVerified,
+    customerController.getSummary
+);
+
+
 /**
  * @route   GET /api/v1/customers/:id
  * @desc    Get customer by ID
@@ -75,16 +70,25 @@ router.get(
 /**
  * @route   PUT /api/v1/customers/:id
  * @desc    Update customer
- * @access  Admin and Store Manager only
+ * @access  Admin only
  */
 router.put(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     writeLimiter,
     validateParams(customerIdSchema),
     validateBody(updateCustomerSchema),
     customerController.updateCustomer
+);
+
+router.patch(
+    '/:id/messages',
+    verifyToken,
+    requireRole('admin'),
+    writeLimiter,
+    validateParams(customerIdSchema),
+    customerController.setMessagesStopped
 );
 
 /**

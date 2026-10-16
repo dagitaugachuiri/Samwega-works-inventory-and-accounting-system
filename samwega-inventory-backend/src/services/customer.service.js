@@ -206,15 +206,20 @@ class CustomerService {
     const d = new Date(value);
     return isNaN(d) ? null : d;
 }
+    /**
+     * Get customers grouped by vehicle, with stats for each customer
+     * @param {string} query - Search query
+     * @param {number} limit - Max results to return
+     * @returns {Promise<Array>}
+     */
+    async getCustomersGroupedByVehicle() {
+         const cacheKey = `${this.cachePrefix}by-vehicle`;
+         const cached = await cache.get(cacheKey);
+              if (cached) return cached;
+         const snap = await this.db.collection('sales').get();
+         const vehicles = new Map();
 
-async getCustomersGroupedByVehicle() {
-    const cacheKey = `${this.cachePrefix}by-vehicle`;
-    const cached = await cache.get(cacheKey);
-    if (cached) return cached;
-    const snap = await this.db.collection('sales').get();
-    const vehicles = new Map();
-
-    snap.docs.forEach((doc) => {
+        snap.docs.forEach((doc) => {
         const s = doc.data();
         if (!s.customerId || !s.vehicleId) return; // walk-in sales are skipped
 
@@ -257,7 +262,8 @@ async getCustomersGroupedByVehicle() {
             row.lastSaleDate = saleDate.toISOString();
         }
     });
-                    const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
+
+        const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
         const info = new Map();
         for (let i = 0; i < ids.length; i += 10) {
             const snap = await this.db.collection(this.collection)
@@ -282,7 +288,25 @@ async getCustomersGroupedByVehicle() {
             .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName)); 
             await cache.set(cacheKey, result, 120);
             return result;
-}
+        }
+    /**
+     * Get summary of customers and vehicles
+     * @returns {Promise<Object>}
+     */    
+        async getSummary() {
+        const [totalSnap, optedOutSnap] = await Promise.all([
+            db.collection('customers').count().get(),
+            db.collection('customers').where('messagesStopped', '==', true).count().get(),
+        ]);
+
+        const vehicles = await this.getCustomersGroupedByVehicle();
+
+        return {
+            totalCustomers: totalSnap.data().count,
+            optedOutCustomers: optedOutSnap.data().count,
+            vehicleCount: vehicles.length,
+        };
+    }
 
     /**
      * Search customers (autocomplete)

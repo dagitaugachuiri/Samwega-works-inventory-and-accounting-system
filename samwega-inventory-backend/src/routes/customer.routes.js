@@ -52,6 +52,12 @@ router.get(
     validateQuery(searchCustomersSchema),
     customerController.searchCustomers
 );
+router.get(
+    '/by-vehicle',
+    verifyToken,
+    requireVerified,
+    customerController.getCustomersByVehicle
+);
 
 /**
  * @route   GET /api/v1/customers/:id

@@ -54,7 +54,16 @@ const getCustomerById = async (req, res) => {
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
-
+    
+const getCustomersByVehicle = async (req, res) => {
+    try {
+        const vehicles = await customerService.getCustomersGroupedByVehicle();
+        return res.status(200).json(successResponse({ vehicles }, 'Customers by vehicle retrieved'));
+    } catch (error) {
+        logger.error('Get customers by vehicle controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
 /**
  * Update customer
  */
@@ -101,5 +110,6 @@ module.exports = {
     getCustomerById,
     updateCustomer,
     deleteCustomer,
-    recordPayment
+    recordPayment,
+    getCustomersByVehicle
 };

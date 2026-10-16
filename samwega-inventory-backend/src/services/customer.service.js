@@ -170,6 +170,69 @@ class CustomerService {
             throw error;
         }
     }
+    toDate(value) {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    const d = new Date(value);
+    return isNaN(d) ? null : d;
+}
+
+async getCustomersGroupedByVehicle() {
+    const snap = await this.db.collection('sales').get();
+    const vehicles = new Map();
+
+    snap.docs.forEach((doc) => {
+        const s = doc.data();
+        if (!s.customerId || !s.vehicleId) return; // walk-in sales are skipped
+
+        if (!vehicles.has(s.vehicleId)) {
+            vehicles.set(s.vehicleId, {
+                vehicleId: s.vehicleId,
+                vehicleName: s.vehicleName || 'Unknown vehicle',
+                customers: new Map()
+            });
+        }
+        const vehicle = vehicles.get(s.vehicleId);
+
+        if (!vehicle.customers.has(s.customerId)) {
+            vehicle.customers.set(s.customerId, {
+                customerId: s.customerId,
+                customerName: s.customerName || 'Unknown',
+                customerPhone: s.customerPhone || null,
+                completedSales: 0,
+                reversedSales: 0,
+                totalPurchases: 0,
+                salesOwing: 0,
+                lastSaleDate: null
+            });
+        }
+        const row = vehicle.customers.get(s.customerId);
+
+        if (s.status === 'voided') {
+            row.reversedSales++;
+            return;
+        }
+
+        row.completedSales++;
+        row.totalPurchases += Number(s.grandTotal || 0);
+        if (s.paymentStatus === 'pending' || s.paymentStatus === 'partially_paid') {
+            row.salesOwing++;
+        }
+
+        const saleDate = this.toDate(s.saleDate);
+        if (saleDate && (!row.lastSaleDate || saleDate > new Date(row.lastSaleDate))) {
+            row.lastSaleDate = saleDate.toISOString();
+        }
+    });
+
+    return [...vehicles.values()]
+        .map((v) => ({
+            vehicleId: v.vehicleId,
+            vehicleName: v.vehicleName,
+            customers: [...v.customers.values()].sort((a, b) => b.totalPurchases - a.totalPurchases)
+        }))
+        .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName));
+}
 
     /**
      * Search customers (autocomplete)

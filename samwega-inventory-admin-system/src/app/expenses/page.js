@@ -102,7 +102,7 @@ export default function ExpensesPage() {
         // Fetch data whenever filters change
         fetchExpenses();
         fetchCategoryStats();
-    }, [startDate, endDate, vehicleFilter]);
+    }, [startDate, endDate, vehicleFilter, statusFilter]);
 
     const fetchVehicles = async () => {
         try {
@@ -112,6 +112,30 @@ export default function ExpensesPage() {
             console.error("Failed to fetch vehicles:", error);
         }
     };
+    const fetchExpenses = async () => {
+    try {
+        setLoading(true);
+        const filters = {};
+
+        // Only add filters if they have values
+        if (startDate) filters.startDate = startDate;
+        if (endDate) filters.endDate = endDate;
+        if (vehicleFilter) filters.vehicleId = vehicleFilter;
+        if (statusFilter) filters.status = statusFilter;
+        filters.limit = 100;
+
+        const response = await api.getExpenses(filters);
+        if (response.success && response.data) {
+            // Handle different response structures (pagination wrapper vs direct array)
+            const expensesList = response.data.expenses || response.data || [];
+            setExpenses(expensesList);
+        }
+    } catch (error) {
+        console.error("Failed to fetch expenses:", error);
+    } finally {
+        setLoading(false);
+    }
+   };
 
     const filteredExpenses = expenses.filter(expense => {
     const matchesSearch = !search ||
@@ -120,7 +144,8 @@ export default function ExpensesPage() {
         expense.vehicleName?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = !statusFilter || expense.status === statusFilter;
     return matchesSearch && matchesStatus;
-});
+   });
+
 
     const fetchCategoryStats = async () => {
         try {

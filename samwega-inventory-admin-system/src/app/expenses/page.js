@@ -1,7 +1,5 @@
 "use client"
 import { useState, useEffect } from "react";
-const [statusFilter, setStatusFilter] = useState("");
-const [actingId, setActingId] = useState(null);
 import { Plus, Search, CheckCircle, XCircle, Clock, Calendar, Filter, Truck, User, Fuel, Wrench, Briefcase, Calculator, Trash2, DollarSign, Loader2 } from "lucide-react";
 import api from "../../lib/api";
 
@@ -74,6 +72,9 @@ export default function ExpensesPage() {
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+
+    const [statusFilter, setStatusFilter] = useState("");
+    const [actingId, setActingId] = useState(null);
 
     // Filters
     const [vehicleFilter, setVehicleFilter] = useState("");

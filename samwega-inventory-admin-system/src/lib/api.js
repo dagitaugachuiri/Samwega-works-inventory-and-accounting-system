@@ -384,7 +384,7 @@ class APIClient {
 
     async approveExpense(id, data) {
         return this.request(`/expenses/${id}/approve`, {
-            method: 'PUT',
+            method: 'POST',
             body: JSON.stringify(data),
         });
     }

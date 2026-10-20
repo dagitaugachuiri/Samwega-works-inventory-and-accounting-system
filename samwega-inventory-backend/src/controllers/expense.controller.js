@@ -48,10 +48,15 @@ const getAllExpenses = async (req, res) => {
  * Get expense by ID
  */
 const getExpenseById = async (req, res) => {
-    try {
+     try {
         const expense = await expenseService.getExpenseById(req.params.id);
+        const privileged = ['admin', 'store_manager', 'accountant'].includes(req.user.role);
+        if (!privileged && expense.submittedBy !== req.user.uid) {
+            return res.status(403).json(errorResponse('You can only view your own expenses'));}
+
         return res.status(200).json(successResponse(expense, 'Expense retrieved successfully'));
-    } catch (error) {
+    }
+     catch (error) {
         logger.error('Get expense by ID controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
@@ -109,9 +114,9 @@ const deleteExpense = async (req, res) => {
 const getExpensesByCategory = async (req, res) => {
     try {
         const { startDate, endDate, vehicleId } = req.query;
-        const summary = await expenseService.getExpensesByCategory(startDate, endDate, vehicleId);
+        const summary = await expenseService.getExpensesByCategory(startDate, endDate, vehicleId, req.user.uid, req.user.role);
         return res.status(200).json(successResponse(summary, 'Category summary retrieved successfully'));
-    } catch (error) {
+        } catch (error) {
         logger.error('Get expenses by category controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }

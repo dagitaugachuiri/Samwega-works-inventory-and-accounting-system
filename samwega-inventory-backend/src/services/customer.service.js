@@ -215,7 +215,8 @@ class CustomerService {
     async getCustomersGroupedByVehicle() {
          const cacheKey = `${this.cachePrefix}by-vehicle`;
          const cached = await cache.get(cacheKey);
-              if (cached) return cached;
+             if (cached) return cached;
+             
          const snap = await this.db.collection('sales').get();
          const vehicles = new Map();
 
@@ -261,15 +262,16 @@ class CustomerService {
         if (saleDate && (!row.lastSaleDate || saleDate > new Date(row.lastSaleDate))) {
             row.lastSaleDate = saleDate.toISOString();
         }
-    });
+        });
 
-        const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
+               const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
         const info = new Map();
-        for (let i = 0; i < ids.length; i += 10) {
-            const snap = await this.db.collection(this.collection)
-                .where(admin.firestore.FieldPath.documentId(), 'in', ids.slice(i, i + 10))
-                .get();
-            snap.docs.forEach((d) => info.set(d.id, d.data()));
+        if (ids.length) {
+            const refs = ids.map((id) => this.db.collection(this.collection).doc(id));
+            const docs = await this.db.getAll(...refs);
+            docs.forEach((d) => {
+                if (d.exists) info.set(d.id, d.data());
+            });
         }
 
     const result = [...vehicles.values()]
@@ -277,12 +279,17 @@ class CustomerService {
                 vehicleId: v.vehicleId,
                 vehicleName: v.vehicleName,
                 customers: [...v.customers.values()]
-                    .map((c) => ({
-                        ...c,
-                        storeName: info.get(c.customerId)?.storeName || null,
-                        totalDebt: Number(info.get(c.customerId)?.totalDebt || 0),
-                        messagesStopped: Boolean(info.get(c.customerId)?.messagesStopped)
-                    }))
+                    .map((c) => {
+                        const cust = info.get(c.customerId);
+                        return {
+                            ...c,
+                            customerName: cust?.customerName || c.customerName,
+                            customerPhone: cust?.customerPhone ?? c.customerPhone,
+                            storeName: cust?.storeName || null,
+                            totalDebt: Number(cust?.totalDebt || 0),
+                            messagesStopped: Boolean(cust?.messagesStopped)
+                        };
+                    })
                     .sort((a, b) => b.totalPurchases - a.totalPurchases)
             }))
             .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName)); 
@@ -347,87 +354,70 @@ class CustomerService {
         }
     }
 
+        async updateCustomer(customerId, updateData) {
+        const ref = this.db.collection(this.collection).doc(customerId);
+        const doc = await ref.get();
+        if (!doc.exists) throw new NotFoundError('Customer');
+        const before = doc.data();
+
+        // Only allow these fields, so the request can't set totalDebt or totalPurchases
+        const updates = {};
+        for (const key of ['customerName', 'storeName', 'customerPhone', 'customerIdNumber', 'customerEmail', 'notes']) {
+            if (updateData[key] !== undefined) updates[key] = updateData[key];
+        }
+        if (updates.customerName !== undefined) {
+            updates.customerNameLower = updates.customerName.toLowerCase();
+        }
+        if (updates.storeName !== undefined) {
+            updates.storeNameLower = updates.storeName ? updates.storeName.toLowerCase() : null;
+        }
+
+        const phoneChanged = updates.customerPhone !== undefined && updates.customerPhone !== before.customerPhone;
+        if (phoneChanged && updates.customerPhone) {
+            const dup = await this.db.collection(this.collection)
+                .where('customerPhone', '==', updates.customerPhone)
+                .limit(1)
+                .get();
+            if (!dup.empty && dup.docs[0].id !== customerId) {
+                throw new ConflictError('Customer with this phone number already exists');
+            }
+            updates.messagesStopped = await optOutService.isStopped(updates.customerPhone);
+        }
+
+        updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+        await ref.update(updates);   // this is the write that was missing
+
+        if (phoneChanged && before.customerPhone && updates.customerPhone) {
+            await this.repointSalesPhone(before.customerPhone, updates.customerPhone);
+        }
+
+        logger.info(`Customer updated: ${customerId}`);
+        await cache.delPattern(`${this.cachePrefix}*`);
+
+        return await this.getCustomerById(customerId);
+    }
+
     /**
-     * Update customer
-     * @param {string} customerId
-     * @param {Object} updateData
-     * @returns {Promise<Object>}
+     * Point existing sales at a customer's new phone number
      */
-    async updateCustomer(customerId, updateData) {
-        try {
-            const doc = await this.db.collection(this.collection).doc(customerId).get();
+    async repointSalesPhone(oldPhone, newPhone) {
+        const salesSnap = await this.db.collection('sales')
+            .where('customerPhone', '==', oldPhone)
+            .get();
 
-            if (!doc.exists) {
-                throw new NotFoundError('Customer');
-            }
-
-            const updates = { ...updateData };
-
-            // Update lowercase fields if name or store name is being updated
-            if (updateData.customerName) {
-                updates.customerNameLower = updateData.customerName.toLowerCase();
-            }
-            if (updateData.storeName) {
-                updates.storeNameLower = updateData.storeName.toLowerCase();
-            }
-
-            // Check for phone number conflicts if updating phone
-            if (updateData.customerPhone) {
-                const existingCustomer = await this.db.collection(this.collection)
-                    .where('customerPhone', '==', updateData.customerPhone)
-                    .limit(1)
-                    .get();
-
-                if (!existingCustomer.empty && existingCustomer.docs[0].id !== customerId) {
-                    throw new ConflictError('Customer with this phone number already exists');
-                }
-            }
-
-            updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-
-                if (updateData.customerPhone) {
-                const stopped = await optOutService.isStopped(updateData.customerPhone);
-                await this.db.collection(this.collection).doc(customerId).update({ messagesStopped: stopped });
-            }
-
-              const oldPhone = doc.data().customerPhone;
-                const newPhone = updateData.customerPhone;
-
-            if (newPhone && oldPhone && newPhone !== oldPhone) {
-            const salesSnap = await this.db.collection('sales')
-                  .where('customerPhone', '==', oldPhone)
-                 .get();
-
-           let batch = this.db.batch();
-           let count = 0;
-           for (const saleDoc of salesSnap.docs) {
-               batch.update(saleDoc.ref, {
-               customerPhone: newPhone,
-               updatedAt: admin.firestore.FieldValue.serverTimestamp()
-           });
-           count++;
-                   if (count % 450 === 0) {
-                   await batch.commit();
-                   batch = this.db.batch();
+        for (let i = 0; i < salesSnap.docs.length; i += 450) {
+            const batch = this.db.batch();
+            salesSnap.docs.slice(i, i + 450).forEach((saleDoc) => {
+                batch.update(saleDoc.ref, {
+                    customerPhone: newPhone,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            await batch.commit();
         }
-        }
-        await batch.commit();
+
         await cache.delPattern('sale:*');
-        logger.info(`Updated ${count} sales from ${oldPhone} to ${newPhone}`);
-}
-
-            logger.info(`Customer updated: ${customerId}`);
-
-            // Invalidate cache
-            await cache.del(`${this.cachePrefix}${customerId}`);
-            await cache.delPattern(`${this.cachePrefix}list:*`);
-            await cache.delPattern(`${this.cachePrefix}search:*`);
-
-            return await this.getCustomerById(customerId);
-        } catch (error) {
-            logger.error('Update customer error:', error);
-            throw error;
-        }
+        logger.info(`Updated ${salesSnap.size} sales from ${oldPhone} to ${newPhone}`);
     }
 
     /**
@@ -552,6 +542,7 @@ class CustomerService {
         await cache.del(`${this.cachePrefix}${customerId}`);
         await cache.delPattern(`${this.cachePrefix}list:*`);
         await cache.delPattern(`${this.cachePrefix}search:*`);
+        await cache.delPattern(`${this.cachePrefix}*`);
 
         return await this.getCustomerById(customerId);
     }

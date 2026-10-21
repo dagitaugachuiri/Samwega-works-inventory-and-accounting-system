@@ -58,7 +58,7 @@ const createCustomerSchema = Joi.object({
  */
 const updateCustomerSchema = Joi.object({
     customerName: Joi.string().min(2).max(100).optional(),
-    customerPhone: Joi.string().pattern(/^[0-9]{10,15}$/).optional(),
+    customerPhone: Joi.string().pattern(/^[0-9]{10,15}$/).allow('').optional(),
     storeName: Joi.string().min(2).max(100).optional(),
     customerIdNumber: Joi.string().max(50).optional(),
     customerEmail: Joi.string().email().optional(),

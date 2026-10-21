@@ -1,4 +1,5 @@
 const { getFirestore, admin } = require('../config/firebase.config');
+const debtSync = require('./debt-sync.service');
 const logger = require('../utils/logger');
 const { ValidationError } = require('../utils/errors');
 
@@ -36,6 +37,9 @@ class OptOutService {
     async setStopped(phone, stopped, userId) {
         const key = normalizePhone(phone);
         if (!key) throw new ValidationError('Invalid phone number');
+
+        // Debt system first: if it fails, nothing is changed here, so a retry is safe
+        await debtSync.setSmsOptout(key, stopped, userId);
 
         const ref = this.db.collection(COLLECTION).doc(key);
         if (stopped) {

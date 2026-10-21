@@ -20,7 +20,7 @@ const createCustomer = async (req, res) => {
  */
 const getAllCustomers = async (req, res) => {
     try {
-        const result = await customerService.getAllCustomers(req.query);
+        const result = await customerService.getAllCustomers(req.query, req.user);
         return res.status(200).json(successResponse(result, 'Customers retrieved successfully'));
     } catch (error) {
         logger.error('Get all customers controller error:', error);
@@ -47,7 +47,7 @@ const searchCustomers = async (req, res) => {
  */
 const getCustomerById = async (req, res) => {
     try {
-        const customer = await customerService.getCustomerById(req.params.id);
+        const customer = await customerService.getCustomerById(req.params.id, req.user);
         return res.status(200).json(successResponse(customer, 'Customer retrieved successfully'));
     } catch (error) {
         logger.error('Get customer by ID controller error:', error);
@@ -57,7 +57,7 @@ const getCustomerById = async (req, res) => {
     
 const getCustomersByVehicle = async (req, res) => {
     try {
-        const vehicles = await customerService.getCustomersGroupedByVehicle();
+        const vehicles = await customerService.getCustomersGroupedByVehicle(req.user);
         return res.status(200).json(successResponse({ vehicles }, 'Customers by vehicle retrieved'));
     } catch (error) {
         logger.error('Get customers by vehicle controller error:', error);
@@ -115,7 +115,7 @@ const recordPayment = async (req, res) => {
 
 const getSummary = async (req, res) => {
     try {
-        const summary = await customerService.getSummary();
+        const summary = await customerService.getSummary(req.user);
         return res.status(200).json(successResponse(summary, 'Summary retrieved'));
     } catch (error) {
         logger.error('Get customer summary controller error:', error);

@@ -2,6 +2,7 @@ const axios = require('axios');
 const config = require('./environment');
 const { getFirestore } = require('./firebase.config');
 const { admin } = require('./firebase.config');
+const { optOutService } = require('../services/optout.service');
 
 class TextSMSService {
     constructor() {
@@ -32,6 +33,12 @@ class TextSMSService {
      */
     async sendSMS(phone, message) {
         try {
+            // Opted-out numbers get nothing. Fails closed: if the check errors, nothing is sent.
+            if (await optOutService.isStopped(phone)) {
+                console.log(`Skipped SMS to ${phone}: number is opted out`);
+                return { success: false, skipped: 'opted_out' };
+            }
+
             if (!this.config.apiKey || !this.config.partnerID) {
                 throw new Error('TextSMS credentials not configured');
             }

@@ -1,6 +1,7 @@
 const { getFirestore } = require('../config/firebase.config');
 const { admin } = require('../config/firebase.config');
 const { optOutService } = require('./optout.service');
+const debtSync = require('./debt-sync.service');
 const logger = require('../utils/logger');
 const cache = require('../utils/cache');
 const { NotFoundError, ValidationError, ConflictError } = require('../utils/errors');
@@ -73,7 +74,49 @@ class CustomerService {
      * @param {string} customerId
      * @returns {Promise<Object>}
      */
-    async getCustomerById(customerId) {
+    scopeKey(user) {
+        return user?.role === 'sales_rep' ? `rep:${user.uid}` : 'all';
+    }
+
+    /**
+     * Customer ids a sales rep may see: customers they created or sold to.
+     * Returns null for roles that see every customer.
+     */
+    async getVisibleCustomerIds(user) {
+        if (user?.role !== 'sales_rep') return null;
+        const [sales, created] = await Promise.all([
+            this.db.collection('sales').where('salesRepId', '==', user.uid).get(),
+            this.db.collection(this.collection).where('createdBy', '==', user.uid).get(),
+        ]);
+        const ids = new Set();
+        sales.docs.forEach((d) => { if (d.data().customerId) ids.add(d.data().customerId); });
+        created.docs.forEach((d) => ids.add(d.id));
+        return ids;
+    }
+
+    async canSeeCustomer(user, customerId, createdBy) {
+        if (!user || user.role !== 'sales_rep') return true;
+        if (createdBy === user.uid) return true;
+        const snap = await this.db.collection('sales')
+            .where('salesRepId', '==', user.uid)
+            .where('customerId', '==', customerId)
+            .limit(1)
+            .get();
+        return !snap.empty;
+    }
+
+    /**
+     * Get customer by ID, respecting what the user may see
+     */
+    async getCustomerById(customerId, user) {
+        const customer = await this.loadCustomerById(customerId);
+        if (!(await this.canSeeCustomer(user, customerId, customer.createdBy))) {
+            throw new NotFoundError('Customer');
+        }
+        return customer;
+    }
+
+    async loadCustomerById(customerId) {
         try {
             const cacheKey = `${this.cachePrefix}${customerId}`;
             const cached = await cache.get(cacheKey);
@@ -130,7 +173,7 @@ class CustomerService {
      * @param {Object} filters
      * @returns {Promise<Object>}
      */
-    async getAllCustomers(filters = {}) {
+    async getAllCustomers(filters = {}, user) {
         try {
             const {
                 search,
@@ -140,7 +183,7 @@ class CustomerService {
                 sortOrder = 'desc'
             } = filters;
 
-            const cacheKey = `${this.cachePrefix}list:${JSON.stringify(filters)}`;
+            const cacheKey = `${this.cachePrefix}list:${this.scopeKey(user)}:${JSON.stringify(filters)}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
@@ -149,6 +192,9 @@ class CustomerService {
             // Get all documents
             const snapshot = await query.get();
             let customers = serializeDocs(snapshot);
+
+            const visible = await this.getVisibleCustomerIds(user);
+            if (visible) customers = customers.filter((c) => visible.has(c.id));
 
             // Apply search filter (client-side for flexibility)
             if (search) {
@@ -212,8 +258,8 @@ class CustomerService {
      * @param {number} limit - Max results to return
      * @returns {Promise<Array>}
      */
-    async getCustomersGroupedByVehicle() {
-         const cacheKey = `${this.cachePrefix}by-vehicle`;
+    async getCustomersGroupedByVehicle(user) {
+         const cacheKey = `${this.cachePrefix}by-vehicle:${this.scopeKey(user)}`;
          const cached = await cache.get(cacheKey);
              if (cached) return cached;
              
@@ -223,6 +269,7 @@ class CustomerService {
         snap.docs.forEach((doc) => {
         const s = doc.data();
         if (!s.customerId || !s.vehicleId) return; // walk-in sales are skipped
+        if (user?.role === 'sales_rep' && s.salesRepId !== user.uid) return; // reps see only their own sales
 
         if (!vehicles.has(s.vehicleId)) {
             vehicles.set(s.vehicleId, {
@@ -300,13 +347,26 @@ class CustomerService {
      * Get summary of customers and vehicles
      * @returns {Promise<Object>}
      */    
-        async getSummary() {
+        async getSummary(user) {
         const [totalSnap, optedOutSnap] = await Promise.all([
             this.db.collection(this.collection).count().get(),
             this.db.collection(this.collection).where('messagesStopped', '==', true).count().get(),
         ]);
 
-        const vehicles = await this.getCustomersGroupedByVehicle();
+        const visible = await this.getVisibleCustomerIds(user);
+        if (visible) {
+            const ids = [...visible];
+            let optedOut = 0;
+            for (let i = 0; i < ids.length; i += 300) {
+                const refs = ids.slice(i, i + 300).map((id) => this.db.collection(this.collection).doc(id));
+                const docs = await this.db.getAll(...refs);
+                optedOut += docs.filter((d) => d.exists && d.data().messagesStopped === true).length;
+            }
+            const repVehicles = await this.getCustomersGroupedByVehicle(user);
+            return { totalCustomers: ids.length, optedOutCustomers: optedOut, vehicleCount: repVehicles.length };
+        }
+
+        const vehicles = await this.getCustomersGroupedByVehicle(user);
 
         return {
             totalCustomers: totalSnap.data().count,
@@ -373,22 +433,37 @@ class CustomerService {
         }
 
         const phoneChanged = updates.customerPhone !== undefined && updates.customerPhone !== before.customerPhone;
-        if (phoneChanged && updates.customerPhone) {
+        const oldPhone = before.customerPhone || null;
+        const newPhone = updates.customerPhone || null;
+
+        if (phoneChanged && newPhone) {
             const dup = await this.db.collection(this.collection)
-                .where('customerPhone', '==', updates.customerPhone)
+                .where('customerPhone', '==', newPhone)
                 .limit(1)
                 .get();
             if (!dup.empty && dup.docs[0].id !== customerId) {
                 throw new ConflictError('Customer with this phone number already exists');
             }
-            updates.messagesStopped = await optOutService.isStopped(updates.customerPhone);
+            updates.messagesStopped = await optOutService.isStopped(newPhone);
+        }
+        if (phoneChanged && !newPhone) {
+            updates.messagesStopped = false;
+        }
+
+        // Debt system first. If it does not confirm, nothing here changes and the admin can retry.
+        if (phoneChanged && oldPhone) {
+            if (newPhone) {
+                await debtSync.relinkPhone(oldPhone, newPhone);
+            } else {
+                await debtSync.unlinkPhone(oldPhone);
+            }
         }
 
         updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-        await ref.update(updates);   // this is the write that was missing
+        await ref.update(updates);
 
-        if (phoneChanged && before.customerPhone && updates.customerPhone) {
-            await this.repointSalesPhone(before.customerPhone, updates.customerPhone);
+        if (phoneChanged && oldPhone) {
+            await this.repointSalesPhone(oldPhone, newPhone || '');
         }
 
         logger.info(`Customer updated: ${customerId}`);

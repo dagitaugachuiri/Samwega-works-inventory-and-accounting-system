@@ -381,21 +381,34 @@ class CustomerService {
      * @param {number} limit - Max results to return
      * @returns {Promise<Array>}
      */
-    async searchCustomers(query, limit = 10) {
+    async searchCustomers(query, limit = 10, vehicleId = null) {
         try {
             if (!query || query.length < 2) {
                 return [];
             }
 
-            const cacheKey = `${this.cachePrefix}search:${query}:${limit}`;
+            const cacheKey = `${this.cachePrefix}search:${query}:${limit}:${vehicleId || 'all'}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
             const queryLower = query.toLowerCase();
 
+            // With a vehicle, only customers who have a non-voided sale on that vehicle
+            let vehicleCustomerIds = null;
+            if (vehicleId) {
+                const salesSnap = await this.db.collection('sales').where('vehicleId', '==', vehicleId).get();
+                vehicleCustomerIds = new Set(
+                    salesSnap.docs
+                        .map((d) => d.data())
+                        .filter((s) => s.status !== 'voided' && s.customerId)
+                        .map((s) => s.customerId)
+                );
+            }
+
             // Get all customers (consider adding index for better performance)
             const snapshot = await this.db.collection(this.collection).get();
             let customers = serializeDocs(snapshot);
+            if (vehicleCustomerIds) customers = customers.filter((c) => vehicleCustomerIds.has(c.id));
 
             // Filter by name, store name, or phone
             const results = customers.filter(customer =>

@@ -33,8 +33,8 @@ const getAllCustomers = async (req, res) => {
  */
 const searchCustomers = async (req, res) => {
     try {
-        const { q, limit } = req.query;
-        const customers = await customerService.searchCustomers(q, limit);
+        const { q, limit, vehicleId } = req.query;
+        const customers = await customerService.searchCustomers(q, limit, vehicleId);
         return res.status(200).json(successResponse({ customers }, 'Customers found successfully'));
     } catch (error) {
         logger.error('Search customers controller error:', error);

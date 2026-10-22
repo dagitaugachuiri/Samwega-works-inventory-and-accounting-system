@@ -80,6 +80,7 @@ const customerIdSchema = Joi.object({
  * Search customers query validation schema
  */
 const searchCustomersSchema = Joi.object({
+    vehicleId: Joi.string().max(100).optional(),
     q: Joi.string()
         .min(2)
         .max(100)

@@ -564,74 +564,58 @@ class ExpenseService {
         }
     }
 
-    /**
-     * Get expenses by category
-     * @param {string} startDate
-     * @param {string} endDate
-     * @returns {Promise<Object>}
-     */
     async getExpensesByCategory(startDate, endDate, vehicleId = null, userId = null, userRole = null) {
     try {
         const privileged = ['admin', 'store_manager', 'accountant'].includes(userRole);
         const cacheKey = `${this.cachePrefix}category:${startDate}:${endDate}:${vehicleId || 'all'}:${privileged ? 'all' : userId}`;
-            if (cached) return cached;
+        const cached = await cache.get(cacheKey);
+        if (cached) return cached;
 
-            let query = this.db.collection(this.collection);
-
-            // Filter by vehicle if provided - single where clause to avoid index requirement
-            if (vehicleId) {
-                query = query.where('vehicleId', '==', vehicleId);
-            }
-
-            const snapshot = await query.get();
-            let expenses = serializeDocs(snapshot);
-            if (!privileged) {
-           expenses = expenses.filter(e => e.submittedBy === userId);
-            }
-
-            // Filter by date client-side to avoid composite index
-            if (startDate) {
-                const start = new Date(startDate);
-                expenses = expenses.filter(exp => new Date(exp.expenseDate) >= start);
-            }
-            if (endDate) {
-                const end = new Date(endDate);
-                expenses = expenses.filter(exp => new Date(exp.expenseDate) <= end);
-            }
-            expenses = expenses.filter(e => e.status !== 'rejected');
-
-            // Aggregate by category
-            const categoryMap = {};
-            expenses.forEach(expense => {
-                if (!categoryMap[expense.category]) {
-                    categoryMap[expense.category] = {
-                        category: expense.category,
-                        totalAmount: 0,
-                        count: 0
-                    };
-                }
-                categoryMap[expense.category].totalAmount += expense.amount;
-                categoryMap[expense.category].count += 1;
-            });
-
-            const summary = {
-                categories: Object.values(categoryMap),
-                totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
-                totalCount: expenses.length,
-                startDate,
-                endDate
-            };
-            
-
-            // Cache the result
-            await cache.set(cacheKey, summary, this.cacheTTL);
-
-            return summary;
-        } catch (error) {
-            logger.error('Get expenses by category error:', error);
-            throw error;
+        let query = this.db.collection(this.collection);
+        if (vehicleId) {
+            query = query.where('vehicleId', '==', vehicleId);
         }
+
+        const snapshot = await query.get();
+        let expenses = serializeDocs(snapshot);
+
+        if (!privileged) {
+            expenses = expenses.filter(e => e.submittedBy === userId);
+        }
+        if (startDate) {
+            const start = new Date(startDate);
+            expenses = expenses.filter(exp => new Date(exp.expenseDate) >= start);
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            expenses = expenses.filter(exp => new Date(exp.expenseDate) <= end);
+        }
+        expenses = expenses.filter(e => e.status !== 'rejected');
+
+        const categoryMap = {};
+        expenses.forEach(expense => {
+            if (!categoryMap[expense.category]) {
+                categoryMap[expense.category] = { category: expense.category, totalAmount: 0, count: 0 };
+            }
+            categoryMap[expense.category].totalAmount += expense.amount;
+            categoryMap[expense.category].count += 1;
+        });
+
+        const summary = {
+            categories: Object.values(categoryMap),
+            totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
+            totalCount: expenses.length,
+            startDate,
+            endDate
+        };
+
+        await cache.set(cacheKey, summary, this.cacheTTL);
+        return summary;
+    } catch (error) {
+        logger.error('Get expenses by category error:', error);
+        throw error;
     }
+}
 
 
 }

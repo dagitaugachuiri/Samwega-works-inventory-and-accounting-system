@@ -21,6 +21,7 @@ const BANKS = [
     'New KCB',
     'Old Absa',
     'New Absa',
+    'Co-op Bank',
     'Family'
 ];
 
@@ -39,6 +40,7 @@ export default function SalesScreen({ route, navigation }) {
     const [customerSuggestions, setCustomerSuggestions] = useState([]);
     const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
     const [searchingCustomers, setSearchingCustomers] = useState(false);
+    const [searchAllCustomers, setSearchAllCustomers] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [customerSectionCollapsed, setCustomerSectionCollapsed] = useState(false);
     const [paymentSectionCollapsed, setPaymentSectionCollapsed] = useState(false);
@@ -129,7 +131,7 @@ export default function SalesScreen({ route, navigation }) {
         }, 300);
 
         return () => clearTimeout(delaySearch);
-    }, [customerSearchQuery, selectedCustomer]);
+    }, [customerSearchQuery, selectedCustomer, searchAllCustomers]);
 
     // Filter products as user types
     useEffect(() => {
@@ -152,7 +154,7 @@ export default function SalesScreen({ route, navigation }) {
     const searchForCustomers = async (query) => {
         setSearchingCustomers(true);
         try {
-            const response = await searchCustomers(query);
+            const response = await searchCustomers(query, searchAllCustomers ? null : vehicleId);
             const customers = response.data?.customers || [];
             setCustomerSuggestions(customers);
             setShowCustomerSuggestions(true);
@@ -618,6 +620,11 @@ export default function SalesScreen({ route, navigation }) {
                                                 {selectedCustomer.customerPhone}
                                             </AppText>
                                         )}
+                                        {selectedCustomer.messagesStopped && (
+                                            <AppText variant="small" style={styles.optedOutText}>
+                                                Messages off: this customer is opted out
+                                            </AppText>
+                                        )}
                                         {selectedCustomer.customerIdNumber && (
                                             <AppText variant="small" style={styles.selectedCustomerDetail}>
                                                 ID: {selectedCustomer.customerIdNumber}
@@ -643,7 +650,7 @@ export default function SalesScreen({ route, navigation }) {
                                         )}
                                     </View>
 
-                                    {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                                    {showCustomerSuggestions && (customerSuggestions.length > 0 || !!vehicleId) && (
                                         <View style={styles.suggestionsContainer}>
                                             <FlatList
                                                 data={customerSuggestions}
@@ -655,12 +662,32 @@ export default function SalesScreen({ route, navigation }) {
                                                     >
                                                         <AppText style={styles.suggestionName}>{item.customerName}</AppText>
                                                         <AppText variant="caption" style={styles.suggestionDetails}>
-                                                            {item.storeName ? `${item.storeName} • ` : ''}{item.customerPhone || 'No phone'}
+                                                            {[item.storeName, item.customerPhone || 'No phone', item.customerIdNumber ? `ID ${item.customerIdNumber}` : null].filter(Boolean).join(' • ')}
                                                         </AppText>
+                                                        {customerSuggestions.filter((c) => (c.customerName || '').trim().toLowerCase() === (item.customerName || '').trim().toLowerCase()).length > 1 && (
+                                                            <AppText variant="caption" style={styles.sameNameText}>Same name as another customer. Check phone and ID before selecting.</AppText>
+                                                        )}
+                                                        {item.messagesStopped && (
+                                                            <AppText variant="caption" style={styles.optedOutText}>Messages off (opted out)</AppText>
+                                                        )}
                                                     </TouchableOpacity>
                                                 )}
                                                 scrollEnabled={false}
                                             />
+                                            {customerSuggestions.length === 0 && (
+                                                <AppText variant="caption" style={styles.searchScopeText}>
+                                                    No customer matches{searchAllCustomers ? '' : ' this vehicle'}.
+                                                </AppText>
+                                            )}
+                                            {!!vehicleId && (
+                                                <TouchableOpacity style={styles.searchScopeToggle} onPress={() => setSearchAllCustomers((v) => !v)}>
+                                                    <AppText variant="caption" style={styles.searchScopeText}>
+                                                        {searchAllCustomers
+                                                            ? 'Showing all customers. Tap to show only this vehicle.'
+                                                            : 'Showing this vehicle only. Tap to search all customers.'}
+                                                    </AppText>
+                                                </TouchableOpacity>
+                                            )}
                                         </View>
                                     )}
 
@@ -1132,6 +1159,24 @@ const styles = StyleSheet.create({
         padding: spacing.m,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+    },
+    sameNameText: {
+        color: '#B45309',
+        fontWeight: '600',
+        marginTop: 2,
+    },
+    searchScopeToggle: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    searchScopeText: {
+        color: '#2563EB',
+        fontWeight: '600',
+    },
+    optedOutText: {
+        color: '#DC2626',
+        fontWeight: '600',
+        marginTop: 2,
     },
     suggestionName: {
         fontWeight: 'bold',

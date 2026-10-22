@@ -6,7 +6,7 @@ LogBox.ignoreLogs(['new NativeEventEmitter() was called with a non-null argument
 
 // Constants for 58mm printer
 // Standard 58mm thermal printers usually support 32 characters per line with normal font
-const PRINTER_WIDTH = 38;
+const PRINTER_WIDTH = 32; // 58mm printers print 32 characters per line in normal font
 
 class ReceiptService {
     constructor() {
@@ -121,8 +121,95 @@ class ReceiptService {
     }
 
     /**
+     * Money for receipt lines: 6700 -> "6,700", 6700.5 -> "6,700.50"
+     * @param {number|string} amount
+     * @returns {string}
+     */
+    formatMoney(amount) {
+        const n = Number(amount) || 0;
+        const hasCents = Math.round(n * 100) % 100 !== 0;
+        return n.toLocaleString('en-US', {
+            minimumFractionDigits: hasCents ? 2 : 0,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    /**
+     * Quantity: 2 -> "2", 2.5 -> "2.5"
+     * @param {number|string} qty
+     * @returns {string}
+     */
+    formatQty(qty) {
+        return (Number(qty) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+
+    /**
+     * Wrap text to a width, breaking on spaces. Very long words are split.
+     * @param {string} text
+     * @param {number} width
+     * @returns {string[]}
+     */
+    wrapText(text, width) {
+        const words = String(text || '').split(/\s+/).filter(Boolean);
+        const lines = [];
+        let current = '';
+        words.forEach((word) => {
+            let w = word;
+            while (w.length > width) {
+                if (current) { lines.push(current); current = ''; }
+                lines.push(w.slice(0, width));
+                w = w.slice(width);
+            }
+            if (!current) current = w;
+            else if (current.length + 1 + w.length <= width) current += ' ' + w;
+            else { lines.push(current); current = w; }
+        });
+        if (current) lines.push(current);
+        return lines.length ? lines : [''];
+    }
+
+    /**
+     * Item table in 32 columns: Description | Price | Subtotal.
+     * Returns one string per printed line, header first.
+     * @param {Array} items
+     * @returns {string[]}
+     */
+    generateItemLines(items) {
+        const DESC = 14, PRICE = 7, SUB = 11; // 14 + 7 + 11 = 32
+        const lines = [this.formatLine([
+            { text: 'Description', width: DESC },
+            { text: 'Price', width: PRICE, align: 'right' },
+            { text: 'Subtotal', width: SUB, align: 'right' },
+        ])];
+
+        items.forEach((item) => {
+            const qty = Number(item.quantity) || 0;
+            const unit = Number(item.unitPrice) || 0;
+            const lineTotal = item.totalPrice !== undefined && item.totalPrice !== null
+                ? Number(item.totalPrice)
+                : qty * unit;
+            const descLines = this.wrapText(`${this.formatQty(qty)} ${item.productName || 'Unknown'}`, DESC);
+
+            descLines.forEach((text, i) => {
+                if (i === 0) {
+                    lines.push(this.formatLine([
+                        { text, width: DESC },
+                        { text: this.formatMoney(unit), width: PRICE, align: 'right' },
+                        { text: this.formatMoney(lineTotal), width: SUB, align: 'right' },
+                    ]));
+                } else {
+                    lines.push(text);
+                }
+            });
+        });
+        return lines;
+    }
+
+    /**
      * Generate receipt text for a sale
-     * @param {Object} sale 
+     * Font tags: <CD> large centred, <CM> medium centred, <C> centred, <L> left.
+     * Do not use <B> here: in this printer library <B> means a large font, not bold.
+     * @param {Object} sale
      * @returns {string}
      */
     generateReceipt(sale) {
@@ -133,81 +220,71 @@ class ReceiptService {
             hour: '2-digit', minute: '2-digit'
         });
 
+        const line = (text) => `<L>${text}</L>\n`;
+        const divider = () => this.createDivider() + '\n';
+        // Label in a fixed column, value wrapped under it
+        const field = (label, value) => {
+            const head = label.padEnd(10);
+            const parts = this.wrapText(String(value), this.printerWidth - head.length);
+            return parts.map((part, i) => line((i === 0 ? head : ' '.repeat(head.length)) + part)).join('');
+        };
+
         let receipt = '';
 
-        // HEADER
-        receipt += '<C><B>SAMWEGA WORKS LTD</B></C>\n';
+        // STORE: large name at the top
+        receipt += '<CD>SAMWEGA</CD>\n';
+        receipt += '<CD>WORKS LTD</CD>\n';
         receipt += '<C>GILGIL, KENYA</C>\n';
-        receipt += '<C>Tel: 0113689071</C>\n';
         receipt += '\n';
 
-        // METADATA
-        receipt += `<L>PROFORMA INVOICE: ${sale.receiptNumber || 'Pending'}</L>\n`;
-        receipt += `<L>Date:    ${date}</L>\n`;
-        receipt += `<L>Served:  ${sale.salesRepName || 'Admin'}</L>\n`;
-        if (sale.customerName) {
-            receipt += `<L>Cust:    ${sale.customerName}</L>\n`;
-        }
-        receipt += this.createDivider() + '\n';
+        // DOCUMENT TYPE
+        receipt += '<CM>RECEIPT</CM>\n';
+        receipt += '\n';
 
-        // COLUMNS HEADER
-        // Item (18) Qty (4) Total (10)
-        receipt += '<B>Item              Qty      Total</B>\n';
-        receipt += this.createDivider() + '\n';
+        // DETAILS
+        receipt += field('Receipt', sale.receiptNumber || 'Pending');
+        receipt += field('Date', date);
+        receipt += field('Served by', sale.salesRepName || 'Admin');
+        if (sale.customerName) receipt += field('Customer', sale.customerName);
+        if (sale.storeName) receipt += field('Store', sale.storeName);
+        receipt += divider();
 
         // ITEMS
-        const items = sale.items || [];
-        items.forEach(item => {
-            const name = item.productName || 'Unknown';
-            const qty = String(item.quantity || 0);
-            const total = this.formatCurrency(item.totalPrice || 0);
-
-            // Simple layout: Name on one line if too long, then qty/total
-            if (name.length > 18) {
-                receipt += `<L>${name}</L>\n`;
-                // Indent rest
-                const padding = ' '.repeat(Math.max(0, 18));
-                const qtyPadding = ' '.repeat(Math.max(0, 4 - qty.length));
-                const totalPadding = ' '.repeat(Math.max(0, 10 - total.length));
-                receipt += `<L>${padding}${qtyPadding}${qty}${totalPadding}${total}</L>\n`;
-            } else {
-                const namePadding = ' '.repeat(Math.max(0, 18 - name.length));
-                const qtyPadding = ' '.repeat(Math.max(0, 4 - qty.length));
-                const totalPadding = ' '.repeat(Math.max(0, 10 - total.length));
-                receipt += `<L>${name}${namePadding}${qtyPadding}${qty}${totalPadding}${total}</L>\n`;
-            }
-        });
-
-        receipt += this.createDivider() + '\n';
+        this.generateItemLines(sale.items || []).forEach((l) => { receipt += line(l); });
+        receipt += divider();
 
         // TOTALS
-        receipt += `<L>${this.createRow('Subtotal', this.formatCurrency(sale.subtotal || 0))}</L>\n`;
+        receipt += line(this.createRow('Subtotal', this.formatMoney(sale.subtotal || 0)));
         if (sale.taxAmount > 0) {
-            receipt += `<L>${this.createRow('Tax', this.formatCurrency(sale.taxAmount))}</L>\n`;
+            receipt += line(this.createRow('Tax', this.formatMoney(sale.taxAmount)));
         }
         if (sale.discountAmount > 0) {
-            receipt += `<L>${this.createRow('Discount', '-' + this.formatCurrency(sale.discountAmount))}</L>\n`;
+            receipt += line(this.createRow('Discount', '-' + this.formatMoney(sale.discountAmount)));
         }
-        receipt += `<L><B>${this.createRow('TOTAL', this.formatCurrency(sale.grandTotal || 0))}</B></L>\n`;
-        receipt += this.createDivider() + '\n';
+        receipt += line(this.createRow('TOTAL', this.formatMoney(sale.grandTotal || 0)));
+        receipt += divider();
 
         // PAYMENTS
+        const METHOD_LABELS = { cash: 'Cash', mpesa: 'M-Pesa', bank: 'Bank', credit: 'On credit' };
+        // Bank payments name the bank, e.g. "Bank (Old Absa)"
+        const labelFor = (method, bankName) => {
+            const key = String(method || 'cash').toLowerCase();
+            if (key === 'bank' && bankName) return `Bank (${bankName})`;
+            return METHOD_LABELS[key] || String(method);
+        };
         if (sale.payments && sale.payments.length > 0) {
-            sale.payments.forEach(p => {
-                const method = p.method.charAt(0).toUpperCase() + p.method.slice(1);
-                receipt += `<L>${this.createRow(method, this.formatCurrency(p.amount))}</L>\n`;
+            sale.payments.forEach((p) => {
+                receipt += line(this.createRow(labelFor(p.method, p.bankName || sale.bankName), this.formatMoney(p.amount)));
             });
         } else {
-            const method = (sale.paymentMethod || 'Cash').charAt(0).toUpperCase() + (sale.paymentMethod || 'Cash').slice(1);
-            receipt += `<L>${this.createRow(method, this.formatCurrency(sale.grandTotal))}</L>\n`;
+            receipt += line(this.createRow(labelFor(sale.paymentMethod, sale.bankName), this.formatMoney(sale.grandTotal || 0)));
         }
-
-        receipt += this.createDivider() + '\n';
-        receipt += '\n';
+        receipt += divider();
 
         // FOOTER
         receipt += '<C>Thank you for shopping</C>\n';
-        receipt += '<C>with Samwega Works!</C>\n';
+        receipt += '<C>with Samwega Works</C>\n';
+        receipt += '<C>Contact us: 0113689071</C>\n';
         receipt += '\n\n\n'; // Feed lines
 
         return receipt;

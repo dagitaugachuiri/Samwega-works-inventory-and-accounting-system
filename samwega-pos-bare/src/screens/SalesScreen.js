@@ -618,6 +618,11 @@ export default function SalesScreen({ route, navigation }) {
                                                 {selectedCustomer.customerPhone}
                                             </AppText>
                                         )}
+                                        {selectedCustomer.messagesStopped && (
+                                            <AppText variant="small" style={styles.optedOutText}>
+                                                Messages off: this customer is opted out
+                                            </AppText>
+                                        )}
                                         {selectedCustomer.customerIdNumber && (
                                             <AppText variant="small" style={styles.selectedCustomerDetail}>
                                                 ID: {selectedCustomer.customerIdNumber}
@@ -657,6 +662,9 @@ export default function SalesScreen({ route, navigation }) {
                                                         <AppText variant="caption" style={styles.suggestionDetails}>
                                                             {item.storeName ? `${item.storeName} • ` : ''}{item.customerPhone || 'No phone'}
                                                         </AppText>
+                                                        {item.messagesStopped && (
+                                                            <AppText variant="caption" style={styles.optedOutText}>Messages off (opted out)</AppText>
+                                                        )}
                                                     </TouchableOpacity>
                                                 )}
                                                 scrollEnabled={false}
@@ -1132,6 +1140,11 @@ const styles = StyleSheet.create({
         padding: spacing.m,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+    },
+    optedOutText: {
+        color: '#DC2626',
+        fontWeight: '600',
+        marginTop: 2,
     },
     suggestionName: {
         fontWeight: 'bold',

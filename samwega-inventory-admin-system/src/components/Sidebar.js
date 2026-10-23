@@ -12,6 +12,7 @@ import {
     Truck,
     LogOut,
     Settings,
+    UsersRound,
     Package,
     ShoppingCart,
     ArrowRightLeft,

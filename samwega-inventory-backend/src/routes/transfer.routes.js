@@ -35,7 +35,7 @@ router.post(
 router.post(
     '/return',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     writeLimiter,
     transferController.returnStock
 );
@@ -43,12 +43,13 @@ router.post(
 /**
  * @route   GET /api/v1/transfers
  * @desc    Get all transfers
- * @access  All verified users
+ * @access  Required roles: Admin, Store Manager, Accountant
  */
 router.get(
     '/',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'store_manager', 'accountant'),
     validateQuery(searchTransfersSchema),
     transferController.getAllTransfers
 );
@@ -74,10 +75,24 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'store_manager', 'accountant'),
     validateParams(transferIdSchema),
     transferController.getTransferById
 );
-
+/**
+ * @route   GET /api/v1/vehicles/:id/transfers
+ * @desc    Transfers for a vehicle (drivers: own vehicle, returned only)
+ * @access  Admin, Store Manager, Accountant, Driver (own vehicle)
+ */
+router.get(
+    '/:id/transfers',
+    verifyToken,
+    requireVerified,
+    requireRole('admin', 'store_manager', 'accountant', 'driver'),
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
+    validateParams(vehicleIdSchema),
+    transferController.getVehicleTransfers
+);
 /**
  * @route   POST /api/v1/transfers/:id/approve
  * @desc    Approve transfer

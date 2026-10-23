@@ -22,6 +22,7 @@ export default function VehicleDetailsDashboard() {
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("issuances");
 
   // Modal state
@@ -51,7 +52,10 @@ export default function VehicleDetailsDashboard() {
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
-        const canSeeTransfers = ['admin', 'store_manager', 'accountant'].includes(user?.role);
+        const meRes = await api.getCurrentUser();
+        const currentUser = meRes?.data;
+        setUser(currentUser);
+       const canSeeTransfers = ['admin', 'store_manager', 'accountant'].includes(currentUser?.role);
 
         const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
           api.getVehicleById(vehicleId),

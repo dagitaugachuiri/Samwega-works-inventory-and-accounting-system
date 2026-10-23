@@ -248,6 +248,10 @@ class APIClient {
         const query = new URLSearchParams(filters).toString();
         return this.request(`/transfers${query ? `?${query}` : ''}`);
     }
+    async getVehicleTransfers(vehicleId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/vehicles/${vehicleId}/transfers${query ? `?${query}` : ''}`);
+    }
 
     async getTransferById(id) {
         return this.request(`/transfers/${id}`);

@@ -51,13 +51,18 @@ export default function VehicleDetailsDashboard() {
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
+        const canSeeTransfers = ['admin', 'store_manager', 'accountant'].includes(user?.role);
+
         const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
           api.getVehicleById(vehicleId),
-          api.getTransfers(filters),
+          canSeeTransfers
+              ? api.getVehicleTransfers(vehicleId, filters)
+              : Promise.resolve({ data: { transfers: [] } }),    
           api.getInventory(),
           api.getSales(filters),
           api.getExpenses(filters),
           api.getVehicleInventoryReport(filters)
+          
         ]);
 
         setVehicle(vehicleRes?.data || vehicleRes);
@@ -593,23 +598,20 @@ function IssuancesTab({ transfers }) {
                 )}
               </td>
               <td className="px-6 py-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                    {(t.status === 'collected' ? t.confirmedByName : t.submittedByName)?.substring(0, 2).toUpperCase() || "??"}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-slate-900 font-medium">{t.status === 'collected' ? t.confirmedByName : t.submittedByName}</span>
-                    <span className="text-[10px] text-slate-400 capitalize">{t.status === 'collected' ? 'Confirmed Collection' : 'Issued by Admin'}</span>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-center">
-                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${t.status === 'collected' ? 'bg-emerald-50 text-emerald-600' :
-                  t.status === 'approved' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
-                  }`}>
-                  {t.status}
-                </span>
-              </td>
+              <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                  {(t.status === 'collected' ? t.confirmedByName : t.issuedByName)?.substring(0, 2).toUpperCase() || '?'}
+              </div>
+              <div className="flex flex-col">
+              <span className="text-slate-900 font-medium">
+              {t.status === 'collected' ? t.confirmedByName : t.issuedByName || 'Unknown'}
+               </span>
+             <span className="text-[10px] text-slate-400 capitalize">
+              {t.status === 'collected' ? 'Confirmed Collection' : 'Issued by'}
+              </span>
+              </div>
+            </div>
+            </td>
             </tr>
           );
         }) : (

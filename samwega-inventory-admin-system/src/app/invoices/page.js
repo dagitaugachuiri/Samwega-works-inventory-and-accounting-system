@@ -23,59 +23,66 @@ export default function InvoicesPage() {
         paidAmount: "0",
         notes: "",
     });
+    
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [page, setPage] = useState(1);              // ← add
-    const [pagination, setPagination] = useState(null); 
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
     const alert = useAlert();
 
+    const [user, setUser] = useState(null);
+    const isAdmin = user?.role === "admin";
+    const canCreate = user?.role === "admin" || user?.role === "store_manager";
+
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState(null);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
     useEffect(() => {
+        fetchSuppliers();
+        api.getCurrentUser()
+            .then((res) => { if (res.success) setUser(res.data); })
+            .catch((e) => console.error("Failed to load user:", e));
+    }, []);
+
+    useEffect(() => {
+        const t = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1); }, 350);
+        return () => clearTimeout(t);
+    }, [search]);
+
+    useEffect(() => {
+        setSelectedIds([]); // never keep ticks from another page or search
         fetchData();
-    }, [page]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, debouncedSearch]);
+
+    const fetchSuppliers = async () => {
+        try {
+            const res = await api.getSuppliers();
+            if (res.success && res.data) {
+                const list = res.data.suppliers || res.data;
+                setSuppliers(Array.isArray(list) ? list : []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch suppliers:", error);
+        }
+    };
 
     const fetchData = async () => {
         try {
-            setLoading(true);
-            const [invoicesRes, suppliersRes] = await Promise.all([
-                api.getInvoices({page, limit: 20}),
-                api.getSuppliers()
-            ]);
-
-            // Process suppliers first
-            let supplierData = [];
-            if (suppliersRes.success && suppliersRes.data) {
-                supplierData = suppliersRes.data.suppliers || suppliersRes.data;
-                setSuppliers(Array.isArray(supplierData) ? supplierData : []);
-            }
-
-            // Process invoices with supplier names
-            if (invoicesRes.success && invoicesRes.data) {
-                const invoiceData = invoicesRes.data.invoices || invoicesRes.data;
-                setPagination(invoicesRes.meta || invoicesRes.data?.pagination || null);
-
-                // Create supplier lookup map
-                const supplierMap = {};
-                if (Array.isArray(supplierData)) {
-                    supplierData.forEach(s => {
-                        supplierMap[s.id] = s.name;
-                    });
-                }
-
-                // Merge supplier names into invoices
-                const invoicesWithSuppliers = Array.isArray(invoiceData)
-                    ? invoiceData.map(inv => ({
-                        ...inv,
-                        supplierName: inv.supplierName || supplierMap[inv.supplierId] || "Unknown Supplier"
-                    }))
-                    : [];
-
-                setInvoices(invoicesWithSuppliers);
+            const params = { page, limit: 20 };
+            if (debouncedSearch) params.search = debouncedSearch;
+            const res = await api.getInvoices(params);
+            if (res.success && res.data) {
+                const list = res.data.invoices || res.data;
+                setInvoices(Array.isArray(list) ? list : []);
+                setPagination(res.pagination || res.data.pagination || null);
             }
         } catch (error) {
             console.error("Failed to fetch data:", error);
             alert.error("Failed to load invoices: " + error.message);
         } finally {
-            setLoading(false);
+            setLoading(false); // only the first load shows the full-page spinner
         }
     };
 
@@ -188,10 +195,7 @@ export default function InvoicesPage() {
         }
     };
 
-    const filteredInvoices = invoices.filter(inv =>
-        (inv.invoiceNumber || "").toLowerCase().includes(search.toLowerCase()) ||
-        (inv.supplierName || "").toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredInvoices = invoices;
 
     const previewInvoiceNumber = form.supplierId && form.invoiceDate
         ? generateInvoiceNumber(form.supplierId, form.invoiceDate)
@@ -207,6 +211,28 @@ export default function InvoicesPage() {
             </div>
         );
     }
+    const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const toggleSelectAll = () => {
+    setSelectedIds(selectedIds.length === filteredInvoices.length ? [] : filteredInvoices.map(i => i.id));
+    };
+    const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.length} invoice(s)? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    const failed = [];
+    for (const id of selectedIds) {
+        try { await api.deleteInvoice(id); } catch (e) { failed.push({ id, message: e.message }); }
+    }
+    setBulkDeleting(false);
+    setSelectedIds([]);
+    fetchData();
+    if (failed.length) {
+        alert.error(`${failed.length} could not be deleted: ${failed[0].message}${failed.length > 1 ? ' (+ more)' : ''}`);
+    } else {
+        alert.success('Selected invoices deleted');
+    }
+   };
 
     return (
         <div className="flex w-full flex-col gap-6">
@@ -216,10 +242,12 @@ export default function InvoicesPage() {
                     <h1 className="text-2xl font-semibold text-slate-900">Purchase Invoices</h1>
                     <p className="text-sm text-slate-500">Manage supplier invoices and procurement records</p>
                 </div>
+                {canCreate && (
                 <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
                     <Plus size={16} />
                     New Invoice
                 </button>
+                )}
             </div>
 
             {/* Search */}
@@ -266,11 +294,9 @@ export default function InvoicesPage() {
                             </tr>
                         ) : (
                             filteredInvoices.map((inv) => (
-                                <tr  key={inv.id}
-                                onClick={() => router.push(`/invoices/${inv.id}`)}
-                                className="hover:bg-slate-50 cursor-pointer">
+                                <tr key={inv.id} className="hover:bg-slate-50">
                                     <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2"> 
+                                        <div className="flex items-center gap-2">
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
@@ -297,7 +323,7 @@ export default function InvoicesPage() {
                                             {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                                    <td className="px-4 py-3">
                                         <div className="flex items-center justify-center gap-1">
                                             {(inv.balanceRemaining || 0) > 0 && (
                                                 <button
@@ -327,27 +353,6 @@ export default function InvoicesPage() {
                         )}
                     </tbody>
                 </table>
-                                {pagination && pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm">
-                        <button
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            disabled={!pagination.hasPrevPage}
-                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            Previous
-                        </button>
-                        <span className="text-slate-500">
-                            Page {pagination.page} of {pagination.totalPages}
-                        </span>
-                        <button
-                            onClick={() => setPage(p => p + 1)}
-                            disabled={!pagination.hasNextPage}
-                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            Next
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Modal */}
@@ -565,6 +570,8 @@ export default function InvoicesPage() {
 
             {/* Alert Container */}
             <AlertContainer alerts={alert.alerts} onClose={alert.hideAlert} />
-        </div>
-    );
+        </div>  
+        
+        );
+        
 }

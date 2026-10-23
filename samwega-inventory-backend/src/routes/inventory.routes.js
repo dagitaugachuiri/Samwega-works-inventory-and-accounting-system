@@ -14,7 +14,9 @@ const {
 } = require('../validators/inventory.validator');
 
 /**
- * Public/Read routes (authenticated users)
+ * READ routes: any verified, logged-in user
+ * NOTE: fixed paths (/low-stock, /barcode/:barcode, /generate-sku) must stay ABOVE '/:id',
+ * otherwise '/:id' swallows them. /generate-sku used to sit below it and never matched.
  */
 
 // Get all inventory items with filters and pagination
@@ -32,6 +34,14 @@ router.get(
     verifyToken,
     requireVerified,
     inventoryController.getLowStockItems
+);
+
+// Generate SKU (moved above '/:id')
+router.get(
+    '/generate-sku',
+    verifyToken,
+    requireVerified,
+    inventoryController.generateSKU
 );
 
 // Search by barcode
@@ -52,7 +62,8 @@ router.get(
 );
 
 /**
- * Write routes (admin/store_manager only)
+ * ADD routes (keying in stock): unchanged, admin / store_manager.
+ * Make these requireRole('admin') too if you want adding to be admin-only as well.
  */
 
 // Create new inventory item
@@ -66,12 +77,28 @@ router.post(
     inventoryController.createItem
 );
 
+// Replenish item stock with new invoice
+router.post(
+    '/:id/replenish',
+    verifyToken,
+    requireRole('admin', 'store_manager'),
+    logActivity('REPLENISH', 'inventory'),
+    writeLimiter,
+    validateParams(inventoryIdSchema),
+    inventoryController.replenishItem
+);
+
+/**
+ * EDIT / DELETE routes: admin only
+ */
+
 // Bulk import inventory items
 router.post(
     '/bulk-import',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('BULK_IMPORT', 'inventory'),
+    writeLimiter,
     validateBody(bulkImportSchema),
     inventoryController.bulkImport
 );
@@ -80,7 +107,7 @@ router.post(
 router.put(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('UPDATE', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
@@ -92,7 +119,7 @@ router.put(
 router.patch(
     '/:id/adjust-stock',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('ADJUST_STOCK', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
@@ -106,27 +133,9 @@ router.delete(
     verifyToken,
     requireRole('admin'),
     logActivity('DELETE', 'inventory'),
-    validateParams(inventoryIdSchema),
-    inventoryController.deleteItem
-);
-
-// Replenish item stock with new invoice
-router.post(
-    '/:id/replenish',
-    verifyToken,
-    requireRole('admin', 'store_manager'),
-    logActivity('REPLENISH', 'inventory'),
     writeLimiter,
     validateParams(inventoryIdSchema),
-    inventoryController.replenishItem
-);
-
-// Generate SKU
-router.get(
-    '/generate-sku',
-    verifyToken,
-    requireVerified,
-    inventoryController.generateSKU
+    inventoryController.deleteItem
 );
 
 module.exports = router;

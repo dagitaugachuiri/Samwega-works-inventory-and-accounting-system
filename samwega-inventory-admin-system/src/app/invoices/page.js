@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { FileText, Plus, Search, Edit, Trash2, Building2, Calendar, DollarSign, X, CreditCard } from "lucide-react";
 import api from "../../lib/api";
 import Link from "next/link";
@@ -8,7 +7,6 @@ import PaymentModal from "../../components/PaymentModal";
 import AlertContainer, { useAlert } from "../../components/Alert";
 
 export default function InvoicesPage() {
-    const router = useRouter();
     const [invoices, setInvoices] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,66 +16,66 @@ export default function InvoicesPage() {
     const [form, setForm] = useState({
         supplierId: "",
         invoiceDate: new Date().toISOString().split('T')[0],
-        items: [],
         totalAmount: "",
         paidAmount: "0",
         notes: "",
     });
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [page, setPage] = useState(1);              // ← add
-    const [pagination, setPagination] = useState(null); 
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
     const alert = useAlert();
 
+    const [user, setUser] = useState(null);
+    const isAdmin = user?.role === "admin";
+    const canCreate = user?.role === "store_manager" || user?.role === "accountant";
+
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState(null);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    useEffect(() => { fetchSuppliers(); }, []);
+
+     useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(search.trim()); setPage(1); }, 350);
+    return () => clearTimeout(t);
+     }, [search]);
+
     useEffect(() => {
-        fetchData();
-    }, [page]);
+    setSelectedIds([]); // never keep ticks from another page or search
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, debouncedSearch]);
+
+    const fetchSuppliers = async () => {
+    try {
+        const res = await api.getSuppliers();
+        if (res.success && res.data) {
+            const list = res.data.suppliers || res.data;
+            setSuppliers(Array.isArray(list) ? list : []);
+        }
+    } catch (error) {
+        console.error("Failed to fetch suppliers:", error);
+    }
+    };
 
     const fetchData = async () => {
-        try {
-            setLoading(true);
-            const [invoicesRes, suppliersRes] = await Promise.all([
-                api.getInvoices({page, limit: 20}),
-                api.getSuppliers()
-            ]);
-
-            // Process suppliers first
-            let supplierData = [];
-            if (suppliersRes.success && suppliersRes.data) {
-                supplierData = suppliersRes.data.suppliers || suppliersRes.data;
-                setSuppliers(Array.isArray(supplierData) ? supplierData : []);
-            }
-
-            // Process invoices with supplier names
-            if (invoicesRes.success && invoicesRes.data) {
-                const invoiceData = invoicesRes.data.invoices || invoicesRes.data;
-                setPagination(invoicesRes.meta || invoicesRes.data?.pagination || null);
-
-                // Create supplier lookup map
-                const supplierMap = {};
-                if (Array.isArray(supplierData)) {
-                    supplierData.forEach(s => {
-                        supplierMap[s.id] = s.name;
-                    });
-                }
-
-                // Merge supplier names into invoices
-                const invoicesWithSuppliers = Array.isArray(invoiceData)
-                    ? invoiceData.map(inv => ({
-                        ...inv,
-                        supplierName: inv.supplierName || supplierMap[inv.supplierId] || "Unknown Supplier"
-                    }))
-                    : [];
-
-                setInvoices(invoicesWithSuppliers);
-            }
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-            alert.error("Failed to load invoices: " + error.message);
-        } finally {
-            setLoading(false);
+    try {
+        const params = { page, limit: 20 };
+        if (debouncedSearch) params.search = debouncedSearch;
+        const res = await api.getInvoices(params);
+        if (res.success && res.data) {
+            const list = res.data.invoices || res.data;
+            setInvoices(Array.isArray(list) ? list : []);
+            setPagination(res.pagination || res.data.pagination || null);
         }
-    };
+    } catch (error) {
+        console.error("Failed to fetch data:", error);
+        alert.error("Failed to load invoices: " + error.message);
+    } finally {
+        setLoading(false); // only the first load shows the full-page spinner
+    }
+   };
 
     // Generate invoice number: ID-[supplier shortcode][date]-[random]
     const generateInvoiceNumber = (supplierId, date) => {
@@ -105,7 +103,6 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: invoice.supplierId || "",
                 invoiceDate: invoice.invoiceDate?.split('T')[0] || new Date().toISOString().split('T')[0],
-                items: invoice.items || [],
                 totalAmount: invoice.totalAmount?.toString() || "",
                 paidAmount: (invoice.amountPaid || invoice.paidAmount || 0).toString(),
                 notes: invoice.notes || "",
@@ -115,7 +112,6 @@ export default function InvoicesPage() {
             setForm({
                 supplierId: "",
                 invoiceDate: new Date().toISOString().split('T')[0],
-                items: [],
                 totalAmount: "",
                 paidAmount: "0",
                 notes: "",
@@ -156,7 +152,6 @@ export default function InvoicesPage() {
                     supplierId: form.supplierId,
                     invoiceNumber,
                     invoiceDate: new Date(form.invoiceDate).toISOString(),
-                    items: form.items, //NEW
                     totalAmount,
                     amountPaid,
                     paymentStatus: amountPaid >= totalAmount ? 'paid' : (amountPaid > 0 ? 'partial' : 'pending'),
@@ -188,10 +183,7 @@ export default function InvoicesPage() {
         }
     };
 
-    const filteredInvoices = invoices.filter(inv =>
-        (inv.invoiceNumber || "").toLowerCase().includes(search.toLowerCase()) ||
-        (inv.supplierName || "").toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredInvoices = invoices;
 
     const previewInvoiceNumber = form.supplierId && form.invoiceDate
         ? generateInvoiceNumber(form.supplierId, form.invoiceDate)
@@ -207,6 +199,28 @@ export default function InvoicesPage() {
             </div>
         );
     }
+    const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+    const toggleSelectAll = () => {
+    setSelectedIds(selectedIds.length === filteredInvoices.length ? [] : filteredInvoices.map(i => i.id));
+    };
+    const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.length} invoice(s)? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    const failed = [];
+    for (const id of selectedIds) {
+        try { await api.deleteInvoice(id); } catch (e) { failed.push({ id, message: e.message }); }
+    }
+    setBulkDeleting(false);
+    setSelectedIds([]);
+    fetchData();
+    if (failed.length) {
+        alert.error(`${failed.length} could not be deleted: ${failed[0].message}${failed.length > 1 ? ' (+ more)' : ''}`);
+    } else {
+        alert.success('Selected invoices deleted');
+    }
+   };
 
     return (
         <div className="flex w-full flex-col gap-6">
@@ -216,10 +230,12 @@ export default function InvoicesPage() {
                     <h1 className="text-2xl font-semibold text-slate-900">Purchase Invoices</h1>
                     <p className="text-sm text-slate-500">Manage supplier invoices and procurement records</p>
                 </div>
+                {canCreate && (
                 <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
                     <Plus size={16} />
                     New Invoice
                 </button>
+                )}
             </div>
 
             {/* Search */}
@@ -244,111 +260,138 @@ export default function InvoicesPage() {
             )}
 
             {/* Invoices Table */}
-            <div className="glass-panel overflow-hidden">
-                <table className="w-full">
-                    <thead className="bg-slate-50 text-left text-xs text-slate-500">
-                        <tr>
-                            <th className="px-4 py-3 font-medium">Invoice #</th>
-                            <th className="px-4 py-3 font-medium">Supplier</th>
-                            <th className="px-4 py-3 font-medium">Date</th>
-                            <th className="px-4 py-3 font-medium text-right">Amount</th>
-                            <th className="px-4 py-3 font-medium text-right">Paid</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
-                            <th className="px-4 py-3 font-medium text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {filteredInvoices.length === 0 ? (
-                            <tr>
-                                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                                    {invoices.length === 0 ? "No invoices yet. Create one to get started." : "No invoices match your search."}
-                                </td>
-                            </tr>
-                        ) : (
-                            filteredInvoices.map((inv) => (
-                                <tr  key={inv.id}
-                                onClick={() => router.push(`/invoices/${inv.id}`)}
-                                className="hover:bg-slate-50 cursor-pointer">
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2"> 
-                                            <FileText size={14} className="text-slate-400" />
-                                            <span className="font-mono text-sm font-medium text-slate-900">
-                                                {inv.invoiceNumber || inv.id}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-700">
-                                        {inv.supplierName || inv.supplier?.name || "Unknown"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-slate-600">
-                                        {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : "N/A"}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-right font-medium">
-                                        KES {(inv.totalAmount || 0).toLocaleString()}
-                                    </td>
-                                    <td className="px-4 py-3 text-sm text-right">
-                                        KES {(inv.amountPaid || inv.paidAmount || 0).toLocaleString()}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${(inv.paymentStatus || inv.status) === 'paid'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-amber-100 text-amber-700'
-                                            }`}>
-                                            {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center justify-center gap-1">
-                                            {(inv.balanceRemaining || 0) > 0 && (
-                                                <button
-                                                    onClick={() => setPaymentModal({ open: true, invoice: inv })}
-                                                    className="p-1.5 rounded hover:bg-green-50 text-green-600"
-                                                    title="Record Payment"
-                                                >
-                                                    <CreditCard size={14} />
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => handleOpenModal(inv)}
-                                                className="p-1.5 rounded hover:bg-slate-100 text-slate-500"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(inv.id)}
-                                                className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-                                {pagination && pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm">
-                        <button
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            disabled={!pagination.hasPrevPage}
-                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            Previous
-                        </button>
-                        <span className="text-slate-500">
-                            Page {pagination.page} of {pagination.totalPages}
-                        </span>
-                        <button
-                            onClick={() => setPage(p => p + 1)}
-                            disabled={!pagination.hasNextPage}
-                            className="btn-ghost px-4 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            Next
-                        </button>
-                    </div>
+    <div className="glass-panel overflow-hidden">
+    {isAdmin && selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-rose-50 border border-rose-200 rounded-lg px-4 py-2">
+            <span className="text-sm text-rose-700">{selectedIds.length} selected</span>
+            <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="btn-primary bg-rose-600 hover:bg-rose-700 text-sm px-3 py-1.5"
+            >
+                {bulkDeleting ? "Deleting…" : `Delete ${selectedIds.length} selected`}
+            </button>
+        </div>
+    )}
+    <table className="w-full">
+        <thead className="bg-slate-50 text-left text-xs text-slate-500">
+            <tr>
+                {isAdmin && (
+                    <th className="px-4 py-3 w-8">
+                        <input
+                            type="checkbox"
+                            checked={filteredInvoices.length > 0 && selectedIds.length === filteredInvoices.length}
+                            onChange={toggleSelectAll}
+                        />
+                    </th>
                 )}
-            </div>
+                <th className="px-4 py-3 font-medium">Invoice #</th>
+                <th className="px-4 py-3 font-medium">Supplier</th>
+                <th className="px-4 py-3 font-medium">Keyed in by</th>
+                <th className="px-4 py-3 font-medium">Date</th>
+                <th className="px-4 py-3 font-medium text-right">Amount</th>
+                <th className="px-4 py-3 font-medium text-right">Paid</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                {isAdmin && <th className="px-4 py-3 font-medium text-center">Actions</th>}
+            </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+            {filteredInvoices.length === 0 ? (
+                <tr>
+                    <td colSpan={isAdmin ? 9 : 7} className="px-4 py-8 text-center text-slate-500">
+                        { debouncedSearch ?"No invoices yet. Create one to get started." : "No invoices match your search."}
+                    </td>
+                </tr>
+            ) : (
+                filteredInvoices.map((inv) => (
+                    <tr key={inv.id} className="hover:bg-slate-50">
+                        {isAdmin && (
+                            <td className="px-4 py-3">
+                                <input
+                                    type="checkbox"
+                                    checked={selectedIds.includes(inv.id)}
+                                    onChange={() => toggleSelect(inv.id)}
+                                />
+                            </td>
+                        )}
+                        <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <FileText size={14} className="text-slate-400" />
+                                <span className="font-mono text-sm font-medium text-slate-900">
+                                    {inv.invoiceNumber || inv.id}
+                                </span>
+                            </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">
+                            {inv.supplierName || inv.supplier?.name || "Unknown"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                            {inv.createdByName || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-600">
+                            {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : "N/A"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">
+                            KES {(inv.totalAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right">
+                            KES {(inv.amountPaid || inv.paidAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${(inv.paymentStatus || inv.status) === 'paid'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
+                            </span>
+                        </td>
+                        {isAdmin && (
+                            <td className="px-4 py-3">
+                                <div className="flex items-center justify-center gap-1">
+                                    {(inv.balanceRemaining || 0) > 0 && (
+                                        <button
+                                            onClick={() => setPaymentModal({ open: true, invoice: inv })}
+                                            className="p-1.5 rounded hover:bg-green-50 text-green-600"
+                                            title="Record Payment"
+                                        >
+                                            <CreditCard size={14} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleOpenModal(inv)}
+                                        className="p-1.5 rounded hover:bg-slate-100 text-slate-500"
+                                    >
+                                        <Edit size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(inv.id)}
+                                        className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </td>
+                        )}
+                    </tr>
+                ))
+            )}
+        </tbody>
+        </table>
+        </div> 
+         {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-slate-600">
+        <span>Page {pagination.page} of {pagination.totalPages} ({pagination.total} invoices)</span>
+        <div className="flex gap-2">
+            <button className="btn-ghost px-3 py-1.5" disabled={!pagination.hasPrevPage} onClick={() => setPage((p) => p - 1)}>
+                Previous
+            </button>
+            <button className="btn-ghost px-3 py-1.5" disabled={!pagination.hasNextPage} onClick={() => setPage((p) => p + 1)}>
+                Next
+            </button>
+        </div>
+        </div>
+         )}
+        
 
             {/* Modal */}
             {showModal && (
@@ -404,75 +447,6 @@ export default function InvoicesPage() {
                                     return null;
                                 })()}
                             </div>
-                            {/* Items */}
-                         <div>
-                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                           Items
-                         </label>
-                        <div className="space-y-2">
-                         {form.items.map((item, idx) => (
-                      <div key={idx} className="flex gap-2 items-start">
-                    <input
-                    type="text"
-                    placeholder="Description"
-                    value={item.description}
-                    onChange={(e) => {
-                        const items = [...form.items];
-                        items[idx] = { ...items[idx], description: e.target.value };
-                        setForm({ ...form, items });
-                    }}
-                    className="input-field flex-1 text-sm"
-                     />
-                    <input
-                    type="number"
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) => {
-                        const items = [...form.items];
-                        items[idx] = { ...items[idx], quantity: parseFloat(e.target.value) || 0 };
-                        setForm({ ...form, items });
-                    }}
-                    className="input-field w-20 text-sm"
-                    />
-                     <input
-                    type="number"
-                    placeholder="Unit price"
-                    value={item.unitPrice}
-                    onChange={(e) => {
-                    const items = [...form.items];
-                    items[idx] = { ...items[idx], unitPrice: parseFloat(e.target.value) || 0 };
-                    const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
-                    setForm({ ...form, items, totalAmount: newTotal.toString() });
-            }}
-                    className="input-field w-28 text-sm"
-                  />
-                   <button
-                    type="button"
-                    onClick={() => {
-                        const items = form.items.filter((_, i) => i !== idx);
-                        const newTotal = items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
-                        setForm({ ...form, items, totalAmount: newTotal.toString() });
-                    }}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded"
-                    >
-                    <X size={16} />
-                   </button>
-                      </div>
-                  ))}
-                  <button
-            type="button"
-            onClick={() => setForm({ ...form, items: [...form.items, { description: "", quantity: 1, unitPrice: 0 }] })}
-            className="text-sm text-sky-600 hover:underline flex items-center gap-1"
-                >
-            <Plus size={14} /> Add item
-              </button>
-                    </div>
-               {form.items.length > 0 && (
-                <p className="text-xs text-slate-500 mt-2">
-                Items total: KES {form.items.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0).toLocaleString()}
-                   </p>
-                      )}
-                      </div>
 
                             {/* Invoice Date */}
                             <div>
@@ -565,6 +539,8 @@ export default function InvoicesPage() {
 
             {/* Alert Container */}
             <AlertContainer alerts={alert.alerts} onClose={alert.hideAlert} />
-        </div>
-    );
+        </div>  
+        
+        );
+        
 }

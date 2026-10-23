@@ -22,14 +22,9 @@ class InventoryService {
     async createItem(itemData) {
         try {
             // If invoice ID provided, validate and update invoice
-              // If invoice ID provided, validate and update invoice
             if (itemData.invoiceId) {
                 const itemCost = itemData.buyingPrice * itemData.stock;
-                await invoiceService.addItemToInvoice(itemData.invoiceId, itemCost, {
-                    description: itemData.productName,
-                    quantity: itemData.stock,
-                    unitPrice: itemData.buyingPrice
-                });
+                await invoiceService.addItemToInvoice(itemData.invoiceId, itemCost, itemData.productName);
             }
 
             // Check for existing item with same name (and optionally same warehouse)
@@ -60,6 +55,8 @@ class InventoryService {
                     id: existingDoc.id,
                     addedStock
                 });
+                await this._logInvoiceStockIn({ inventoryId: existingDoc.id, productName: existingData.productName, previousStock: existingData.stock || 0, adjustment: addedStock, invoiceId: itemData.invoiceId, buyingPrice: itemData.buyingPrice });
+
                 await cache.delPattern(`${this.cachePrefix}list:*`);
                 return await this.getItemById(existingDoc.id);
             }
@@ -70,6 +67,7 @@ class InventoryService {
                 isActive: itemData.isActive !== undefined ? itemData.isActive : true,
                 stock: itemData.stock || 0,
                 itemCost: itemData.invoiceId ? itemData.buyingPrice * itemData.stock : null,
+                createdByInvoiceId: itemData.invoiceId || null,
                 lastPurchaseInvoiceId: itemData.invoiceId || null,
                 warehouseId: itemData.warehouseId || null,
                 warehouseName: itemData.warehouseName || null,
@@ -78,6 +76,8 @@ class InventoryService {
             };
 
             const docRef = await this.db.collection(this.collection).add(data);
+
+            await this._logInvoiceStockIn({ inventoryId: docRef.id, productName: itemData.productName, previousStock: 0, adjustment: itemData.stock || 0, invoiceId: itemData.invoiceId, buyingPrice: itemData.buyingPrice });
 
             logger.info(`Inventory item created: ${itemData.productName}`, {
                 id: docRef.id,
@@ -93,6 +93,18 @@ class InventoryService {
             throw error;
         }
     }
+         async _logInvoiceStockIn({ inventoryId, productName, previousStock, adjustment, invoiceId, buyingPrice }) {
+                if (!invoiceId || !adjustment) return;
+        await this.db.collection('stock_adjustments').add({
+        inventoryId, productName, previousStock, adjustment,
+        newStock: previousStock + adjustment,
+        reason: 'purchase', invoiceId,
+        buyingPrice: buyingPrice || null,
+        itemCost: buyingPrice ? buyingPrice * adjustment : null,
+        notes: 'Stock received (Add Stock)', type: 'new_item',
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+            }
 
     /**
      * Get inventory item by ID
@@ -116,6 +128,7 @@ class InventoryService {
             throw error;
         }
     }
+    
 
     /**
      * Get all inventory items with filters and pagination
@@ -322,7 +335,7 @@ class InventoryService {
             let itemCost = null;
             if (reason === 'purchase' && invoiceId && buyingPrice) {
                 itemCost = buyingPrice * adjustment;
-                await invoiceService.addItemToInvoice(invoiceId, itemCost);
+                await invoiceService.addItemToInvoice(invoiceId, itemCost, currentData.productName);
             }
 
             // Prepare update data
@@ -504,7 +517,7 @@ class InventoryService {
             return 0;
         } catch (error) {
             logger.error('Get stock by layer error:', error);
-            throw error;
+            throw error;await invoiceService.addItemToInvoice(invoiceId, itemCost, item.productName);
         }
     }
 
@@ -571,13 +584,7 @@ class InventoryService {
             const itemCost = (buyingPrice || item.buyingPrice || 0) * quantity;
 
             // Validate and update invoice
-                        // Validate and update invoice
-            await invoiceService.addItemToInvoice(invoiceId, itemCost, {
-                inventoryId: itemId,
-                description: item.productName,
-                quantity,
-                unitPrice: buyingPrice || item.buyingPrice
-            });
+            await invoiceService.addItemToInvoice(invoiceId, itemCost, item.productName);
 
             // Calculate new stock based on layer
             let stockToAdd = quantity;
@@ -626,8 +633,6 @@ class InventoryService {
 
             await this.db.collection(this.collection).doc(itemId).update({
                 stock: currentStock + stockToAdd,
-                buyingPrice: buyingPrice || item.buyingPrice,        // 
-                sellingPrice: replenishData.sellingPrice || item.sellingPrice,  // 
                 packagingStructure: updatedPackagingStructure,
                 lastPurchaseInvoiceId: invoiceId,
                 lastReplenishedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -656,7 +661,9 @@ class InventoryService {
                 notes: notes || 'Stock Replenishment',
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 // Add distinct 'type' if needed, but 'reason' works
-                type: 'replenishment'
+                layerIndex,
+                quantity,
+                type: 'replenishment',
             });
 
             // Invalidate cache
@@ -669,18 +676,86 @@ class InventoryService {
             throw error;
         }
     }
+             async planInvoiceStockReversal(tx, invoiceId, onlyAdjustmentIds = null) {
+        const FV = admin.firestore.FieldValue;
+        const adjSnap = await tx.get(this.db.collection('stock_adjustments').where('invoiceId', '==', invoiceId));
+        const allEntries = adjSnap.docs.filter(d => d.data().reason === 'purchase' && d.data().adjustment > 0);
+        const entries = onlyAdjustmentIds
+            ? allEntries.filter(d => onlyAdjustmentIds.includes(d.id))
+            : allEntries;
 
-    /**
-     * Generate SKU for inventory item
-     * Format: [CAT]-[YYYYMMDD]-[RANDOM4]
-     * @param {string} category
-     * @returns {string}
-     */
-    generateSKU(category = 'MISC') {
-        const catCode = category.substring(0, 3).toUpperCase();
-        const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-        return `${catCode}-${dateCode}-${random}`;
+        const byItem = new Map();
+        for (const d of entries) {
+            const a = d.data();
+            const g = byItem.get(a.inventoryId) || { qty: 0, layers: [] };
+            g.qty += a.adjustment;
+            if (a.layerIndex !== undefined && a.quantity) g.layers.push({ layerIndex: a.layerIndex, quantity: a.quantity });
+            byItem.set(a.inventoryId, g);
+        }
+
+        const refs = [...byItem.keys()].map(id => this.db.collection(this.collection).doc(id));
+        const snaps = refs.length ? await tx.getAll(...refs) : [];
+
+        const items = new Map();
+        const problems = [];
+        for (const s of snaps) {
+            if (!s.exists) continue; // product already deleted
+            const data = s.data();
+            const g = byItem.get(s.id);
+            if ((data.stock || 0) < g.qty) {
+                problems.push(`${data.productName} (in stock: ${data.stock || 0}, added by this invoice: ${g.qty})`);
+            }
+            items.set(s.id, { ref: s.ref, data, ...g });
+        }
+        if (problems.length) {
+            throw new ValidationError(`Some of this stock has already been sold or adjusted: ${problems.join('; ')}`);
+        }
+
+        const apply = (tx, mode, userName) => {
+            for (const [id, it] of items) {
+                const remaining = (it.data.stock || 0) - it.qty;
+
+                // hard delete of a product this invoice created, and nothing left -> remove it
+                if (mode === 'delete' && it.data.createdByInvoiceId === invoiceId && remaining === 0) {
+                    tx.delete(it.ref);
+                } else {
+                    const history = (it.data.replenishmentHistory || []).filter(h => h.invoiceId !== invoiceId);
+                    const updates = {
+                        stock: FV.increment(-it.qty),
+                        lastPurchaseInvoiceId: history.length ? history[history.length - 1].invoiceId : null,
+                        updatedAt: FV.serverTimestamp()
+                    };
+                    if (it.data.replenishmentHistory) updates.replenishmentHistory = history;
+                    if (Array.isArray(it.data.packagingStructure) && it.layers.length) {
+                        updates.packagingStructure = it.data.packagingStructure.map((layer, idx) => {
+                            const removed = it.layers.filter(l => l.layerIndex === idx).reduce((s, l) => s + l.quantity, 0);
+                            return removed ? { ...layer, stock: Math.max(0, (layer.stock || 0) - removed) } : layer;
+                        });
+                    }
+                    tx.update(it.ref, updates);
+                }
+
+                if (mode === 'void') {
+                    tx.set(this.db.collection('stock_adjustments').doc(), {
+                        inventoryId: id, productName: it.data.productName,
+                        previousStock: it.data.stock || 0, adjustment: -it.qty, newStock: remaining,
+                        reason: 'invoice_reversed', invoiceId, notes: `Invoice reversed by ${userName}`,
+                        createdAt: FV.serverTimestamp()
+                    });
+                }
+            }
+            if (mode === 'delete') entries.forEach(d => tx.delete(d.ref)); // leave no trace
+        };
+
+        return {
+            apply,
+            touchedItemIds: [...items.keys()],
+            removedCount: entries.length,
+            removedCost: entries.reduce((s, d) => s + (d.data().itemCost || 0), 0),
+            remainingNames: [...new Set(
+                allEntries.filter(d => !entries.includes(d)).map(d => (d.data().productName || '').toLowerCase())
+            )].filter(Boolean)
+        };
     }
 }
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, requireVehicleScope } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {

@@ -14,7 +14,9 @@ import {
     CheckCircle,
     Clock,
     AlertCircle,
-    Activity
+    Activity,
+    Plus,
+    Settings2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "../../lib/api";
@@ -181,6 +183,13 @@ export default function SalesDashboard() {
     const [search, setSearch] = useState(""); // searches receipt#, customer, items
     const [walletFilter, setWalletFilter] = useState(""); // filters by Cash, Mpesa, or Bank Name
 
+    // Payment wallets (admin-managed bank wallets shared with the POS)
+    const [wallets, setWallets] = useState([]);
+    const [showWalletManager, setShowWalletManager] = useState(false);
+    const [newWalletName, setNewWalletName] = useState("");
+    const [walletBusy, setWalletBusy] = useState(false);
+    const [walletError, setWalletError] = useState("");
+
     // Transactions-mode specific
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedSales, setSelectedSales] = useState([]);
@@ -191,8 +200,55 @@ export default function SalesDashboard() {
 
     // ── Fetch ────────────────────────────────────────────────────────────────
 
-    useEffect(() => { fetchVehicles(); }, []);
+    useEffect(() => { fetchVehicles(); fetchWallets(); }, []);
     useEffect(() => { fetchData(); }, [selectedVehicle, selectedDate, etrFilter, debtFilter]);
+
+    const fetchWallets = async () => {
+        try {
+            const res = await api.getWallets(true);
+            if (res.success && Array.isArray(res.data)) setWallets(res.data);
+        } catch (e) { console.error("Failed to load wallets", e); }
+    };
+
+    const handleAddWallet = async () => {
+        const name = newWalletName.trim();
+        if (!name) return;
+        setWalletBusy(true);
+        setWalletError("");
+        try {
+            const res = await api.createWallet({ name });
+            if (res.success) {
+                setNewWalletName("");
+                await fetchWallets();
+            } else {
+                setWalletError(res.message || "Could not add wallet");
+            }
+        } catch (e) {
+            setWalletError(e.message || "Could not add wallet");
+        } finally {
+            setWalletBusy(false);
+        }
+    };
+
+    const handleToggleWallet = async (wallet) => {
+        const deactivating = wallet.isActive !== false;
+        if (deactivating && !window.confirm(`Deactivate the "${wallet.name}" wallet? Sales persons won't be able to select it in the POS. Past sales keep their records and you can reactivate it any time.`)) return;
+        setWalletBusy(true);
+        setWalletError("");
+        try {
+            const res = await api.setWalletActive(wallet.id, !deactivating);
+            if (res.success) {
+                if (deactivating && walletFilter.toLowerCase() === wallet.name.toLowerCase()) setWalletFilter("");
+                await fetchWallets();
+            } else {
+                setWalletError(res.message || "Could not update wallet");
+            }
+        } catch (e) {
+            setWalletError(e.message || "Could not update wallet");
+        } finally {
+            setWalletBusy(false);
+        }
+    };
 
     const fetchVehicles = async () => {
         try {
@@ -389,6 +445,25 @@ export default function SalesDashboard() {
         };
     }, [stats]);
 
+    // Configured wallets + any bank that has historic sales.
+    // Inactive wallets are hidden unless they have sales (so totals still reconcile).
+    const walletCards = useMemo(() => {
+        const sales = displayStats.banks || {};
+        const cards = [];
+        wallets.forEach((w) => {
+            const key = Object.keys(sales).find((k) => k.toLowerCase() === w.name.toLowerCase());
+            const amount = key ? sales[key] : 0;
+            const isActive = w.isActive !== false;
+            if (isActive || amount > 0) cards.push({ name: w.name, amount, isActive });
+        });
+        Object.entries(sales).forEach(([name, amount]) => {
+            if (!cards.some((c) => c.name.toLowerCase() === name.toLowerCase())) cards.push({ name, amount, isActive: true });
+        });
+        return cards;
+    }, [wallets, displayStats]);
+
+    const isAdmin = user?.role === "admin";
+
     const resetFilters = () => {
         setSelectedVehicle("");
         setSelectedDate("");
@@ -519,7 +594,7 @@ export default function SalesDashboard() {
                                     <option value="">All Wallets</option>
                                     <option value="cash">Cash Wallet</option>
                                     <option value="mpesa">M-Pesa Wallet</option>
-                                    {Object.keys(displayStats.banks || {}).map(bank => (
+                                    {walletCards.map(({ name: bank }) => (
                                         <option key={bank} value={bank}>{bank}</option>
                                     ))}
                                 </select>
@@ -572,19 +647,75 @@ export default function SalesDashboard() {
                         </div>
 
                         {/* Bank Wallets Section */}
-                        {Object.keys(displayStats.banks || {}).length > 0 && (
+                        {(walletCards.length > 0 || isAdmin) && (
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider px-1">
-                                    <div className="w-1 h-3 bg-slate-300 rounded-full"></div>
-                                    Bank Wallets
+                                <div className="flex items-center justify-between px-1">
+                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                        <div className="w-1 h-3 bg-slate-300 rounded-full"></div>
+                                        Bank Wallets
+                                    </div>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => setShowWalletManager(!showWalletManager)}
+                                            className="flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded px-2.5 py-1 hover:bg-slate-50"
+                                        >
+                                            <Settings2 size={13} />
+                                            Manage wallets
+                                        </button>
+                                    )}
                                 </div>
+
+                                {isAdmin && showWalletManager && (
+                                    <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                type="text"
+                                                value={newWalletName}
+                                                onChange={(e) => setNewWalletName(e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === "Enter") handleAddWallet(); }}
+                                                placeholder="New wallet name e.g. Co-op Bank"
+                                                maxLength={40}
+                                                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-sky-400"
+                                            />
+                                            <button
+                                                onClick={handleAddWallet}
+                                                disabled={walletBusy || !newWalletName.trim()}
+                                                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-800 text-white hover:bg-slate-700 disabled:opacity-50"
+                                            >
+                                                <Plus size={14} /> Add wallet
+                                            </button>
+                                        </div>
+                                        {walletError && <p className="text-xs text-rose-600">{walletError}</p>}
+                                        <p className="text-xs text-slate-400">Active wallets appear in the POS payment screen for sales persons. Inactive ones are hidden there.</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {wallets.map((w) => {
+                                                const active = w.isActive !== false;
+                                                return (
+                                                    <span key={w.id} className={`inline-flex items-center gap-2 text-sm rounded-full pl-3 pr-1.5 py-1 ${active ? "bg-slate-100 text-slate-700" : "bg-slate-50 text-slate-400 border border-dashed border-slate-300"}`}>
+                                                        <span className={active ? "" : "line-through"}>{w.name}</span>
+                                                        <button
+                                                            onClick={() => handleToggleWallet(w)}
+                                                            disabled={walletBusy}
+                                                            title={active ? `Deactivate ${w.name}` : `Reactivate ${w.name}`}
+                                                            className={`text-xs font-medium rounded-full px-2 py-0.5 bg-white disabled:opacity-50 ${active ? "text-slate-500 hover:text-rose-600" : "text-emerald-600 hover:text-emerald-700"}`}
+                                                        >
+                                                            {active ? "Deactivate" : "Reactivate"}
+                                                        </button>
+                                                    </span>
+                                                );
+                                            })}
+                                            {wallets.length === 0 && <span className="text-sm text-slate-400">No wallets yet.</span>}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                    {Object.entries(displayStats.banks).map(([name, amount]) => (
+                                    {walletCards.map(({ name, amount, isActive }) => (
                                         <StatCard
                                             key={name}
                                             title={name}
                                             value={`KSh ${amount.toLocaleString()}`}
-                                            tag="BANK"
+                                            tag={isActive ? "BANK" : "INACTIVE"}
                                         />
                                     ))}
                                 </div>

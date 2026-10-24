@@ -183,6 +183,25 @@ class APIClient {
         });
     }
 
+    // ==================== PAYMENT WALLETS ====================
+    async getWallets(includeInactive = false) {
+        return this.request(`/wallets${includeInactive ? '?includeInactive=true' : ''}`);
+    }
+
+    async createWallet(data) {
+        return this.request('/wallets', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async setWalletActive(id, isActive) {
+        return this.request(`/wallets/${id}/active`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isActive }),
+        });
+    }
+
     // ==================== STORE LOCATIONS ====================
     async getStoreLocations(filters = {}) {
         const query = new URLSearchParams(filters).toString();

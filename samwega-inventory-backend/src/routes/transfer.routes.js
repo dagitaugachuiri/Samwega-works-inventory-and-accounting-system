@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified, requireVehicleScope } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -79,20 +79,7 @@ router.get(
     validateParams(transferIdSchema),
     transferController.getTransferById
 );
-/**
- * @route   GET /api/v1/vehicles/:id/transfers
- * @desc    Transfers for a vehicle (drivers: own vehicle, returned only)
- * @access  Admin, Store Manager, Accountant, Driver (own vehicle)
- */
-router.get(
-    '/:id/transfers',
-    verifyToken,
-    requireVerified,
-    requireRole('admin', 'store_manager', 'accountant', 'driver'),
-    requireVehicleScope(['admin', 'store_manager', 'accountant']),
-    validateParams(vehicleIdSchema),
-    transferController.getVehicleTransfers
-);
+
 /**
  * @route   POST /api/v1/transfers/:id/approve
  * @desc    Approve transfer

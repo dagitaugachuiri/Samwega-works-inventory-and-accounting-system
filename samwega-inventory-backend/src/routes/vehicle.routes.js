@@ -128,6 +128,20 @@ router.get(
     validateParams(vehicleIdSchema),
     vehicleController.getVehicleIssuances
 );
+/**
+ * @route   GET /api/v1/vehicles/:id/transfers
+ * @desc    Transfers for a vehicle (drivers: own vehicle, returned only)
+ * @access  Admin, Store Manager, Accountant, Driver (own vehicle)
+ */
+router.get(
+    '/:id/transfers',
+    verifyToken,
+    requireVerified,
+    requireRole('admin', 'store_manager', 'accountant', 'driver'),
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
+    validateParams(vehicleIdSchema),
+    transferController.getVehicleTransfers
+);
 
 /**
  * @route   GET /api/v1/vehicles/:id/collected-items
@@ -141,5 +155,6 @@ router.get(
     validateParams(vehicleIdSchema),
     transferController.getCollectedItems
 );
+
 
 module.exports = router;

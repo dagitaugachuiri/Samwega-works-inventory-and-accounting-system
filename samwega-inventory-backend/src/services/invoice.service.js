@@ -41,15 +41,8 @@ class InvoiceService {
             // Verify supplier exists — now stored, so we can check ETR status below
             const supplier = await supplierService.getSupplierById(invoiceData.supplierId);
 
-            // Check for duplicate invoice number
-            const existingInvoice = await this.db.collection(this.collection)
-                .where('invoiceNumber', '==', invoiceData.invoiceNumber)
-                .limit(1)
-                .get();
-
-            if (!existingInvoice.empty) {
-                throw new ValidationError('Invoice number already exists');
-            }
+            // Invoice numbers only have to be unique per supplier (two suppliers can both issue "001")
+            await this._assertInvoiceNumberFree(invoiceData.supplierId, invoiceData.invoiceNumber);
 
             const items = invoiceData.items || [];
             const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
@@ -64,15 +57,30 @@ class InvoiceService {
                 ? calculatedItemsTotal * VAT_RATE
                 : 0;
 
-            const autoTotal = !invoiceData.totalAmount;
+            const amountPaid = invoiceData.amountPaid || 0;
+            if (resolvedTotal > 0 && amountPaid > resolvedTotal + 0.01) {
+                throw new ValidationError('Amount paid cannot be more than the invoice total');
+            }
+
+            // paymentStatus is worked out here, never trusted from the client
+            let paymentStatus = 'pending';
+            if (resolvedTotal > 0 && resolvedTotal - amountPaid < 0.01) paymentStatus = 'paid';
+            else if (amountPaid > 0) paymentStatus = 'partial';
 
             const data = {
                 ...invoiceData,
-                totalAmount: invoiceData.totalAmount || 0,
+                // name is copied from the supplier record, not from the request, and kept on the
+                // invoice so it still reads correctly if the supplier is later deactivated/renamed
+                supplierName: supplier.name,
+                etrStatus: supplier.etrStatus || 'non-etr',
+                totalAmount: resolvedTotal,
+                taxAmount,
+                amountPaid,
+                paymentStatus,
                 itemsTotal: 0, // Will be updated as items are linked
                 itemsCount: 0, // Number of linked items
                 itemNames: [], // lowercase product names, used for searching
-                balanceRemaining: (invoiceData.totalAmount || 0) - (invoiceData.amountPaid || 0),
+                balanceRemaining: resolvedTotal - amountPaid,
                 // set AFTER the spread so a client can't spoof who keyed it in
                 createdBy: this._userId(user),
                 createdByName: user ? this._userName(user) : null,
@@ -393,12 +401,28 @@ class InvoiceService {
                 throw new NotFoundError('Invoice');
             }
 
-            const invoice = doc.data();
+            const invoice = { ...doc.data() }; // copy: we compare against the pre-edit values later
             this._assertActive(invoice);
 
             // Never let a request overwrite system-managed fields
             const safeUpdate = { ...updateData };
             PROTECTED_FIELDS.forEach(f => delete safeUpdate[f]);
+
+            // Moving the invoice to another supplier (e.g. fixing an "Unknown" supplier)
+            const supplierChanged = !!safeUpdate.supplierId && safeUpdate.supplierId !== invoice.supplierId;
+            let newSupplier = null;
+            if (supplierChanged) {
+                newSupplier = await supplierService.getSupplierById(safeUpdate.supplierId); // 404 if it doesn't exist
+                safeUpdate.supplierName = newSupplier.name;
+                safeUpdate.etrStatus = newSupplier.etrStatus || 'non-etr';
+            } else {
+                delete safeUpdate.supplierId;
+            }
+            const finalSupplierId = supplierChanged ? safeUpdate.supplierId : invoice.supplierId;
+            const finalNumber = safeUpdate.invoiceNumber || invoice.invoiceNumber;
+            if (supplierChanged || (safeUpdate.invoiceNumber && safeUpdate.invoiceNumber !== invoice.invoiceNumber)) {
+                await this._assertInvoiceNumberFree(finalSupplierId, finalNumber, invoiceId);
+            }
 
             // If updating total amount, validate against items total
             if (safeUpdate.totalAmount !== undefined) {
@@ -416,19 +440,48 @@ class InvoiceService {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
 
-            // Recalculate balance if amount paid or total changed
+            // Recalculate balance + status if amount paid or total changed
             if (safeUpdate.amountPaid !== undefined || safeUpdate.totalAmount !== undefined) {
-                const newTotal = safeUpdate.totalAmount !== undefined ? safeUpdate.totalAmount : invoice.totalAmount;
-                const newPaid = safeUpdate.amountPaid !== undefined ? safeUpdate.amountPaid : invoice.amountPaid;
+                const newTotal = safeUpdate.totalAmount !== undefined ? safeUpdate.totalAmount : (invoice.totalAmount || 0);
+                const newPaid = safeUpdate.amountPaid !== undefined ? safeUpdate.amountPaid : (invoice.amountPaid || 0);
+                if (newPaid > newTotal + 0.01) {
+                    throw new ValidationError('Amount paid cannot be more than the invoice total');
+                }
                 updates.balanceRemaining = newTotal - newPaid;
+                updates.paymentStatus = newTotal > 0 && newTotal - newPaid < 0.01
+                    ? 'paid'
+                    : (newPaid > 0 ? 'partial' : 'pending');
             }
 
             await this.db.collection(this.collection).doc(invoiceId).update(updates);
 
-            // NEW — if totalAmount changed, adjust the supplier's running total by the difference
-            if (updateData.totalAmount !== undefined && updateData.totalAmount !== invoice.totalAmount) {
-                const totalDelta = updateData.totalAmount - (invoice.totalAmount || 0);
-                await supplierService.updateFinancialStats(invoice.supplierId, totalDelta, 0);
+            // Keep the supplier's running totals equal to the sum of its invoices:
+            // adjust by the difference when the total OR the amount paid was edited
+            const finalTotal = safeUpdate.totalAmount !== undefined ? safeUpdate.totalAmount : (invoice.totalAmount || 0);
+            const finalPaid = safeUpdate.amountPaid !== undefined ? safeUpdate.amountPaid : (invoice.amountPaid || 0);
+
+            if (supplierChanged) {
+                // take it off the old supplier (if that record still exists) and put it on the new one
+                const oldExists = (await this.db.collection('suppliers').doc(invoice.supplierId).get()).exists;
+                if (oldExists) {
+                    await supplierService.updateFinancialStats(invoice.supplierId, -(invoice.totalAmount || 0), -(invoice.amountPaid || 0));
+                }
+                await supplierService.updateFinancialStats(finalSupplierId, finalTotal, finalPaid);
+
+                // payment records follow the invoice
+                const pays = await this.db.collection('invoice_payments').where('invoiceId', '==', invoiceId).get();
+                if (!pays.empty) {
+                    const batch = this.db.batch();
+                    pays.docs.forEach(d => batch.update(d.ref, { supplierId: finalSupplierId }));
+                    await batch.commit();
+                }
+                await cache.delPattern('supplier:*');
+            } else {
+                const totalDelta = finalTotal - (invoice.totalAmount || 0);
+                const paidDelta = finalPaid - (invoice.amountPaid || 0);
+                if (totalDelta !== 0 || paidDelta !== 0) {
+                    await supplierService.updateFinancialStats(invoice.supplierId, totalDelta, paidDelta);
+                }
             }
 
 
@@ -451,64 +504,85 @@ class InvoiceService {
      * @param {Object} paymentData
      * @returns {Promise<Object>}
      */
-    async recordPayment(invoiceId, paymentData) {
+    async recordPayment(invoiceId, paymentData, user = null) {
         try {
-            const invoice = await this.getInvoiceById(invoiceId);
-            this._assertActive(invoice);
+            const FV = admin.firestore.FieldValue;
+            const invoiceRef = this.db.collection(this.collection).doc(invoiceId);
+            let supplierId = null;
 
-            const newAmountPaid = invoice.amountPaid + paymentData.amount;
-            const newBalance = invoice.totalAmount - newAmountPaid;
+            // One transaction: two people paying the same invoice at once can no longer
+            // both pass the balance check, and invoice, payment and supplier totals
+            // either all save or none do.
+            await this.db.runTransaction(async (tx) => {
+                const snap = await tx.get(invoiceRef);
+                if (!snap.exists) throw new NotFoundError('Invoice');
+                const invoice = snap.data();
+                this._assertActive(invoice);
+                supplierId = invoice.supplierId;
 
-            if (newBalance < -0.01) {
-                throw new ValidationError('Payment amount exceeds invoice balance');
-            }
+                const newAmountPaid = (invoice.amountPaid || 0) + paymentData.amount;
+                const newBalance = (invoice.totalAmount || 0) - newAmountPaid;
 
-            // Determine new payment status
-            let paymentStatus = 'pending';
-            if (newBalance < 0.01) {
-                paymentStatus = 'paid';
-            } else if (newAmountPaid > 0) {
-                paymentStatus = 'partial';
-            }
+                if (newBalance < -0.01) {
+                    throw new ValidationError('Payment amount exceeds invoice balance');
+                }
 
-            // Update invoice
-            await this.db.collection(this.collection).doc(invoiceId).update({
-                amountPaid: newAmountPaid,
-                balanceRemaining: newBalance,
-                paymentStatus,
-                paymentMethod: paymentData.paymentMethod,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                let paymentStatus = 'pending';
+                if (newBalance < 0.01) paymentStatus = 'paid';
+                else if (newAmountPaid > 0) paymentStatus = 'partial';
+
+                tx.update(invoiceRef, {
+                    amountPaid: newAmountPaid,
+                    balanceRemaining: newBalance,
+                    paymentStatus,
+                    paymentMethod: paymentData.paymentMethod,
+                    updatedAt: FV.serverTimestamp()
+                });
+
+                tx.set(this.db.collection('invoice_payments').doc(), {
+                    invoiceId,
+                    supplierId,
+                    amount: paymentData.amount,
+                    paymentMethod: paymentData.paymentMethod,
+                    paymentDate: paymentData.paymentDate || FV.serverTimestamp(),
+                    reference: paymentData.reference || '',
+                    notes: paymentData.notes || '',
+                    recordedBy: this._userId(user),
+                    recordedByName: user ? this._userName(user) : null,
+                    createdAt: FV.serverTimestamp()
+                });
+
+                tx.update(this.db.collection('suppliers').doc(supplierId), {
+                    totalPaid: FV.increment(paymentData.amount),
+                    outstandingBalance: FV.increment(-paymentData.amount),
+                    updatedAt: FV.serverTimestamp()
+                });
             });
-
-            // Record payment transaction
-            await this.db.collection('invoice_payments').add({
-                invoiceId,
-                supplierId: invoice.supplierId,
-                amount: paymentData.amount,
-                paymentMethod: paymentData.paymentMethod,
-                paymentDate: paymentData.paymentDate || admin.firestore.FieldValue.serverTimestamp(),
-                reference: paymentData.reference || '',
-                notes: paymentData.notes || '',
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-
-            // Update supplier financial stats
-            await supplierService.updateFinancialStats(
-                invoice.supplierId,
-                0,
-                paymentData.amount
-            );
 
             logger.info(`Payment recorded for invoice: ${invoiceId}`, { amount: paymentData.amount });
 
-            // Invalidate cache
-            await cache.del(`${this.cachePrefix}${invoiceId}`);
-            await cache.delPattern(`${this.cachePrefix}list:*`);
+            await Promise.all([
+                cache.del(`${this.cachePrefix}${invoiceId}`),
+                cache.delPattern(`${this.cachePrefix}list:*`),
+                cache.del(`supplier:${supplierId}`),
+                cache.delPattern('supplier:list:*')
+            ]);
 
             return await this.getInvoiceById(invoiceId);
         } catch (error) {
             logger.error('Record payment error:', error);
             throw error;
+        }
+    }
+
+    async _assertInvoiceNumberFree(supplierId, invoiceNumber, exceptInvoiceId = null) {
+        const dup = await this.db.collection(this.collection)
+            .where('supplierId', '==', supplierId)
+            .where('invoiceNumber', '==', invoiceNumber)
+            .limit(2)
+            .get();
+        if (dup.docs.some(d => d.id !== exceptInvoiceId)) {
+            throw new ValidationError('This supplier already has an invoice with that number');
         }
     }
 

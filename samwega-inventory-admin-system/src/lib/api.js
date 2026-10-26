@@ -662,6 +662,15 @@ class APIClient {
         return this.request(`/suppliers${query ? `?${query}` : ''}`);
     }
 
+    // Every supplier (id, name, etrStatus, isActive) for dropdowns and name lookups - not paginated
+    async getSupplierOptions() {
+        return this.request('/suppliers/options');
+    }
+
+    async recalculateSupplier(id) {
+        return this.request(`/suppliers/${id}/recalculate`, { method: 'POST' });
+    }
+
     async getSupplierById(id) {
         return this.request(`/suppliers/${id}`);
     }

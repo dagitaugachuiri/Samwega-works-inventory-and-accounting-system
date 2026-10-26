@@ -58,7 +58,7 @@ export default function InvoicesPage() {
 
     const fetchSuppliers = async () => {
         try {
-            const res = await api.getSuppliers();
+            const res = await api.getSupplierOptions();
             if (res.success && res.data) {
                 const list = res.data.suppliers || res.data;
                 setSuppliers(Array.isArray(list) ? list : []);
@@ -149,6 +149,8 @@ export default function InvoicesPage() {
             if (editingInvoice) {
                 // When editing, don't change the invoice number
                 const payload = {
+                    // only sent when changed: lets you fix an "Unknown" supplier
+                    ...(form.supplierId !== editingInvoice.supplierId ? { supplierId: form.supplierId } : {}),
                     invoiceDate: new Date(form.invoiceDate).toISOString(),
                     totalAmount,
                     amountPaid,

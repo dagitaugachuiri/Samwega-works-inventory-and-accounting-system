@@ -7,13 +7,16 @@ const { getFirestore } = require('../src/config/firebase.config');
 const { admin } = require('../src/config/firebase.config');
 const { initializeFirebase } = require('../src/config/firebase.config');
 
+// usage: node scripts/recalculate-supplier-financials.js [--dry-run]
+const DRY_RUN = process.argv.includes('--dry-run');
+
 async function recalculateSupplierFinancials() {
     try {
         // Initialize Firebase
         initializeFirebase();
         const db = getFirestore();
 
-        console.log('🔄 Starting supplier financial recalculation...\n');
+        console.log(DRY_RUN ? '🔎 DRY RUN - nothing will be saved\n' : '🔄 Starting supplier financial recalculation...\n');
 
         // Get all suppliers
         const suppliersSnapshot = await db.collection('suppliers').get();
@@ -29,19 +32,22 @@ async function recalculateSupplierFinancials() {
 
         // Calculate totals for each supplier
         for (const supplier of suppliers) {
-            const supplierInvoices = invoices.filter(inv => inv.supplierId === supplier.id);
+            // voided (reversed) invoices must not count towards supplier totals
+            const supplierInvoices = invoices.filter(inv => inv.supplierId === supplier.id && inv.status !== 'voided');
 
             const totalPurchases = supplierInvoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
             const totalPaid = supplierInvoices.reduce((sum, inv) => sum + (inv.amountPaid || 0), 0);
             const outstandingBalance = totalPurchases - totalPaid;
 
-            // Update supplier document
-            await db.collection('suppliers').doc(supplier.id).update({
-                totalPurchases,
-                totalPaid,
-                outstandingBalance,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
+            // Update supplier document (skipped with --dry-run, so you can look first)
+            if (!DRY_RUN) {
+                await db.collection('suppliers').doc(supplier.id).update({
+                    totalPurchases,
+                    totalPaid,
+                    outstandingBalance,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
 
             console.log(`✅ ${supplier.name}:`);
             console.log(`   Invoices: ${supplierInvoices.length}`);

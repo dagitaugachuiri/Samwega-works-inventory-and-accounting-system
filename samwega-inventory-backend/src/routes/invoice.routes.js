@@ -75,11 +75,11 @@ router.put(
     invoiceController.updateInvoice
 );
 
-// Record payment
+// Record payment: admin and accountant (accountants handle supplier payments, nothing else on invoices)
 router.post(
     '/:id/payments',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
     logActivity('RECORD_PAYMENT', 'invoice'),
     writeLimiter,
     validateParams(invoiceIdSchema),

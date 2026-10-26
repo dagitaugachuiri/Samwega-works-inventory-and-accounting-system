@@ -56,7 +56,7 @@ class InvoiceController {
 
     async recordPayment(req, res, next) {
         try {
-            const invoice = await invoiceService.recordPayment(req.params.id, req.body);
+            const invoice = await invoiceService.recordPayment(req.params.id, req.body, req.user);
             res.json(successResponse(invoice, 'Payment recorded successfully'));
         } catch (error) {
             next(error);

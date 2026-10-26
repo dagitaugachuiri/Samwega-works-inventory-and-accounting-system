@@ -79,6 +79,7 @@ const createInvoiceSchema = Joi.object({
  * Update invoice validation schema
  */
 const updateInvoiceSchema = Joi.object({
+    supplierId: Joi.string().optional(), // lets an admin move an invoice to the right supplier
     invoiceNumber: Joi.string().optional(),
     invoiceDate: Joi.date().iso().optional(),
     dueDate: Joi.date().iso().optional(),

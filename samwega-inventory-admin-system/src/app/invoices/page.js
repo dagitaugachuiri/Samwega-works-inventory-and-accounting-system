@@ -29,6 +29,7 @@ export default function InvoicesPage() {
     const EMPTY_FILTERS = { startDate: "", endDate: "", supplierId: "", paymentStatus: "", etrStatus: "", minAmount: "", maxAmount: "", view: "active" };
     const [filters, setFilters] = useState(EMPTY_FILTERS);
     const [summary, setSummary] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
     const activeFilterCount = Object.entries(filters).filter(([k, v]) => v && !(k === "view" && v === "active")).length;
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -341,68 +342,77 @@ export default function InvoicesPage() {
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Search invoices..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="input-field pl-9 w-full"
-                />
-            </div>
-
-            {/* Filters */}
-            <div className="glass-panel p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400 mr-1">Date</span>
-                    <input type="date" value={filters.startDate} max={filters.endDate || undefined} onChange={(e) => setFilter("startDate", e.target.value)} className="input-field py-1.5 text-sm" />
-                    <span className="text-slate-400 text-sm">to</span>
-                    <input type="date" value={filters.endDate} min={filters.startDate || undefined} onChange={(e) => setFilter("endDate", e.target.value)} className="input-field py-1.5 text-sm" />
-                    <button onClick={() => applyPreset("today")} className="btn-ghost px-2.5 py-1 text-xs">Today</button>
-                    <button onClick={() => applyPreset("week")} className="btn-ghost px-2.5 py-1 text-xs">Last 7 days</button>
-                    <button onClick={() => applyPreset("month")} className="btn-ghost px-2.5 py-1 text-xs">This month</button>
+            {/* Search + filters toggle */}
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-sm">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search invoices..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="input-field pl-9 w-full"
+                    />
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-                    <select value={filters.supplierId} onChange={(e) => setFilter("supplierId", e.target.value)} className="input-field py-1.5 text-sm">
-                        <option value="">All suppliers</option>
-                        {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    <select value={filters.paymentStatus} onChange={(e) => setFilter("paymentStatus", e.target.value)} className="input-field py-1.5 text-sm">
-                        <option value="">Any payment status</option>
-                        <option value="unpaid">Unpaid (owing)</option>
-                        <option value="pending">Not paid at all</option>
-                        <option value="partial">Part paid</option>
-                        <option value="paid">Fully paid</option>
-                    </select>
-                    <select value={filters.etrStatus} onChange={(e) => setFilter("etrStatus", e.target.value)} className="input-field py-1.5 text-sm">
-                        <option value="">ETR and non-ETR</option>
-                        <option value="etr">ETR only</option>
-                        <option value="non-etr">Non-ETR only</option>
-                    </select>
-                    <input type="number" min="0" placeholder="Min amount" value={filters.minAmount} onChange={(e) => setFilter("minAmount", e.target.value)} className="input-field py-1.5 text-sm" />
-                    <input type="number" min="0" placeholder="Max amount" value={filters.maxAmount} onChange={(e) => setFilter("maxAmount", e.target.value)} className="input-field py-1.5 text-sm" />
-                    <select value={filters.view} onChange={(e) => setFilter("view", e.target.value)} className="input-field py-1.5 text-sm">
-                        <option value="active">Active invoices</option>
-                        <option value="reversed">Reversed invoices</option>
-                    </select>
-                </div>
-                {(activeFilterCount > 0 || summary) && (
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
-                        {summary ? (
-                            <p className="text-slate-600">
-                                {pagination?.total ?? 0} invoice(s) &middot; Total <b>KES {summary.totalAmount.toLocaleString()}</b>
-                                &middot; Paid <b className="text-emerald-700">KES {summary.amountPaid.toLocaleString()}</b>
-                                &middot; Owing <b className="text-amber-700">KES {summary.balanceRemaining.toLocaleString()}</b>
-                            </p>
-                        ) : <span />}
-                        {activeFilterCount > 0 && (
-                            <button onClick={clearFilters} className="text-sky-600 hover:underline">Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}</button>
-                        )}
-                    </div>
+                <button
+                    onClick={() => setShowFilters(v => !v)}
+                    className={`btn-ghost flex items-center gap-2 px-4 py-2 text-sm ${activeFilterCount ? "text-sky-700" : ""}`}
+                >
+                    Filters {activeFilterCount > 0 && (
+                        <span className="rounded-full bg-sky-100 px-1.5 text-xs font-semibold text-sky-700">{activeFilterCount}</span>
+                    )}
+                    <span className="text-xs">{showFilters ? "▴" : "▾"}</span>
+                </button>
+                {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="text-sm text-sky-600 hover:underline">Clear</button>
                 )}
             </div>
+
+            {/* Filters (compact, opens on demand) */}
+            {showFilters && (
+                <div className="glass-panel p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input type="date" value={filters.startDate} max={filters.endDate || undefined} onChange={(e) => setFilter("startDate", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }} aria-label="From date" />
+                        <span className="text-xs text-slate-400">to</span>
+                        <input type="date" value={filters.endDate} min={filters.startDate || undefined} onChange={(e) => setFilter("endDate", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }} aria-label="To date" />
+                        <button onClick={() => applyPreset("today")} className="btn-ghost px-2 py-1 text-xs">Today</button>
+                        <button onClick={() => applyPreset("week")} className="btn-ghost px-2 py-1 text-xs">7 days</button>
+                        <button onClick={() => applyPreset("month")} className="btn-ghost px-2 py-1 text-xs">This month</button>
+                        <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:block" />
+                        <select value={filters.supplierId} onChange={(e) => setFilter("supplierId", e.target.value)} className="input-field py-1 text-sm" style={{ width: "10.5rem" }}>
+                            <option value="">All suppliers</option>
+                            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <select value={filters.paymentStatus} onChange={(e) => setFilter("paymentStatus", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }}>
+                            <option value="">Any payment</option>
+                            <option value="unpaid">Unpaid (owing)</option>
+                            <option value="pending">Not paid at all</option>
+                            <option value="partial">Part paid</option>
+                            <option value="paid">Fully paid</option>
+                        </select>
+                        <select value={filters.etrStatus} onChange={(e) => setFilter("etrStatus", e.target.value)} className="input-field py-1 text-sm" style={{ width: "8.5rem" }}>
+                            <option value="">ETR + non-ETR</option>
+                            <option value="etr">ETR only</option>
+                            <option value="non-etr">Non-ETR only</option>
+                        </select>
+                        <input type="number" min="0" placeholder="Min KES" value={filters.minAmount} onChange={(e) => setFilter("minAmount", e.target.value)} className="input-field py-1 text-sm" style={{ width: "6.5rem" }} />
+                        <input type="number" min="0" placeholder="Max KES" value={filters.maxAmount} onChange={(e) => setFilter("maxAmount", e.target.value)} className="input-field py-1 text-sm" style={{ width: "6.5rem" }} />
+                        <select value={filters.view} onChange={(e) => setFilter("view", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9rem" }}>
+                            <option value="active">Active</option>
+                            <option value="reversed">Reversed</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+
+            {/* Totals for whatever is showing (always visible when there is something to say) */}
+            {summary && (activeFilterCount > 0 || showFilters) && (
+                <p className="text-sm text-slate-600">
+                    {pagination?.total ?? 0} invoice(s) &middot; Total <b>KES {summary.totalAmount.toLocaleString()}</b>
+                    &middot; Paid <b className="text-emerald-700">KES {summary.amountPaid.toLocaleString()}</b>
+                    &middot; Owing <b className="text-amber-700">KES {summary.balanceRemaining.toLocaleString()}</b>
+                </p>
+            )}
 
             {/* New Supplier Link */}
             {suppliers.length === 0 && (

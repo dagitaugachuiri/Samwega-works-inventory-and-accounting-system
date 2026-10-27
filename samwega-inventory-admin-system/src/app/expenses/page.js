@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, Search, CheckCircle, XCircle, Clock, Calendar, Filter, Truck, User, Fuel, Wrench, Briefcase, Calculator, Trash2, DollarSign, Loader2 } from "lucide-react";
 import api from "../../lib/api";
 
@@ -79,6 +79,11 @@ export default function ExpensesPage() {
     // Filters
     const [vehicleFilter, setVehicleFilter] = useState("");
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState(null);
+    const requestId = useRef(0); // ignores a slow, outdated response arriving after a newer one
+    const PAGE_SIZE = 20;
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
@@ -98,11 +103,27 @@ export default function ExpensesPage() {
         // Default to all-time (empty dates)
     }, []);
 
+    // search is done by the server so it covers every page; wait for a pause in typing
     useEffect(() => {
-        // Fetch data whenever filters change
-        fetchExpenses();
+        const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+        return () => clearTimeout(t);
+    }, [search]);
+
+    // any filter or search change starts again from page 1
+    useEffect(() => {
+        setPage(1);
+    }, [startDate, endDate, vehicleFilter, statusFilter, debouncedSearch]);
+
+    // category totals only depend on the filters, not on the page
+    useEffect(() => {
         fetchCategoryStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [startDate, endDate, vehicleFilter, statusFilter]);
+
+    useEffect(() => {
+        fetchExpenses();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, startDate, endDate, vehicleFilter, statusFilter, debouncedSearch]);
 
     const fetchVehicles = async () => {
         try {
@@ -122,13 +143,18 @@ export default function ExpensesPage() {
         if (endDate) filters.endDate = endDate;
         if (vehicleFilter) filters.vehicleId = vehicleFilter;
         if (statusFilter) filters.status = statusFilter;
-        filters.limit = 100;
+        filters.limit = PAGE_SIZE;
+        filters.page = page;
+        if (debouncedSearch) filters.search = debouncedSearch;
 
+        const thisRequest = ++requestId.current;
         const response = await api.getExpenses(filters);
+        if (thisRequest !== requestId.current) return; // a newer request already answered
         if (response.success && response.data) {
             // Handle different response structures (pagination wrapper vs direct array)
             const expensesList = response.data.expenses || response.data || [];
             setExpenses(expensesList);
+            setPagination(response.data.pagination || null);
         }
     } catch (error) {
         console.error("Failed to fetch expenses:", error);
@@ -137,14 +163,7 @@ export default function ExpensesPage() {
     }
    };
 
-    const filteredExpenses = expenses.filter(expense => {
-    const matchesSearch = !search ||
-        expense.description?.toLowerCase().includes(search.toLowerCase()) ||
-        expense.category?.toLowerCase().includes(search.toLowerCase()) ||
-        expense.vehicleName?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = !statusFilter || expense.status === statusFilter;
-    return matchesSearch && matchesStatus;
-   });
+    const filteredExpenses = expenses; // search, status and dates are all applied by the server
 
 
     const fetchCategoryStats = async () => {
@@ -419,6 +438,33 @@ export default function ExpensesPage() {
                         </tbody>
                     </table>
                 </div>
+                {/* Pagination */}
+                {pagination && (
+                    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+                        <span>
+                            {pagination.total
+                                ? `Showing ${(page - 1) * pagination.limit + 1}-${(page - 1) * pagination.limit + filteredExpenses.length} of ${pagination.total}`
+                                : "No expenses"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1 || loading}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Prev
+                            </button>
+                            <span>Page {page} of {pagination.totalPages || 1}</span>
+                            <button
+                                onClick={() => setPage((p) => Math.min(pagination.totalPages || 1, p + 1))}
+                                disabled={page >= (pagination.totalPages || 1) || loading}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Add Expense Modal - Batch Mode */}

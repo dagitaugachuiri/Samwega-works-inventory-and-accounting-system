@@ -298,11 +298,15 @@ class ExpenseService {
                 endDate,
                 minAmount,
                 maxAmount,
-                page = 1,
-                limit = 20,
+                search,
                 sortBy = 'createdAt',
                 sortOrder = 'desc'
             } = filters;
+
+            // Query-string values arrive as strings: "20" + 20 === "2020" in JS, which made slice()
+            // return everything after the first page and repeat expenses. Always use real numbers.
+            const page = Math.max(1, parseInt(filters.page, 10) || 1);
+            const limit = Math.min(2000, Math.max(1, parseInt(filters.limit, 10) || 20));
 
             const cacheKey = `${this.cachePrefix}list:${JSON.stringify(filters)}:${userId}`;
             const cached = await cache.get(cacheKey);
@@ -363,16 +367,30 @@ class ExpenseService {
                 expenses = expenses.filter(exp => exp.amount <= maxAmount);
             }
 
-            // Sort expenses
-            expenses.sort((a, b) => {
-                const aVal = a[sortBy];
-                const bVal = b[sortBy];
+            // Keyword search (done here so it covers every page, not just the one on screen)
+            if (search && String(search).trim()) {
+                const terms = String(search).toLowerCase().split(/\s+/).filter(Boolean);
+                expenses = expenses.filter(exp => {
+                    const haystack = [exp.description, exp.category, exp.vehicleName, exp.expenseNumber, exp.submittedByName]
+                        .filter(Boolean).join(' ').toLowerCase();
+                    return terms.every(t => haystack.includes(t));
+                });
+            }
 
-                if (sortOrder === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
+            // Sort. The comparator must return 0 for ties and then fall back to the id, otherwise
+            // expenses with equal values can swap places between page requests (repeats / gaps).
+            const compare = (a, b) => {
+                const av = a[sortBy];
+                const bv = b[sortBy];
+                if (av === bv) return 0;
+                if (av === undefined || av === null) return 1;
+                if (bv === undefined || bv === null) return -1;
+                return av > bv ? 1 : -1;
+            };
+            expenses.sort((a, b) => {
+                const c = sortOrder === 'asc' ? compare(a, b) : -compare(a, b);
+                if (c !== 0) return c;
+                return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
             });
 
             // Pagination
@@ -397,8 +415,8 @@ class ExpenseService {
             const result = {
                 expenses: expensesWithFlags,
                 pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
+                    page,
+                    limit,
                     total,
                     totalPages: Math.ceil(total / limit),
                     hasNextPage: endIndex < total,

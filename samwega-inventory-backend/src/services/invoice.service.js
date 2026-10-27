@@ -47,15 +47,15 @@ class InvoiceService {
             const items = invoiceData.items || [];
             const calculatedItemsTotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
-            // NEW — Total Amount defaults to the real items total when not explicitly typed
-            // (Add Stock always sends 0; Invoices-page sends a real typed value, which wins)
+            // Add Stock creates the invoice at total 0 and links the items afterwards. In that case
+            // (no typed total, no items sent) the total follows the items as they are linked
+            // (see addItemToInvoice). A typed total always wins.
+            const autoTotal = !invoiceData.totalAmount && items.length === 0;
             const resolvedTotal = invoiceData.totalAmount || calculatedItemsTotal;
 
-            // NEW — automatic 16% VAT, only for ETR-registered suppliers
-            const VAT_RATE = 0.16;
-            const taxAmount = supplier.etrStatus === 'etr'
-                ? calculatedItemsTotal * VAT_RATE
-                : 0;
+            // Supplier prices on ETR invoices already include 16% VAT, so nothing is added on top.
+            // taxAmount is only stored if someone typed it in.
+            const taxAmount = invoiceData.taxAmount || 0;
 
             const amountPaid = invoiceData.amountPaid || 0;
             if (resolvedTotal > 0 && amountPaid > resolvedTotal + 0.01) {
@@ -74,6 +74,7 @@ class InvoiceService {
                 supplierName: supplier.name,
                 etrStatus: supplier.etrStatus || 'non-etr',
                 totalAmount: resolvedTotal,
+                autoTotal,
                 taxAmount,
                 amountPaid,
                 paymentStatus,
@@ -130,30 +131,64 @@ class InvoiceService {
      * @returns {Promise<void>}
      */
     async addItemToInvoice(invoiceId, itemCost, productName = null) {
+        const FV = admin.firestore.FieldValue;
+        const invoiceRef = this.db.collection(this.collection).doc(invoiceId);
+        let supplierId = null;
+
         try {
-            const invoice = await this.getInvoiceById(invoiceId);
-            this._assertActive(invoice);
+            // Transaction: several items linked in quick succession can no longer overwrite
+            // each other's totals, and invoice + supplier totals save together or not at all.
+            await this.db.runTransaction(async (tx) => {
+                const snap = await tx.get(invoiceRef);
+                if (!snap.exists) throw new NotFoundError('Invoice');
+                const invoice = snap.data();
+                this._assertActive(invoice);
+                supplierId = invoice.supplierId;
 
-            const newItemsTotal = (invoice.itemsTotal || 0) + itemCost;
+                const supplierRef = this.db.collection('suppliers').doc(supplierId);
+                const supplierSnap = await tx.get(supplierRef);
 
-            const updates = {
-                itemsTotal: newItemsTotal,
-                itemsCount: admin.firestore.FieldValue.increment(1),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-            if (productName) {
-                updates.itemNames = admin.firestore.FieldValue.arrayUnion(productName.toLowerCase());
-            }
+                const newItemsTotal = (invoice.itemsTotal || 0) + itemCost;
+                const updates = {
+                    itemsTotal: newItemsTotal,
+                    itemsCount: FV.increment(1),
+                    updatedAt: FV.serverTimestamp()
+                };
+                if (productName) {
+                    updates.itemNames = FV.arrayUnion(String(productName).toLowerCase());
+                }
 
-            await this.db.collection(this.collection).doc(invoiceId).update(updates);
+                // Add Stock invoices start at total 0: the total follows the items. Older invoices
+                // saved with a 0 total are picked up here too and fixed as soon as an item is linked.
+                let totalDelta = 0;
+                if (invoice.autoTotal || !invoice.totalAmount) {
+                    const paid = invoice.amountPaid || 0;
+                    totalDelta = newItemsTotal - (invoice.totalAmount || 0);
+                    updates.totalAmount = newItemsTotal;
+                    updates.autoTotal = true;
+                    updates.balanceRemaining = newItemsTotal - paid;
+                    updates.paymentStatus = newItemsTotal > 0 && newItemsTotal - paid < 0.01
+                        ? 'paid' : (paid > 0 ? 'partial' : 'pending');
+                }
 
-            logger.info(`Item added to invoice: ${invoiceId}`, {
-                itemCost,
-                newItemsTotal
+                tx.update(invoiceRef, updates);
+                if (totalDelta !== 0 && supplierSnap.exists) {
+                    tx.update(supplierRef, {
+                        totalPurchases: FV.increment(totalDelta),
+                        outstandingBalance: FV.increment(totalDelta),
+                        updatedAt: FV.serverTimestamp()
+                    });
+                }
             });
 
-            await cache.del(`${this.cachePrefix}${invoiceId}`);
-            await cache.delPattern(`${this.cachePrefix}list:*`);
+            logger.info(`Item added to invoice: ${invoiceId}`, { itemCost });
+
+            await Promise.all([
+                cache.del(`${this.cachePrefix}${invoiceId}`),
+                cache.delPattern(`${this.cachePrefix}list:*`),
+                cache.del(`supplier:${supplierId}`),
+                cache.delPattern('supplier:list:*')
+            ]);
         } catch (error) {
             logger.error('Add item to invoice error:', error);
             throw error;
@@ -295,13 +330,13 @@ class InvoiceService {
                 query = query.where('paymentStatus', '==', paymentStatus);
             }
 
-            const [snapshot, supplierSnap] = await Promise.all([
+            const [snapshot, supplierOptions] = await Promise.all([
                 query.get(),
-                this.db.collection('suppliers').get()
+                supplierService.getSupplierOptions() // cached: no extra Firestore reads per page
             ]);
 
             // Attach supplier names so the list can show and search them
-            const supplierNames = new Map(supplierSnap.docs.map(d => [d.id, d.data().name || '']));
+            const supplierNames = new Map(supplierOptions.map(o => [o.id, o.name]));
             let invoices = serializeDocs(snapshot).map(inv => ({
                 ...inv,
                 supplierName: supplierNames.get(inv.supplierId) || inv.supplierName || ''
@@ -629,6 +664,9 @@ class InvoiceService {
                 this._assertActive(invoice);
                 supplierId = invoice.supplierId;
 
+                const supplierRef = this.db.collection('suppliers').doc(invoice.supplierId);
+                const supplierSnap = await tx.get(supplierRef);
+
                 const plan = await inventoryService.planInvoiceStockReversal(tx, invoiceId, ids);
                 if (plan.removedCount !== ids.length) {
                     throw new ValidationError('Some of the selected items were not found on this invoice');
@@ -636,14 +674,32 @@ class InvoiceService {
 
                 // ---- writes ----
                 plan.apply(tx, 'delete', userName);
-                tx.update(invoiceRef, {
-                    itemsTotal: Math.max(0, (invoice.itemsTotal || 0) - plan.removedCost),
+                const newItemsTotal = Math.max(0, (invoice.itemsTotal || 0) - plan.removedCost);
+                const invoiceUpdates = {
+                    itemsTotal: newItemsTotal,
                     itemsCount: Math.max(0, (invoice.itemsCount || 0) - plan.removedCount),
                     itemNames: plan.remainingNames,
                     updatedBy: this._userId(user),
                     updatedByName: userName,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
+                };
+                // Add Stock invoices: total follows the items, supplier totals follow the invoice
+                if (invoice.autoTotal) {
+                    const paid = invoice.amountPaid || 0;
+                    const delta = newItemsTotal - (invoice.totalAmount || 0);
+                    invoiceUpdates.totalAmount = newItemsTotal;
+                    invoiceUpdates.balanceRemaining = newItemsTotal - paid;
+                    invoiceUpdates.paymentStatus = newItemsTotal > 0 && newItemsTotal - paid < 0.01
+                        ? 'paid' : (paid > 0 ? 'partial' : 'pending');
+                    if (delta !== 0 && supplierSnap.exists) {
+                        tx.update(supplierRef, {
+                            totalPurchases: admin.firestore.FieldValue.increment(delta),
+                            outstandingBalance: admin.firestore.FieldValue.increment(delta),
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+                tx.update(invoiceRef, invoiceUpdates);
 
                 touchedItemIds = plan.touchedItemIds;
                 removed = plan.removedCount;
@@ -663,6 +719,108 @@ class InvoiceService {
 
         logger.info(`Items removed from invoice ${invoiceId}`, { removed, by: userName });
         return { id: invoiceId, itemsRemoved: removed };
+    }
+
+    /**
+     * Admin clean-up of invoices damaged by the old "total stays 0" bug.
+     *  - 'delete-empty'  : delete invoices with no items, no total, no payment and no linked stock
+     *  - 'repair-totals' : rebuild items count/total (and the total of Add Stock invoices) from the
+     *                      stock actually received on the invoice, and fix the supplier's totals
+     * dryRun (default) only reports what WOULD change.
+     * @param {{action: string, dryRun?: boolean}} opts
+     */
+    async cleanupInvoices({ action, dryRun = true }) {
+        const FV = admin.firestore.FieldValue;
+        const [invSnap, adjSnap] = await Promise.all([
+            this.db.collection(this.collection).get(),
+            this.db.collection('stock_adjustments').where('reason', '==', 'purchase').get()
+        ]);
+
+        // stock really received per invoice (same rule the "items" checklist uses)
+        const received = new Map();
+        adjSnap.docs.forEach(d => {
+            const a = d.data();
+            if (!a.invoiceId || !(a.adjustment > 0)) return;
+            const g = received.get(a.invoiceId) || { count: 0, cost: 0, names: new Set() };
+            g.count += 1;
+            g.cost += a.itemCost || 0;
+            if (a.productName) g.names.add(String(a.productName).toLowerCase());
+            received.set(a.invoiceId, g);
+        });
+
+        const invoices = invSnap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() }));
+        const label = (i) => ({ id: i.id, invoiceNumber: i.invoiceNumber, supplierName: i.supplierName || '' });
+        let affected = [];
+
+        if (action === 'delete-empty') {
+            const candidates = invoices.filter(i =>
+                !(i.itemsCount > 0) && !(i.totalAmount > 0) && !(i.amountPaid > 0) && !received.has(i.id));
+            // payments are the one thing not in the maps above
+            for (const inv of candidates) {
+                const pay = await this.db.collection('invoice_payments').where('invoiceId', '==', inv.id).limit(1).get();
+                if (pay.empty) affected.push(inv);
+            }
+            if (!dryRun) {
+                for (let i = 0; i < affected.length; i += 400) {
+                    const batch = this.db.batch();
+                    affected.slice(i, i + 400).forEach(inv => batch.delete(inv.ref));
+                    await batch.commit();
+                }
+            }
+        } else if (action === 'repair-totals') {
+            affected = invoices.filter(i => {
+                if (i.status === 'voided') return false;
+                const g = received.get(i.id);
+                if (!g) return false;
+                const wrongItems = (i.itemsCount || 0) !== g.count || Math.abs((i.itemsTotal || 0) - g.cost) > 0.01;
+                const zeroTotal = !(i.totalAmount > 0) && g.cost > 0;
+                return wrongItems || zeroTotal || (i.autoTotal && Math.abs((i.totalAmount || 0) - g.cost) > 0.01);
+            });
+            if (!dryRun) {
+                for (const inv of affected) {
+                    const g = received.get(inv.id);
+                    const updates = {
+                        itemsCount: g.count,
+                        itemsTotal: g.cost,
+                        itemNames: [...g.names],
+                        updatedAt: FV.serverTimestamp()
+                    };
+                    let totalDelta = 0;
+                    if (inv.autoTotal || !(inv.totalAmount > 0)) {
+                        const paid = inv.amountPaid || 0;
+                        totalDelta = g.cost - (inv.totalAmount || 0);
+                        updates.totalAmount = g.cost;
+                        updates.autoTotal = true;
+                        updates.balanceRemaining = g.cost - paid;
+                        updates.paymentStatus = g.cost > 0 && g.cost - paid < 0.01 ? 'paid' : (paid > 0 ? 'partial' : 'pending');
+                    }
+                    const batch = this.db.batch();
+                    batch.update(inv.ref, updates);
+                    if (totalDelta !== 0 && inv.supplierId) {
+                        const supRef = this.db.collection('suppliers').doc(inv.supplierId);
+                        if ((await supRef.get()).exists) {
+                            batch.update(supRef, {
+                                totalPurchases: FV.increment(totalDelta),
+                                outstandingBalance: FV.increment(totalDelta),
+                                updatedAt: FV.serverTimestamp()
+                            });
+                        }
+                    }
+                    await batch.commit();
+                }
+            }
+        } else {
+            throw new ValidationError('Unknown clean-up action');
+        }
+
+        if (!dryRun && affected.length) {
+            await Promise.all([
+                cache.delPattern(`${this.cachePrefix}*`),
+                cache.delPattern('supplier:*')
+            ]);
+        }
+        logger.info(`Invoice cleanup ${action}`, { dryRun, count: affected.length });
+        return { action, dryRun, count: affected.length, invoices: affected.slice(0, 50).map(label) };
     }
 
     async _undoInvoice(invoiceId, { mode, reason = '', user = null }) {
@@ -685,6 +843,9 @@ class InvoiceService {
                 const paymentsSnap = await tx.get(
                     this.db.collection('invoice_payments').where('invoiceId', '==', invoiceId)
                 );
+                // The supplier may no longer exist ("Unknown" invoices): then there is nothing to adjust
+                const supplierRef = this.db.collection('suppliers').doc(invoice.supplierId || 'none');
+                const supplierExists = invoice.supplierId ? (await tx.get(supplierRef)).exists : false;
                 plan = alreadyVoided ? null : await inventoryService.planInvoiceStockReversal(tx, invoiceId);
 
                 // ---- writes ----
@@ -692,7 +853,7 @@ class InvoiceService {
                     plan.apply(tx, mode, userName);
                     const total = invoice.totalAmount || 0;
                     const paid = invoice.amountPaid || 0;
-                    tx.update(this.db.collection('suppliers').doc(invoice.supplierId), {
+                    if (supplierExists) tx.update(supplierRef, {
                         totalPurchases: FV.increment(-total),
                         totalPaid: FV.increment(-paid),
                         outstandingBalance: FV.increment(-(total - paid)),

@@ -184,6 +184,25 @@ export default function InvoicesPage() {
         }
     };
 
+    // Admin clean-up: always previews first, then asks before changing anything
+    const runCleanup = async (action) => {
+        const what = action === 'delete-empty'
+            ? "delete invoices that have no items, no total and no payments"
+            : "rebuild item counts and totals from the stock actually received";
+        try {
+            const preview = await api.cleanupInvoices(action, true);
+            const { count, invoices: sample } = preview.data;
+            if (!count) { alert.success("Nothing to do - no invoices need this."); return; }
+            const names = sample.slice(0, 8).map(i => i.invoiceNumber).join(", ");
+            if (!window.confirm(`This will ${what}.\n\n${count} invoice(s): ${names}${count > 8 ? ", ..." : ""}\n\nContinue?`)) return;
+            const done = await api.cleanupInvoices(action, false);
+            alert.success(`${done.data.count} invoice(s) updated`);
+            fetchData();
+        } catch (error) {
+            alert.error("Clean-up failed: " + error.message);
+        }
+    };
+
     const handleDelete = async (id) => {
         const confirmed = window.confirm("Delete this invoice? This action cannot be undone.");
         if (!confirmed) return;
@@ -244,12 +263,24 @@ export default function InvoicesPage() {
                     <h1 className="text-2xl font-semibold text-slate-900">Purchase Invoices</h1>
                     <p className="text-sm text-slate-500">Manage supplier invoices and procurement records</p>
                 </div>
-                {canCreate && (
-                <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-                    <Plus size={16} />
-                    New Invoice
-                </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {isAdmin && (
+                        <>
+                            <button onClick={() => runCleanup('repair-totals')} className="btn-ghost px-3 py-2 text-sm" title="Fix invoices whose items/total show 0 although stock was received">
+                                Repair zero totals
+                            </button>
+                            <button onClick={() => runCleanup('delete-empty')} className="btn-ghost px-3 py-2 text-sm text-rose-600" title="Delete invoices with no items, no total and no payments">
+                                Delete empty invoices
+                            </button>
+                        </>
+                    )}
+                    {canCreate && (
+                    <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+                        <Plus size={16} />
+                        New Invoice
+                    </button>
+                    )}
+                </div>
             </div>
 
             {/* Search */}
@@ -296,13 +327,22 @@ export default function InvoicesPage() {
                             </tr>
                         ) : (
                             filteredInvoices.map((inv) => (
-                                <tr key={inv.id} className="hover:bg-slate-50">
+                                <tr
+                                    key={inv.id}
+                                    onClick={() => router.push(`/invoices/${inv.id}`)}
+                                    className="hover:bg-slate-50 cursor-pointer"
+                                >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
                                             </span>
+                                            {(inv.itemsCount || 0) === 0 && !(inv.totalAmount > 0) && (
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-600 border border-rose-200" title="No items, no total - safe to delete">
+                                                    Empty
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -325,7 +365,7 @@ export default function InvoicesPage() {
                                             {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-1">
                                             {(inv.balanceRemaining || 0) > 0 && (
                                                 <button
@@ -342,12 +382,15 @@ export default function InvoicesPage() {
                                             >
                                                 <Edit size={14} />
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(inv.id)}
-                                                className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDelete(inv.id)}
+                                                    className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
+                                                    title="Delete invoice"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -355,6 +398,33 @@ export default function InvoicesPage() {
                         )}
                     </tbody>
                 </table>
+                {/* Pagination */}
+                {pagination && (
+                    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+                        <span>
+                            {pagination.total
+                                ? `Showing ${(page - 1) * pagination.limit + 1}-${(page - 1) * pagination.limit + filteredInvoices.length} of ${pagination.total}`
+                                : "No invoices"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Prev
+                            </button>
+                            <span>Page {page} of {pagination.totalPages || 1}</span>
+                            <button
+                                onClick={() => setPage((p) => Math.min(pagination.totalPages || 1, p + 1))}
+                                disabled={page >= (pagination.totalPages || 1)}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}

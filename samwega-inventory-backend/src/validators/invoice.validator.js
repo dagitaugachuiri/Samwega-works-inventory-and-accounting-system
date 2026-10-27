@@ -169,7 +169,14 @@ const removeInvoiceItemsSchema = Joi.object({
     adjustmentIds: Joi.array().items(Joi.string().trim()).min(1).required()
 });
 
+const cleanupInvoicesSchema = Joi.object({
+    action: Joi.string().valid('delete-empty', 'repair-totals').required(),
+    // defaults to a harmless preview; the real run must say dryRun:false
+    dryRun: Joi.boolean().default(true)
+});
+
 module.exports = {
+    cleanupInvoicesSchema,
     createInvoiceSchema,
     updateInvoiceSchema,
     recordPaymentSchema,

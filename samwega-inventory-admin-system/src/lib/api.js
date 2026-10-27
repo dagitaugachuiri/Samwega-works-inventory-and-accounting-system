@@ -702,7 +702,20 @@ class APIClient {
     }
 
     async getInvoiceById(id) {
+        return this.request(`/invoices/${id}`);
+    }
+
+    // Stock received on an invoice (what the invoice page lists as items)
+    async getInvoiceItems(id) {
         return this.request(`/invoices/${id}/items`);
+    }
+
+    // Admin clean-up: action = 'delete-empty' | 'repair-totals'. dryRun=true only previews.
+    async cleanupInvoices(action, dryRun = true) {
+        return this.request('/invoices/cleanup', {
+            method: 'POST',
+            body: JSON.stringify({ action, dryRun }),
+        });
     }
 
     async createInvoice(data) {

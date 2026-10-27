@@ -81,6 +81,18 @@ class InvoiceController {
         }
     }
 
+    async cleanupInvoices(req, res, next) {
+        try {
+            const result = await invoiceService.cleanupInvoices(req.body);
+            const msg = result.dryRun
+                ? `${result.count} invoice(s) would be affected (nothing changed yet)`
+                : `${result.count} invoice(s) updated`;
+            res.json(successResponse(result, msg));
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async deleteInvoice(req, res, next) {
         try {
             await invoiceService.deleteInvoice(req.params.id, req.user);

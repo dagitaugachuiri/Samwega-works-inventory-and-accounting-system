@@ -22,7 +22,7 @@ class InvoiceService {
     }
 
     _userName(user) {
-        return user?.name || user?.displayName || user?.email || 'Unknown';
+        return user?.name || user?.displayName || user?.username || user?.email || 'Unknown';
     }
 
     _userId(user) {
@@ -743,7 +743,7 @@ class InvoiceService {
             if (!a.invoiceId || !(a.adjustment > 0)) return;
             const g = received.get(a.invoiceId) || { count: 0, cost: 0, names: new Set() };
             g.count += 1;
-            g.cost += a.itemCost || 0;
+            g.cost += a.itemCost || ((a.buyingPrice || 0) * (a.adjustment || 0));
             if (a.productName) g.names.add(String(a.productName).toLowerCase());
             received.set(a.invoiceId, g);
         });
@@ -806,6 +806,31 @@ class InvoiceService {
                             });
                         }
                     }
+                    await batch.commit();
+                }
+            }
+        } else if (action === 'backfill-keyed-by') {
+            // Fill "keyed in by" on older invoices from the activity log (who pressed CREATE)
+            const activityLogService = require('./activity-log.service');
+            const logSnap = await this.db.collection(activityLogService.collection)
+                .where('resource', '==', 'invoice')
+                .where('action', '==', 'CREATE')
+                .get();
+            const creators = new Map();
+            logSnap.docs.forEach(d => {
+                const l = d.data();
+                if (l.resourceId && l.username && !creators.has(l.resourceId)) {
+                    creators.set(l.resourceId, { userId: l.userId, username: l.username });
+                }
+            });
+            affected = invoices.filter(i => !i.createdByName && creators.has(i.id));
+            if (!dryRun) {
+                for (let i = 0; i < affected.length; i += 400) {
+                    const batch = this.db.batch();
+                    affected.slice(i, i + 400).forEach(inv => {
+                        const c = creators.get(inv.id);
+                        batch.update(inv.ref, { createdBy: c.userId || null, createdByName: c.username });
+                    });
                     await batch.commit();
                 }
             }

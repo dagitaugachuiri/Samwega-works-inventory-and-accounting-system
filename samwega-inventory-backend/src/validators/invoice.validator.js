@@ -170,7 +170,7 @@ const removeInvoiceItemsSchema = Joi.object({
 });
 
 const cleanupInvoicesSchema = Joi.object({
-    action: Joi.string().valid('delete-empty', 'repair-totals').required(),
+    action: Joi.string().valid('delete-empty', 'repair-totals', 'backfill-keyed-by').required(),
     // defaults to a harmless preview; the real run must say dryRun:false
     dryRun: Joi.boolean().default(true)
 });

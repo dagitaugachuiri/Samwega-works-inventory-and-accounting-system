@@ -43,7 +43,6 @@ export default function InvoiceDetailPage() {
                         quantity: r.quantity,
                         unitPrice: r.buyingPrice || (r.quantity ? (r.itemCost || 0) / r.quantity : 0),
                         lineTotal: r.itemCost || (r.buyingPrice || 0) * r.quantity,
-                        at: r.createdAt,
                     })));
                 } else if (Array.isArray(invRes.data.items)) {
                     // older invoices that stored their items on the invoice itself
@@ -52,7 +51,6 @@ export default function InvoiceDetailPage() {
                         quantity: r.quantity,
                         unitPrice: r.unitPrice || 0,
                         lineTotal: (r.quantity || 0) * (r.unitPrice || 0),
-                        at: null,
                     })));
                 }
             }
@@ -108,7 +106,7 @@ export default function InvoiceDetailPage() {
                     </div>
                     <p className="mt-1.5 flex items-center gap-1.5 text-sm text-slate-500">
                         <UserCheck size={14} className="text-slate-400" />
-                        Keyed in by <span className="font-medium text-slate-700">{invoice.createdByName || "unknown"}</span>
+                        Keyed in by <span className="font-medium text-slate-700">{invoice.createdByName || "not recorded"}</span>
                         {keyedAt && <span className="text-slate-400">· {keyedAt}</span>}
                     </p>
                 </div>
@@ -156,8 +154,7 @@ export default function InvoiceDetailPage() {
                                     <th className="px-6 py-3 font-semibold">Product</th>
                                     <th className="px-6 py-3 font-semibold text-right">Qty</th>
                                     <th className="px-6 py-3 font-semibold text-right">Buying price</th>
-                                    <th className="px-6 py-3 font-semibold text-right">Line total</th>
-                                    <th className="px-6 py-3 font-semibold">Received</th>
+                                    <th className="px-6 py-3 font-semibold text-right">Total</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -168,17 +165,13 @@ export default function InvoiceDetailPage() {
                                         <td className="px-6 py-3.5 text-right tabular-nums text-slate-700">{item.quantity}</td>
                                         <td className="px-6 py-3.5 text-right tabular-nums text-slate-600">{money(item.unitPrice)}</td>
                                         <td className="px-6 py-3.5 text-right tabular-nums font-semibold text-slate-900">{money(item.lineTotal)}</td>
-                                        <td className="px-6 py-3.5 text-xs text-slate-400">
-                                            {item.at ? new Date(item.at).toLocaleString() : "-"}
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                             <tfoot>
                                 <tr className="border-t border-slate-200 bg-slate-50">
-                                    <td colSpan={4} className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Items total</td>
+                                    <td colSpan={4} className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Total</td>
                                     <td className="px-6 py-3.5 text-right tabular-nums font-bold text-slate-900">{money(itemsSum)}</td>
-                                    <td />
                                 </tr>
                             </tfoot>
                         </table>

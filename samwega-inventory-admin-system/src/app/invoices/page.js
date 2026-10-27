@@ -25,6 +25,7 @@ export default function InvoicesPage() {
     });
     
     const [selectedIds, setSelectedIds] = useState([]);
+    const [showCleanup, setShowCleanup] = useState(false);
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const [saving, setSaving] = useState(false);
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
@@ -188,7 +189,9 @@ export default function InvoicesPage() {
     const runCleanup = async (action) => {
         const what = action === 'delete-empty'
             ? "delete invoices that have no items, no total and no payments"
-            : "rebuild item counts and totals from the stock actually received";
+            : action === 'backfill-keyed-by'
+                ? "fill in who keyed these invoices in, from the activity log"
+                : "rebuild item counts and totals from the stock actually received";
         try {
             const preview = await api.cleanupInvoices(action, true);
             const { count, invoices: sample } = preview.data;
@@ -265,14 +268,27 @@ export default function InvoicesPage() {
                 </div>
                 <div className="flex items-center gap-2">
                     {isAdmin && (
-                        <>
-                            <button onClick={() => runCleanup('repair-totals')} className="btn-ghost px-3 py-2 text-sm" title="Fix invoices whose items/total show 0 although stock was received">
-                                Repair zero totals
+                        <div className="relative">
+                            <button onClick={() => setShowCleanup(v => !v)} className="btn-ghost px-3 py-2 text-sm">
+                                Clean up ▾
                             </button>
-                            <button onClick={() => runCleanup('delete-empty')} className="btn-ghost px-3 py-2 text-sm text-rose-600" title="Delete invoices with no items, no total and no payments">
-                                Delete empty invoices
-                            </button>
-                        </>
+                            {showCleanup && (
+                                <div className="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('repair-totals'); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50">
+                                        Repair zero totals
+                                        <span className="block text-xs text-slate-400">Invoices that show 0 but have items</span>
+                                    </button>
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('backfill-keyed-by'); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50">
+                                        Fill "keyed in by"
+                                        <span className="block text-xs text-slate-400">Older invoices, from the activity log</span>
+                                    </button>
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('delete-empty'); }} className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">
+                                        Delete empty invoices
+                                        <span className="block text-xs text-slate-400">No items, no total, no payments</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     )}
                     {canCreate && (
                     <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">

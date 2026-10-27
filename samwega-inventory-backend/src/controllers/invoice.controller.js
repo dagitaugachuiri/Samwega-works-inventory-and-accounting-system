@@ -21,7 +21,7 @@ class InvoiceController {
                 result.pagination.total
             );
             // keep your usual response shape, but guarantee the full pagination info is present
-            res.json({ ...base, pagination: { ...(base.pagination || {}), ...result.pagination } });
+            res.json({ ...base, pagination: { ...(base.pagination || {}), ...result.pagination }, summary: result.summary });
         } catch (error) {
             next(error);
         }

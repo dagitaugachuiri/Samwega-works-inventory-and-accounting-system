@@ -745,6 +745,14 @@ class APIClient {
         });
     }
 
+    // Reverse = keep the invoice on record but undo its stock and supplier totals (reason required)
+    async reverseInvoice(id, reason) {
+        return this.request(`/invoices/${id}/reverse`, {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
+        });
+    }
+
     async deleteInvoice(id) {
         return this.request(`/invoices/${id}`, {
             method: 'DELETE',

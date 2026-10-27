@@ -143,7 +143,8 @@ const invoiceIdSchema = Joi.object({
  */
 const searchInvoicesSchema = Joi.object({
     supplierId: Joi.string().optional(),
-    paymentStatus: Joi.string().valid('pending', 'partial', 'paid').optional(),
+    paymentStatus: Joi.string().valid('pending', 'partial', 'paid', 'unpaid').optional(),
+    etrStatus: Joi.string().valid('etr', 'non-etr').optional(),
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional(),
     minAmount: Joi.number().min(0).optional(),

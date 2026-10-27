@@ -307,6 +307,7 @@ class InvoiceService {
                 maxAmount,
                 hasItems,
                 status,
+                etrStatus,
                 search,
                 sortBy = 'invoiceDate',
                 sortOrder = 'desc'
@@ -326,7 +327,8 @@ class InvoiceService {
             if (supplierId) {
                 query = query.where('supplierId', '==', supplierId);
             }
-            if (paymentStatus) {
+            // 'unpaid' = anything with money still owing (pending + partial); handled below
+            if (paymentStatus && paymentStatus !== 'unpaid') {
                 query = query.where('paymentStatus', '==', paymentStatus);
             }
 
@@ -337,6 +339,7 @@ class InvoiceService {
 
             // Attach supplier names so the list can show and search them
             const supplierNames = new Map(supplierOptions.map(o => [o.id, o.name]));
+            const supplierEtr = new Map(supplierOptions.map(o => [o.id, o.etrStatus]));
             let invoices = serializeDocs(snapshot).map(inv => ({
                 ...inv,
                 supplierName: supplierNames.get(inv.supplierId) || inv.supplierName || ''
@@ -355,6 +358,13 @@ class InvoiceService {
                     ].join(' ').toLowerCase();
                     return terms.every(t => haystack.includes(t));
                 });
+            }
+
+            if (paymentStatus === 'unpaid') {
+                invoices = invoices.filter(inv => (inv.balanceRemaining || 0) > 0.01);
+            }
+            if (etrStatus) {
+                invoices = invoices.filter(inv => (inv.etrStatus || supplierEtr.get(inv.supplierId) || 'non-etr') === etrStatus);
             }
 
             // Client-side filtering
@@ -395,6 +405,14 @@ class InvoiceService {
                 return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
             });
 
+            // Totals for everything that matches the filters (not just this page)
+            const summary = invoices.reduce((acc, inv) => {
+                acc.totalAmount += inv.totalAmount || 0;
+                acc.amountPaid += inv.amountPaid || 0;
+                acc.balanceRemaining += inv.balanceRemaining || 0;
+                return acc;
+            }, { totalAmount: 0, amountPaid: 0, balanceRemaining: 0 });
+
             // Pagination
             const total = invoices.length;
             const startIndex = (page - 1) * limit;
@@ -403,6 +421,7 @@ class InvoiceService {
 
             const result = {
                 invoices: paginatedInvoices,
+                summary,
                 pagination: {
                     page,
                     limit,
@@ -672,32 +691,41 @@ class InvoiceService {
                     throw new ValidationError('Some of the selected items were not found on this invoice');
                 }
 
+                // ---- work out the new totals BEFORE any write ----
+                const newItemsTotal = Math.max(0, (invoice.itemsTotal || 0) - plan.removedCost);
+                const paid = invoice.amountPaid || 0;
+                // Add Stock invoices: total follows the items. Invoices with a typed total:
+                // the total goes down by what was removed. Either way supplier totals follow.
+                const newTotal = invoice.autoTotal
+                    ? newItemsTotal
+                    : Math.max(0, (invoice.totalAmount || 0) - plan.removedCost);
+                if (paid > newTotal + 0.01) {
+                    throw new ValidationError(
+                        `This invoice has KES ${paid.toLocaleString()} paid, which is more than the new total ` +
+                        `(KES ${newTotal.toLocaleString()}). Lower the paid amount first (Edit invoice), then remove the items.`
+                    );
+                }
+
                 // ---- writes ----
                 plan.apply(tx, 'delete', userName);
-                const newItemsTotal = Math.max(0, (invoice.itemsTotal || 0) - plan.removedCost);
                 const invoiceUpdates = {
                     itemsTotal: newItemsTotal,
                     itemsCount: Math.max(0, (invoice.itemsCount || 0) - plan.removedCount),
                     itemNames: plan.remainingNames,
+                    totalAmount: newTotal,
+                    balanceRemaining: newTotal - paid,
+                    paymentStatus: newTotal > 0 && newTotal - paid < 0.01 ? 'paid' : (paid > 0 ? 'partial' : 'pending'),
                     updatedBy: this._userId(user),
                     updatedByName: userName,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
-                // Add Stock invoices: total follows the items, supplier totals follow the invoice
-                if (invoice.autoTotal) {
-                    const paid = invoice.amountPaid || 0;
-                    const delta = newItemsTotal - (invoice.totalAmount || 0);
-                    invoiceUpdates.totalAmount = newItemsTotal;
-                    invoiceUpdates.balanceRemaining = newItemsTotal - paid;
-                    invoiceUpdates.paymentStatus = newItemsTotal > 0 && newItemsTotal - paid < 0.01
-                        ? 'paid' : (paid > 0 ? 'partial' : 'pending');
-                    if (delta !== 0 && supplierSnap.exists) {
-                        tx.update(supplierRef, {
-                            totalPurchases: admin.firestore.FieldValue.increment(delta),
-                            outstandingBalance: admin.firestore.FieldValue.increment(delta),
-                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                        });
-                    }
+                const delta = newTotal - (invoice.totalAmount || 0);
+                if (delta !== 0 && supplierSnap.exists) {
+                    tx.update(supplierRef, {
+                        totalPurchases: admin.firestore.FieldValue.increment(delta),
+                        outstandingBalance: admin.firestore.FieldValue.increment(delta),
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
                 }
                 tx.update(invoiceRef, invoiceUpdates);
 

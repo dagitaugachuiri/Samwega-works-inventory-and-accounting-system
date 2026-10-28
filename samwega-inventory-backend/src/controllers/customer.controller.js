@@ -105,10 +105,20 @@ const deleteCustomer = async (req, res) => {
  */
 const recordPayment = async (req, res) => {
     try {
-        const customer = await customerService.recordPayment(req.params.id, req.body.amount);
+        const customer = await customerService.recordPayment(req.params.id, req.body.amount, req.body.method || 'cash', req.user.uid);
         return res.status(200).json(successResponse(customer, 'Payment recorded successfully'));
     } catch (error) {
         logger.error('Record payment controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const recalculateDebts = async (req, res) => {
+    try {
+        const result = await customerService.recalculateAllDebts();
+        return res.status(200).json(successResponse(result, 'Debts recalculated'));
+    } catch (error) {
+        logger.error('Recalculate debts controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
@@ -144,5 +154,6 @@ module.exports = {
     getCustomersByVehicle,
     setMessagesStopped,
     getSummary,
-    getUnpaidSales
+    getUnpaidSales,
+    recalculateDebts
 };

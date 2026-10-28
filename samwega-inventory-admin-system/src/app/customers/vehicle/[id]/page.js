@@ -48,9 +48,8 @@ export default function VehicleCustomersPage() {
         (t, c) => ({
             purchases: t.purchases + (c.totalPurchases || 0),
             debt: t.debt + (c.totalDebt || 0),
-            reversed: t.reversed + (c.reversedSales || 0),
         }),
-        { purchases: 0, debt: 0, reversed: 0 }
+        { purchases: 0, debt: 0 }
     );
 
     const patchLocal = (customerId, changes) =>
@@ -106,7 +105,6 @@ export default function VehicleCustomersPage() {
     const stats = [
         { label: "Customers", value: customers.length },
         { label: "Total purchases", value: `KES ${totals.purchases.toLocaleString()}` },
-        { label: "Reversed sales", value: totals.reversed },
         { label: "Debt outstanding", value: `KES ${totals.debt.toLocaleString()}` },
     ];
 
@@ -185,11 +183,11 @@ export default function VehicleCustomersPage() {
                                             <td className="px-4 py-3 text-right text-sm">KES {(c.totalPurchases || 0).toLocaleString()}</td>
                                             <td className="px-4 py-3 text-right text-sm">KES {(c.totalDebt || 0).toLocaleString()}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                    c.messagesStopped ? "bg-slate-200 text-slate-700" : "bg-green-100 text-green-700"
-                                                }`}>
-                                                    {c.messagesStopped ? "Opted out" : "Active"}
-                                                </span>
+                                                {c.messagesStopped && (
+                                                    <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                                        Opted out
+                                                    </span>
+                                                )}
                                             </td>
                                             {isAdmin && (
                                                 <td className="px-4 py-3">

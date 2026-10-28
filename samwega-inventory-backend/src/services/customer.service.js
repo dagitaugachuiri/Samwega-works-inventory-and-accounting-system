@@ -637,24 +637,128 @@ class CustomerService {
      * @param {number} amount
      * @returns {Promise<Object>}
      */
-    async recordPayment(customerId, amount) {
-        try {
-            const customer = await this.getCustomerById(customerId);
+    /**
+     * Debt still owed on one sale. Credit amount minus settlement payments.
+     * Voided sales owe nothing.
+     */
+    outstandingForSale(s) {
+        if (s.status === 'voided') return 0;
+        const payments = Array.isArray(s.payments) ? s.payments : [];
+        const isCredit = (p) => p.method === 'credit' || p.method === 'debt';
+        const credit = payments.length
+            ? payments.filter(isCredit).reduce((t, p) => t + Number(p.amount || 0), 0)
+            : ((s.paymentMethod === 'credit' || s.paymentMethod === 'debt') ? Number(s.grandTotal || 0) : 0);
+        const settled = payments
+            .filter((p) => p.settlement === true || p.webhookUpdate === true)
+            .reduce((t, p) => t + Number(p.amount || 0), 0);
+        return Math.max(0, credit - settled);
+    }
 
-            if (amount > customer.totalDebt) {
-                throw new ValidationError('Payment amount exceeds outstanding debt');
-            }
+    /**
+     * Recalculate one customer's debt from their sales and store it on the customer.
+     * @returns {Promise<number>} the outstanding amount
+     */
+    async recalculateCustomerDebt(customerId) {
+        const snap = await this.db.collection('sales').where('customerId', '==', customerId).get();
+        const total = snap.docs.reduce((t, d) => t + this.outstandingForSale(d.data()), 0);
 
-            await this.db.collection(this.collection).doc(customerId).update({
-                totalDebt: admin.firestore.FieldValue.increment(-amount),
+        await this.db.collection(this.collection).doc(customerId).update({
+            totalDebt: total,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        await cache.delPattern(`${this.cachePrefix}*`);
+        return total;
+    }
+
+    /**
+     * Recalculate every customer's debt from the sales records, in one pass.
+     * @returns {Promise<{customers: number, withDebt: number}>}
+     */
+    async recalculateAllDebts() {
+        const salesSnap = await this.db.collection('sales').get();
+        const totals = new Map();
+        salesSnap.docs.forEach((d) => {
+            const s = d.data();
+            if (!s.customerId) return;
+            totals.set(s.customerId, (totals.get(s.customerId) || 0) + this.outstandingForSale(s));
+        });
+
+        const customersSnap = await this.db.collection(this.collection).select().get();
+        let batch = this.db.batch();
+        let pending = 0;
+        for (const c of customersSnap.docs) {
+            batch.update(c.ref, {
+                totalDebt: Math.round((totals.get(c.id) || 0) * 100) / 100,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+            pending++;
+            if (pending === 450) {
+                await batch.commit();
+                batch = this.db.batch();
+                pending = 0;
+            }
+        }
+        if (pending > 0) await batch.commit();
 
-            logger.info(`Customer payment recorded: ${customerId}`, { amount });
+        await cache.delPattern(`${this.cachePrefix}*`);
+        const withDebt = [...totals.values()].filter((v) => v > 0).length;
+        logger.info(`Debt recalculated for ${customersSnap.size} customers, ${withDebt} with debt`);
+        return { customers: customersSnap.size, withDebt };
+    }
 
-            // Invalidate cache
+    /**
+     * Record a payment against a customer's debt. The amount is applied to their
+     * unpaid sales, oldest first, and each sale keeps a record of it.
+     * @param {string} customerId
+     * @param {number} amount
+     * @param {string} method e.g. cash, mpesa, bank
+     * @param {string|null} userId who recorded it
+     * @returns {Promise<Object>} the updated customer
+     */
+    async recordPayment(customerId, amount, method = 'cash', userId = null) {
+        try {
+            const pay = Number(amount);
+            if (!(pay > 0)) throw new ValidationError('Payment amount must be positive');
+
+            const customerDoc = await this.db.collection(this.collection).doc(customerId).get();
+            if (!customerDoc.exists) throw new NotFoundError('Customer');
+
+            const snap = await this.db.collection('sales').where('customerId', '==', customerId).get();
+            const open = snap.docs
+                .map((d) => ({ ref: d.ref, data: d.data(), due: this.outstandingForSale(d.data()) }))
+                .filter((x) => x.due > 0)
+                .sort((a, b) => (this.toDate(a.data.saleDate)?.getTime() || 0) - (this.toDate(b.data.saleDate)?.getTime() || 0));
+
+            const owing = open.reduce((t, x) => t + x.due, 0);
+            if (pay > owing + 0.001) {
+                throw new ValidationError(`Payment exceeds outstanding debt of KES ${owing.toLocaleString()}`);
+            }
+
+            let left = pay;
+            const batch = this.db.batch();
+            for (const x of open) {
+                if (left <= 0) break;
+                const apply = Math.min(x.due, left);
+                left = Math.round((left - apply) * 100) / 100;
+                const remainingAfter = Math.round((x.due - apply) * 100) / 100;
+                batch.update(x.ref, {
+                    payments: admin.firestore.FieldValue.arrayUnion({
+                        method,
+                        amount: apply,
+                        paidAt: new Date(),
+                        settlement: true,
+                        recordedBy: userId
+                    }),
+                    paymentStatus: remainingAfter > 0 ? 'partially_paid' : 'paid',
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+            await batch.commit();
+
+            await this.recalculateCustomerDebt(customerId);
+            logger.info(`Customer payment recorded: ${customerId}`, { amount: pay, method });
+
             await cache.del(`${this.cachePrefix}${customerId}`);
-
             return await this.getCustomerById(customerId);
         } catch (error) {
             logger.error('Record customer payment error:', error);

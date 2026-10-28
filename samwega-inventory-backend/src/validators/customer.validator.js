@@ -119,6 +119,7 @@ const getAllCustomersSchema = Joi.object({
  * Record payment validation schema
  */
 const recordPaymentSchema = Joi.object({
+    method: Joi.string().valid('cash', 'mpesa', 'bank', 'equity', 'cheque', 'manual').optional(),
     amount: Joi.number()
         .positive()
         .required()

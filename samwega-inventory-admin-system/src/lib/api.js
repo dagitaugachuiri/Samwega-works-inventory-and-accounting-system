@@ -633,6 +633,17 @@ class APIClient {
     async getCustomerUnpaidSales(id) {
         return this.request(`/customers/${id}/unpaid-sales`);
     }
+
+    async recordCustomerPayment(id, amount, method = 'cash') {
+        return this.request(`/customers/${id}/payment`, {
+            method: 'POST',
+            body: JSON.stringify({ amount, method }),
+        });
+    }
+
+    async recalculateCustomerDebts() {
+        return this.request('/customers/recalculate-debts', { method: 'POST' });
+    }
     async getCustomersByVehicle() {
         return this.request(`/customers/by-vehicle`);
     }

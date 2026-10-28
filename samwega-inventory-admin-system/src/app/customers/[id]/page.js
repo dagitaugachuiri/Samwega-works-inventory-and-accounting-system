@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2, Car, Receipt } from "lucide-react";
+import { ArrowLeft, Trash2, Car, Receipt, RefreshCw } from "lucide-react";
 import api from "../../../lib/api";
 import AlertContainer, { useAlert } from "../../../components/Alert";
 
@@ -15,6 +15,8 @@ const FIELDS = [
     { key: "notes", label: "Notes", multiline: true },
 ];
 
+const PAY_METHODS = ["cash", "mpesa", "bank", "equity", "cheque", "manual"];
+
 const unwrap = (r) => r?.data ?? r;
 
 export default function CustomerEditPage() {
@@ -26,39 +28,46 @@ export default function CustomerEditPage() {
     const [unpaid, setUnpaid] = useState({ totalDebt: 0, sales: [] });
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
     const [saving, setSaving] = useState(false);
+    const [payAmount, setPayAmount] = useState("");
+    const [payMethod, setPayMethod] = useState("cash");
+    const [paying, setPaying] = useState(false);
     const alert = useAlert();
 
+    const loadCustomer = useCallback(async () => {
+        setLoading(true);
+        setLoadError("");
+        try {
+            const c = unwrap(await api.getCustomerById(id));
+            setCustomer(c);
+            setForm({
+                ...Object.fromEntries(FIELDS.map((f) => [f.key, c[f.key] || ""])),
+                assignedVehicleId: c.assignedVehicleId || "",
+            });
+        } catch (e) {
+            setLoadError(e.message || "Could not load this customer.");
+        } finally {
+            setLoading(false);
+        }
+        api.getCustomerUnpaidSales(id)
+            .then((r) => setUnpaid(unwrap(r) || { totalDebt: 0, sales: [] }))
+            .catch(() => {});
+    }, [id]);
+
     useEffect(() => {
-        let cancelled = false;
         api.getCurrentUser()
-            .then((r) => !cancelled && setIsAdmin(unwrap(r)?.role === "admin"))
+            .then((r) => setIsAdmin(unwrap(r)?.role === "admin"))
             .catch(() => {});
         api.getVehicles()
             .then((r) => {
                 const d = unwrap(r);
                 const list = Array.isArray(d) ? d : (d?.vehicles ?? []);
-                if (!cancelled) setVehicles(list.filter((v) => v.isActive !== false));
+                setVehicles(list.filter((v) => v.isActive !== false));
             })
             .catch(() => {});
-        api.getCustomerById(id)
-            .then((r) => {
-                if (cancelled) return;
-                const c = unwrap(r);
-                setCustomer(c);
-                setForm({
-                    ...Object.fromEntries(FIELDS.map((f) => [f.key, c[f.key] || ""])),
-                    assignedVehicleId: c.assignedVehicleId || "",
-                });
-            })
-            .catch((e) => alert.error("Failed to load customer: " + e.message))
-            .finally(() => !cancelled && setLoading(false));
-        api.getCustomerUnpaidSales(id)
-            .then((r) => !cancelled && setUnpaid(unwrap(r) || { totalDebt: 0, sales: [] }))
-            .catch(() => {});
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+        loadCustomer();
+    }, [loadCustomer]);
 
     const save = async () => {
         const payload = {};
@@ -85,6 +94,26 @@ export default function CustomerEditPage() {
             alert.error("Failed to save: " + e.message);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const recordPayment = async () => {
+        const amount = Number(payAmount);
+        if (!(amount > 0)) {
+            alert.error("Enter the amount paid");
+            return;
+        }
+        setPaying(true);
+        try {
+            const updated = unwrap(await api.recordCustomerPayment(id, amount, payMethod));
+            setCustomer(updated);
+            setPayAmount("");
+            alert.success(`Payment of KES ${amount.toLocaleString()} recorded`);
+            api.getCustomerUnpaidSales(id).then((r) => setUnpaid(unwrap(r))).catch(() => {});
+        } catch (e) {
+            alert.error("Failed to record payment: " + e.message);
+        } finally {
+            setPaying(false);
         }
     };
 
@@ -121,12 +150,18 @@ export default function CustomerEditPage() {
 
     if (!customer) {
         return (
-            <div className="mx-auto max-w-2xl p-6 text-sm text-slate-500">
-                Customer not found.
-                <AlertContainer alerts={alert.alerts} onClose={alert.hideAlert} />
+            <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 py-16 text-center">
+                <p className="text-sm text-slate-700">Could not load this customer.</p>
+                {loadError && <p className="text-xs text-rose-600">{loadError}</p>}
+                <button onClick={loadCustomer} className="btn-ghost">
+                    <RefreshCw size={14} className="mr-2" /> Try again
+                </button>
+                <Link href="/customers" className="text-sm text-slate-500 hover:underline">Back to customers</Link>
             </div>
         );
     }
+
+    const debt = Number(customer.totalDebt || 0);
 
     return (
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -144,14 +179,12 @@ export default function CustomerEditPage() {
                 </div>
             </div>
 
-            {/* Debt glimpse */}
+            {/* Debt */}
             <div className="glass-panel p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-slate-500">Debt outstanding</p>
-                        <p className="mt-1 text-2xl font-semibold text-slate-900">
-                            KES {Number(unpaid.totalDebt || customer.totalDebt || 0).toLocaleString()}
-                        </p>
+                        <p className="mt-1 text-2xl font-semibold text-slate-900">KES {debt.toLocaleString()}</p>
                     </div>
                     <Receipt size={22} className="text-sky-500" />
                 </div>
@@ -174,6 +207,32 @@ export default function CustomerEditPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {isAdmin && debt > 0 && (
+                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-end">
+                        <label className="block flex-1">
+                            <span className="mb-1 block text-sm font-medium text-slate-700">Amount paid (KES)</span>
+                            <input
+                                type="number"
+                                min="0"
+                                className="input-field"
+                                value={payAmount}
+                                onChange={(e) => setPayAmount(e.target.value)}
+                            />
+                        </label>
+                        <label className="block sm:w-40">
+                            <span className="mb-1 block text-sm font-medium text-slate-700">Method</span>
+                            <select className="input-field" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                                {PAY_METHODS.map((m) => (
+                                    <option key={m} value={m}>{m}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <button onClick={recordPayment} disabled={paying} className="btn-primary">
+                            {paying ? "Recording…" : "Record payment"}
+                        </button>
                     </div>
                 )}
             </div>
@@ -228,7 +287,6 @@ export default function CustomerEditPage() {
                 )}
             </div>
 
-            {/* Admin-only actions */}
             {isAdmin && (
                 <div className="glass-panel flex items-center justify-between gap-4 p-6">
                     <div>

@@ -8,6 +8,7 @@ const vehicleService = require('./vehicle.service');
 const inventoryService = require('./inventory.service');
 const debtService = require('./debt.service');
 const smsService = require('./sms.service');
+const customerService = require('./customer.service');
 const { optOutService } = require('./optout.service');
 
 class SalesService {
@@ -389,6 +390,9 @@ class SalesService {
             });
 
             logger.info(`Sale created: ${receiptNumber}`, { id: saleId, vehicleId, grandTotal });
+            if (customerId) {
+                await customerService.recalculateCustomerDebt(customerId).catch((e) => logger.error('Debt recalc after sale failed:', e.message));
+            }
 
             // ── Automated Debt Creation ──
             // If the sale has a credit portion, create the debt record in the external system.
@@ -884,6 +888,9 @@ class SalesService {
             });
 
             logger.info(`Sale voided: ${sale.receiptNumber}`, { saleId, managerId, reason });
+            if (sale.customerId) {
+                await customerService.recalculateCustomerDebt(sale.customerId).catch((e) => logger.error('Debt recalc after void failed:', e.message));
+            }
 
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${saleId}`);
@@ -1501,6 +1508,10 @@ class SalesService {
             }
 
             await saleDoc.ref.update(updates);
+
+            if (sale.customerId) {
+                await customerService.recalculateCustomerDebt(sale.customerId).catch((e) => logger.error('Debt recalc after webhook failed:', e.message));
+            }
 
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${saleId}`);

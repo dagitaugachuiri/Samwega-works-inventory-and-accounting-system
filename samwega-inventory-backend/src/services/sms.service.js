@@ -1,5 +1,6 @@
 const textSMSService = require('../config/textsms.config');
 const logger = require('../utils/logger');
+const { optOutService } = require('./optout.service');
 
 class SmsService {
     /**
@@ -28,6 +29,10 @@ class SmsService {
         try {
             const phone = this.formatPhone(sale.customerPhone);
             if (!phone) return;
+            if (await optOutService.isStopped(phone)) {
+                logger.info(`[SmsService] Sale SMS skipped, messages stopped for ${phone}`);
+                return;
+            }
 
             // Format date for SMS (e.g., 11 May 2026)
             const dateStr = sale.saleDate ? new Date(sale.saleDate).toLocaleDateString('en-GB', {
@@ -58,6 +63,7 @@ class SmsService {
         try {
             const phone = this.formatPhone(debt.storeOwner.phoneNumber);
             if (!phone) return;
+            if (await optOutService.isStopped(phone)) return;
 
             const amountStr = Math.floor(debt.remainingAmount || debt.amount).toLocaleString();
             const dueDate = debt.dueDate ? new Date(debt.dueDate).toLocaleDateString('en-GB') : 'N/A';

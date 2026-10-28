@@ -33,8 +33,8 @@ const getAllCustomers = async (req, res) => {
  */
 const searchCustomers = async (req, res) => {
     try {
-        const { q, limit } = req.query;
-        const customers = await customerService.searchCustomers(q, limit);
+        const { q, limit, vehicleId } = req.query;
+        const customers = await customerService.searchCustomers(q, limit, vehicleId || null, req.user.uid);
         return res.status(200).json(successResponse({ customers }, 'Customers found successfully'));
     } catch (error) {
         logger.error('Search customers controller error:', error);
@@ -113,6 +113,16 @@ const recordPayment = async (req, res) => {
     }
 };
 
+const getUnpaidSales = async (req, res) => {
+    try {
+        const result = await customerService.getUnpaidSales(req.params.id);
+        return res.status(200).json(successResponse(result, 'Unpaid sales retrieved'));
+    } catch (error) {
+        logger.error('Get unpaid sales controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
 const getSummary = async (req, res) => {
     try {
         const summary = await customerService.getSummary();
@@ -133,5 +143,6 @@ module.exports = {
     recordPayment,
     getCustomersByVehicle,
     setMessagesStopped,
-    getSummary
+    getSummary,
+    getUnpaidSales
 };

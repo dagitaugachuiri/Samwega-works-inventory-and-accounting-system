@@ -62,7 +62,8 @@ const updateCustomerSchema = Joi.object({
     storeName: Joi.string().min(2).max(100).optional(),
     customerIdNumber: Joi.string().max(50).optional(),
     customerEmail: Joi.string().email().optional(),
-    notes: Joi.string().max(500).optional()
+    notes: Joi.string().max(500).optional(),
+    assignedVehicleId: Joi.string().max(100).allow(null, '').optional()
 }).min(1); // At least one field must be provided
 
 /**
@@ -89,6 +90,9 @@ const searchCustomersSchema = Joi.object({
             'string.max': 'Search query cannot exceed 100 characters',
             'any.required': 'Search query is required'
         }),
+    vehicleId: Joi.string()
+        .max(100)
+        .optional(),
     limit: Joi.number()
         .integer()
         .min(1)

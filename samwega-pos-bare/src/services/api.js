@@ -138,8 +138,9 @@ export const patchSaleDebtLink = async (saleId, { debtId, debtCode }) => {
 };
 
 
-export const searchCustomers = async (query) => {
-    const response = await api.get('/customers/search', { params: { q: query, limit: 10 } });
+export const searchCustomers = async (query, vehicleId) => {
+    // vehicleId limits results to customers who have bought from this vehicle
+    const response = await api.get('/customers/search', { params: { q: query, limit: 10, ...(vehicleId ? { vehicleId } : {}) } });
     return response.data;
 };
 

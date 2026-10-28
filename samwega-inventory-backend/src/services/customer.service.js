@@ -212,59 +212,107 @@ class CustomerService {
      * @param {number} limit - Max results to return
      * @returns {Promise<Array>}
      */
+    /**
+     * Customers grouped by vehicle. Built from sales; names, phones and store
+     * come from the current customer record. Cached for 5 minutes, and
+     * concurrent callers share one build instead of each reading every sale.
+     * @returns {Promise<Array>}
+     */
     async getCustomersGroupedByVehicle() {
-         const cacheKey = `${this.cachePrefix}by-vehicle`;
-         const cached = await cache.get(cacheKey);
-             if (cached) return cached;
-             
-         const snap = await this.db.collection('sales').get();
-         const vehicles = new Map();
+        const cacheKey = `${this.cachePrefix}by-vehicle`;
+        const cached = await cache.get(cacheKey);
+        if (cached) return cached;
+
+        if (!this.byVehicleInFlight) {
+            this.byVehicleInFlight = this.buildCustomersByVehicle(cacheKey)
+                .finally(() => { this.byVehicleInFlight = null; });
+        }
+        return this.byVehicleInFlight;
+    }
+
+    async buildCustomersByVehicle(cacheKey) {
+        // Only the fields we need, to keep the read small
+        const snap = await this.db.collection('sales')
+            .select('customerId', 'customerName', 'customerPhone', 'vehicleId', 'vehicleName',
+                    'status', 'grandTotal', 'paymentStatus', 'saleDate')
+            .get();
+
+        const vehicles = new Map();
 
         snap.docs.forEach((doc) => {
-        const s = doc.data();
-        if (!s.customerId || !s.vehicleId) return; // walk-in sales are skipped
+            const s = doc.data();
+            if (!s.customerId || !s.vehicleId) return; // walk-in sales are skipped
 
-        if (!vehicles.has(s.vehicleId)) {
-            vehicles.set(s.vehicleId, {
-                vehicleId: s.vehicleId,
-                vehicleName: s.vehicleName || 'Unknown vehicle',
-                customers: new Map()
-            });
-        }
-        const vehicle = vehicles.get(s.vehicleId);
+            if (!vehicles.has(s.vehicleId)) {
+                vehicles.set(s.vehicleId, {
+                    vehicleId: s.vehicleId,
+                    vehicleName: s.vehicleName || 'Unknown vehicle',
+                    customers: new Map()
+                });
+            }
+            const vehicle = vehicles.get(s.vehicleId);
 
-        if (!vehicle.customers.has(s.customerId)) {
-            vehicle.customers.set(s.customerId, {
-                customerId: s.customerId,
-                customerName: s.customerName || 'Unknown',
-                customerPhone: s.customerPhone || null,
-                completedSales: 0,
-                reversedSales: 0,
-                totalPurchases: 0,
-                salesOwing: 0,
-                lastSaleDate: null
-            });
-        }
-        const row = vehicle.customers.get(s.customerId);
+            if (!vehicle.customers.has(s.customerId)) {
+                vehicle.customers.set(s.customerId, {
+                    customerId: s.customerId,
+                    customerName: s.customerName || 'Unknown',
+                    customerPhone: s.customerPhone || null,
+                    completedSales: 0,
+                    reversedSales: 0,
+                    totalPurchases: 0,
+                    salesOwing: 0,
+                    lastSaleDate: null
+                });
+            }
+            const row = vehicle.customers.get(s.customerId);
 
-        if (s.status === 'voided') {
-            row.reversedSales++;
-            return;
-        }
+            if (s.status === 'voided') {
+                row.reversedSales++;
+                return;
+            }
 
-        row.completedSales++;
-        row.totalPurchases += Number(s.grandTotal || 0);
-        if (s.paymentStatus === 'pending' || s.paymentStatus === 'partially_paid') {
-            row.salesOwing++;
-        }
+            row.completedSales++;
+            row.totalPurchases += Number(s.grandTotal || 0);
+            if (s.paymentStatus === 'pending' || s.paymentStatus === 'partially_paid') {
+                row.salesOwing++;
+            }
 
-        const saleDate = this.toDate(s.saleDate);
-        if (saleDate && (!row.lastSaleDate || saleDate > new Date(row.lastSaleDate))) {
-            row.lastSaleDate = saleDate.toISOString();
-        }
+            const saleDate = this.toDate(s.saleDate);
+            if (saleDate && (!row.lastSaleDate || saleDate > new Date(row.lastSaleDate))) {
+                row.lastSaleDate = saleDate.toISOString();
+            }
         });
 
-               const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
+        // Customers assigned to a vehicle show there even before their first sale
+        const assignedSnap = await this.db.collection(this.collection)
+            .where('assignedVehicleId', '!=', null)
+            .get();
+        assignedSnap.docs.forEach((d) => {
+            const c = d.data();
+            if (!vehicles.has(c.assignedVehicleId)) {
+                vehicles.set(c.assignedVehicleId, {
+                    vehicleId: c.assignedVehicleId,
+                    vehicleName: c.assignedVehicleName || 'Unknown vehicle',
+                    customers: new Map()
+                });
+            }
+            const v = vehicles.get(c.assignedVehicleId);
+            if (!v.customers.has(d.id)) {
+                v.customers.set(d.id, {
+                    customerId: d.id,
+                    customerName: c.customerName || 'Unknown',
+                    customerPhone: c.customerPhone || null,
+                    completedSales: 0,
+                    reversedSales: 0,
+                    totalPurchases: 0,
+                    salesOwing: 0,
+                    lastSaleDate: null
+                });
+            }
+        });
+
+        // One batched read for every customer record that appears in sales
+        const ids = [...new Set([...vehicles.values()].flatMap((v) => [...v.customers.keys()]))];
         const info = new Map();
         if (ids.length) {
             const refs = ids.map((id) => this.db.collection(this.collection).doc(id));
@@ -274,28 +322,33 @@ class CustomerService {
             });
         }
 
-    const result = [...vehicles.values()]
+        const result = [...vehicles.values()]
             .map((v) => ({
                 vehicleId: v.vehicleId,
                 vehicleName: v.vehicleName,
                 customers: [...v.customers.values()]
+                    // Deleted customers drop out of the vehicle lists
+                    .filter((c) => info.has(c.customerId))
                     .map((c) => {
                         const cust = info.get(c.customerId);
                         return {
                             ...c,
-                            customerName: cust?.customerName || c.customerName,
-                            customerPhone: cust?.customerPhone ?? c.customerPhone,
-                            storeName: cust?.storeName || null,
-                            totalDebt: Number(cust?.totalDebt || 0),
-                            messagesStopped: Boolean(cust?.messagesStopped)
+                            customerName: cust.customerName || c.customerName,
+                            customerPhone: cust.customerPhone ?? c.customerPhone,
+                            storeName: cust.storeName || null,
+                            totalDebt: Number(cust.totalDebt || 0),
+                            messagesStopped: Boolean(cust.messagesStopped)
                         };
                     })
                     .sort((a, b) => b.totalPurchases - a.totalPurchases)
             }))
-            .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName)); 
-            await cache.set(cacheKey, result, 120);
-            return result;
-        }
+            .filter((v) => v.customers.length > 0)
+            .sort((a, b) => a.vehicleName.localeCompare(b.vehicleName));
+
+        await cache.set(cacheKey, result, 300);
+        return result;
+    }
+
     /**
      * Get summary of customers and vehicles
      * @returns {Promise<Object>}
@@ -316,35 +369,113 @@ class CustomerService {
      }
 
     /**
-     * Search customers (autocomplete)
-     * @param {string} query - Search query
-     * @param {number} limit - Max results to return
+     * Unpaid sales for one customer (pending or partly paid), newest first.
+     * The customer's totalDebt is the balance; this shows the sales it comes from.
+     * @param {string} customerId
+     * @returns {Promise<{totalDebt: number, sales: Array}>}
+     */
+    async getUnpaidSales(customerId) {
+        const doc = await this.db.collection(this.collection).doc(customerId).get();
+        if (!doc.exists) throw new NotFoundError('Customer');
+
+        const snap = await this.db.collection('sales')
+            .where('customerId', '==', customerId)
+            .get();
+
+        const sales = snap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .filter((s) => s.status !== 'voided' &&
+                (s.paymentStatus === 'pending' || s.paymentStatus === 'partially_paid'))
+            .sort((a, b) => (this.toDate(b.saleDate)?.getTime() || 0) - (this.toDate(a.saleDate)?.getTime() || 0))
+            .map((s) => ({
+                saleId: s.id,
+                receiptNumber: s.receiptNumber || s.id,
+                saleDate: this.toDate(s.saleDate)?.toISOString() || null,
+                vehicleName: s.vehicleName || null,
+                grandTotal: Number(s.grandTotal || 0),
+                paymentStatus: s.paymentStatus
+            }));
+
+        return { totalDebt: Number(doc.data().totalDebt || 0), sales };
+    }
+
+    /**
+     * Search customers (autocomplete).
+     * With vehicleId, the search covers that vehicle's customers (bought from it or
+     * assigned to it) plus every customer the signed-in user created.
+     * @param {string} query
+     * @param {number} limit
+     * @param {string|null} vehicleId
+     * @param {string|null} userId
      * @returns {Promise<Array>}
      */
-    async searchCustomers(query, limit = 10) {
+    async searchCustomers(query, limit = 10, vehicleId = null, userId = null) {
         try {
             if (!query || query.length < 2) {
                 return [];
             }
 
-            const cacheKey = `${this.cachePrefix}search:${query}:${limit}`;
+            const cacheKey = `${this.cachePrefix}search:${vehicleId || 'all'}:${userId || '-'}:${query}:${limit}`;
             const cached = await cache.get(cacheKey);
             if (cached) return cached;
 
-            const queryLower = query.toLowerCase();
+            const q = query.toLowerCase();
+            let results;
 
-            // Get all customers (consider adding index for better performance)
-            const snapshot = await this.db.collection(this.collection).get();
-            let customers = serializeDocs(snapshot);
+            if (vehicleId) {
+                const candidates = new Map();
 
-            // Filter by name, store name, or phone
-            const results = customers.filter(customer =>
-                customer.customerNameLower?.startsWith(queryLower) ||
-                customer.storeNameLower?.startsWith(queryLower) ||
-                customer.customerPhone?.startsWith(query)
-            ).slice(0, limit);
+                const vehicles = await this.getCustomersGroupedByVehicle();
+                const vehicle = vehicles.find((v) => v.vehicleId === vehicleId);
+                (vehicle ? vehicle.customers : []).forEach((c) => {
+                    candidates.set(c.customerId, {
+                        id: c.customerId,
+                        customerId: c.customerId,
+                        customerName: c.customerName,
+                        customerPhone: c.customerPhone,
+                        storeName: c.storeName,
+                        totalDebt: c.totalDebt,
+                        messagesStopped: c.messagesStopped
+                    });
+                });
 
-            // Cache for shorter time (1 minute) as this is real-time search
+                if (userId) {
+                    const mine = await this.db.collection(this.collection)
+                        .where('createdBy', '==', userId)
+                        .get();
+                    mine.docs.forEach((d) => {
+                        if (candidates.has(d.id)) return;
+                        const c = d.data();
+                        candidates.set(d.id, {
+                            id: d.id,
+                            customerId: d.id,
+                            customerName: c.customerName,
+                            customerPhone: c.customerPhone,
+                            storeName: c.storeName || null,
+                            totalDebt: Number(c.totalDebt || 0),
+                            messagesStopped: Boolean(c.messagesStopped)
+                        });
+                    });
+                }
+
+                results = [...candidates.values()]
+                    .filter((c) =>
+                        (c.customerName || '').toLowerCase().includes(q) ||
+                        (c.storeName || '').toLowerCase().includes(q) ||
+                        (c.customerPhone || '').includes(query)
+                    )
+                    .slice(0, limit);
+            } else {
+                const snapshot = await this.db.collection(this.collection).get();
+                const customers = serializeDocs(snapshot);
+                results = customers.filter(customer =>
+                    customer.customerNameLower?.startsWith(q) ||
+                    customer.storeNameLower?.startsWith(q) ||
+                    customer.customerPhone?.startsWith(query)
+                ).slice(0, limit);
+            }
+
+            // Short cache: this is real-time search
             await cache.set(cacheKey, results, 60);
 
             return results;
@@ -353,6 +484,7 @@ class CustomerService {
             throw error;
         }
     }
+
 
         async updateCustomer(customerId, updateData) {
         const ref = this.db.collection(this.collection).doc(customerId);
@@ -382,6 +514,18 @@ class CustomerService {
                 throw new ConflictError('Customer with this phone number already exists');
             }
             updates.messagesStopped = await optOutService.isStopped(updates.customerPhone);
+        }
+
+        if (updateData.assignedVehicleId !== undefined) {
+            if (updateData.assignedVehicleId) {
+                const vDoc = await this.db.collection('vehicles').doc(updateData.assignedVehicleId).get();
+                if (!vDoc.exists) throw new NotFoundError('Vehicle');
+                updates.assignedVehicleId = vDoc.id;
+                updates.assignedVehicleName = vDoc.data().vehicleName || null;
+            } else {
+                updates.assignedVehicleId = null;
+                updates.assignedVehicleName = null;
+            }
         }
 
         updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
@@ -448,6 +592,7 @@ class CustomerService {
             await cache.del(`${this.cachePrefix}${customerId}`);
             await cache.delPattern(`${this.cachePrefix}list:*`);
             await cache.delPattern(`${this.cachePrefix}search:*`);
+            await cache.delPattern(`${this.cachePrefix}*`);
         } catch (error) {
             logger.error('Delete customer error:', error);
             throw error;

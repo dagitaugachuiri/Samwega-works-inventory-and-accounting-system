@@ -629,6 +629,10 @@ class APIClient {
     async getCustomerById(id) {
         return this.request(`/customers/${id}`);
     }
+
+    async getCustomerUnpaidSales(id) {
+        return this.request(`/customers/${id}/unpaid-sales`);
+    }
     async getCustomersByVehicle() {
         return this.request(`/customers/by-vehicle`);
     }

@@ -8,6 +8,7 @@ const vehicleService = require('./vehicle.service');
 const inventoryService = require('./inventory.service');
 const debtService = require('./debt.service');
 const smsService = require('./sms.service');
+const { optOutService } = require('./optout.service');
 
 class SalesService {
     constructor() {
@@ -202,6 +203,9 @@ class SalesService {
                         totalPurchases: 0,
                         totalDebt: 0,
                         lastPurchaseDate: null,
+                        messagesStopped: await optOutService.isStopped(customerPhone),
+                        assignedVehicleId: vehicleId || null,
+                        assignedVehicleName: vehicle?.vehicleName || null,
                         createdBy: userId,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
                         updatedAt: admin.firestore.FieldValue.serverTimestamp()

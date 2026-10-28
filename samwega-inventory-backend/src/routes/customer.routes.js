@@ -60,6 +60,14 @@ router.get(
  * @access  All verified users
  */
 router.get(
+    '/:id/unpaid-sales',
+    verifyToken,
+    requireVerified,
+    validateParams(customerIdSchema),
+    customerController.getUnpaidSales
+);
+
+router.get(
     '/:id',
     verifyToken,
     requireVerified,

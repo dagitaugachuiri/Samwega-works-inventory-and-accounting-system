@@ -107,6 +107,18 @@ router.post(
     validateBody(confirmTransferSchema),
     transferController.confirmTransfer
 );
+/**
+ * @route   POST /api/v1/transfers/:id/confirm-return
+ * @desc    Driver confirms a returned load (record only, no stock change)
+ * @access  Assigned driver
+ */
+router.post(
+    '/:id/confirm-return',
+    verifyToken,
+    requireRole('driver'),
+    validateParams(transferIdSchema),
+    transferController.confirmReturn
+);
 
 /**
  * @route   PATCH /api/v1/stock-issuance/:id/item/:itemIndex/layer/:layerIndex/collect

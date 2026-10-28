@@ -37,9 +37,13 @@ export default function VehicleDetailsDashboard() {
 
   // Fetch initial data
   useEffect(() => {
-    const id = window.location.pathname.split('/').pop();
-    setVehicleId(id);
-  }, []);
+  api.getCurrentUser().then((res) => {
+    const me = res?.data;
+    if (me && ['sales_rep', 'driver'].includes(me.role) && me.assignedVehicleId) {
+      router.replace(`/vehicles/${me.assignedVehicleId}`);
+    }
+   }).catch((err) => console.error('Error fetching user:', err));
+   }, []);
 
   useEffect(() => {
     if (!vehicleId) return;
@@ -55,7 +59,7 @@ export default function VehicleDetailsDashboard() {
         const meRes = await api.getCurrentUser();
         const currentUser = meRes?.data;
         setUser(currentUser);
-       const canSeeTransfers = ['admin', 'store_manager', 'accountant'].includes(currentUser?.role);
+       const canSeeTransfers = ['admin', 'store_manager', 'accountant', 'sales_rep', 'driver'].includes(currentUser?.role);
 
         const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
           api.getVehicleById(vehicleId),
@@ -602,20 +606,19 @@ function IssuancesTab({ transfers }) {
                 )}
               </td>
               <td className="px-6 py-4">
-              <div className="flex items-center gap-2">
-              <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                  {(t.status === 'collected' ? t.confirmedByName : t.issuedByName)?.substring(0, 2).toUpperCase() || '?'}
-              </div>
-              <div className="flex flex-col">
-              <span className="text-slate-900 font-medium">
-              {t.status === 'collected' ? t.confirmedByName : t.issuedByName || 'Unknown'}
-               </span>
-             <span className="text-[10px] text-slate-400 capitalize">
-              {t.status === 'collected' ? 'Confirmed Collection' : 'Issued by'}
-              </span>
-              </div>
-            </div>
-            </td>
+               <div className="flex flex-col gap-2">
+                <div className="flex flex-col">
+                 <span className="text-slate-900 font-medium">{t.issuedByName || 'Unknown'}</span>
+                 <span className="text-[10px] text-blue-600 font-semibold uppercase">Issued by</span>
+               </div>
+               {t.confirmedByName && (
+               <div className="flex flex-col">
+                <span className="text-slate-900 font-medium">{t.confirmedByName}</span>
+                <span className="text-[10px] text-emerald-600 font-semibold uppercase">Confirmed by</span>
+                </div>
+                )}
+                </div>
+               </td>
             </tr>
           );
         }) : (

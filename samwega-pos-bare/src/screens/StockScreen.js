@@ -471,6 +471,7 @@ export default function StockScreen({ route, navigation }) {
                         style={styles.collectionAlert}
                         onPress={() => navigation.navigate('IssuanceConfirmation', { vehicleId })}
                     >
+                        
                         <View style={styles.alertIconContainer}>
                             <Text style={styles.alertEmoji}>🚨</Text>
                         </View>

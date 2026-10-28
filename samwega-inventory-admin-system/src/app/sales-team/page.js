@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, CheckCircle, XCircle, Truck, ArrowLeft, Plus, Shield, Lock, X, Key, GraduationCap, User, Activity, Search, Filter, Calendar, RotateCw } from "lucide-react";
+import { Users, CheckCircle, XCircle, Truck, ArrowLeft, Plus, Shield, Lock, X, Key, GraduationCap, User, Activity, Search, Filter, Calendar, RotateCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 import api from "../../lib/api";
@@ -174,11 +174,37 @@ export default function SalesTeamPage() {
         }
     };
 
+    // Delete is for mistakes and accounts that no longer exist. Disable is the normal way to stop access.
+    const handleDeleteUser = async (user) => {
+        const typed = window.prompt(
+            `Permanently delete ${user.username}?\n\nTheir name stays on old activity and records, but the account is gone for good. ` +
+            `If they only left the company, use Disable instead.\n\nType their name to confirm:`
+        );
+        if (typed === null) return;
+        if (typed.trim().toLowerCase() !== (user.username || '').trim().toLowerCase()) {
+            alert('The name did not match, so nothing was deleted.');
+            return;
+        }
+        setUpdating(user.id);
+        try {
+            const res = await api.deleteUser(user.id);
+            if (res.success) {
+                await fetchData();
+            } else {
+                alert('Failed to delete user');
+            }
+        } catch (err) {
+            alert('Failed to delete user: ' + (err.message || 'Unknown error'));
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     const handleAddAdmin = async (e) => {
         e.preventDefault();
         setSubmittingAdmin(true);
         try {
-            const res = await api.register(adminFormData);
+            const res = await api.createUser(adminFormData);
 
             if (res.success) {
                 setIsAddAdminOpen(false);
@@ -264,7 +290,10 @@ export default function SalesTeamPage() {
     };
 
     // Filter Lists
-    const admins = users.filter(u => ['admin', 'store_manager'].includes(u.role));
+    // store managers can view the team but not manage it
+    const canManage = currentUser?.role === 'admin';
+    const admins = users.filter(u => u.role === 'admin');
+    const storeTeam = users.filter(u => u.role === 'store_manager');
     const accountingTeam = users.filter(u => u.role === 'accountant');
     const salesTeam = users.filter(u => u.role === 'sales_rep');
     const driversTeam = users.filter(u => u.role === 'driver');
@@ -355,6 +384,15 @@ export default function SalesTeamPage() {
                         Administrators ({admins.length})
                     </button>
                     <button
+                        onClick={() => setActiveTab('store')}
+                        className={`border-b-2 px-1 py-3 text-sm font-medium transition-colors ${activeTab === 'store'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Store ({storeTeam.length})
+                    </button>
+                    <button
                         onClick={() => setActiveTab('accounting')}
                         className={`border-b-2 px-1 py-3 text-sm font-medium transition-colors ${activeTab === 'accounting'
                             ? 'border-emerald-600 text-emerald-600'
@@ -363,7 +401,7 @@ export default function SalesTeamPage() {
                     >
                         Accounting ({accountingTeam.length})
                     </button>
-                    {currentUser?.role === 'admin' && (
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'store_manager') && (
                         <button
                             onClick={() => setActiveTab('activity')}
                             className={`border-b-2 px-1 py-3 text-sm font-medium transition-colors ${activeTab === 'activity'
@@ -508,7 +546,7 @@ export default function SalesTeamPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : accountingTeam).map((user) => {
+                                {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : activeTab === 'store' ? storeTeam : accountingTeam).map((user) => {
                                     const assignedVehicle = vehicles.find(v => v.id === user.assignedVehicleId);
                                     const unassignedVehicles = getUnassignedVehicles(user.role);
                                     const isUpdating = updating === user.id;
@@ -551,11 +589,11 @@ export default function SalesTeamPage() {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => toggleVerification(user.id, user.isVerified)}
-                                                    disabled={isUpdating || isAdmin} // Admins usually auto-verified
+                                                    disabled={isUpdating || isAdmin || !canManage} // admins are auto-verified; only admins can change this
                                                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${user.isVerified
                                                         ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
                                                         : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                                        } ${(isUpdating || isAdmin) ? 'opacity-80 cursor-default' : ''}`}
+                                                        } ${(isUpdating || isAdmin || !canManage) ? 'opacity-80 cursor-default' : ''}`}
                                                 >
                                                     {user.isVerified ? (
                                                         <>
@@ -573,11 +611,11 @@ export default function SalesTeamPage() {
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => toggleAccess(user)}
-                                                    disabled={isUpdating || isCurrentUser}
+                                                    disabled={isUpdating || isCurrentUser || !canManage}
                                                     className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${user.isDisabled
                                                         ? 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                                                         : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                                        } ${(isUpdating || isCurrentUser) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        } ${(isUpdating || isCurrentUser || !canManage) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                 >
                                                     {user.isDisabled ? (
                                                         <>
@@ -597,7 +635,7 @@ export default function SalesTeamPage() {
                                                     <select
                                                         value={user.assignedVehicleId || ''}
                                                         onChange={(e) => assignVehicle(user.id, e.target.value)}
-                                                        disabled={isUpdating}
+                                                        disabled={isUpdating || !canManage}
                                                         className="w-full max-w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none disabled:opacity-50 disabled:bg-slate-100"
                                                     >
                                                         <option value="">Unassigned</option>
@@ -622,13 +660,29 @@ export default function SalesTeamPage() {
                                             )}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => openPasswordModal(user)}
-                                                        className="rounded p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                                                        title="Change Password"
-                                                    >
-                                                        <Key size={16} />
-                                                    </button>
+                                                    {canManage ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => openPasswordModal(user)}
+                                                                className="rounded p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                                                title="Change Password"
+                                                            >
+                                                                <Key size={16} />
+                                                            </button>
+                                                            {!isCurrentUser && (
+                                                                <button
+                                                                    onClick={() => handleDeleteUser(user)}
+                                                                    disabled={isUpdating}
+                                                                    className="rounded p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                                                                    title="Delete user permanently"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-400">View only</span>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -638,7 +692,7 @@ export default function SalesTeamPage() {
                         </table>
                     </div>
 
-                    {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : accountingTeam).length === 0 && (
+                    {(activeTab === 'sales' ? salesTeam : activeTab === 'drivers' ? driversTeam : activeTab === 'admins' ? admins : activeTab === 'store' ? storeTeam : accountingTeam).length === 0 && (
                         <div className="py-12 text-center">
                             <Users size={48} className="mx-auto mb-4 text-slate-300" />
                             <p className="text-slate-500">No {activeTab} members found</p>

@@ -61,17 +61,6 @@ api.interceptors.response.use(
     }
 );
 
-export const register = async (email, password, username, phone, role = 'sales_rep') => {
-    const response = await api.post('/auth/register', {
-        email,
-        password,
-        username,
-        phone,
-        role
-    });
-    return response.data;
-};
-
 export const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     return response.data;

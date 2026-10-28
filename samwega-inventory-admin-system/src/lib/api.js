@@ -91,11 +91,17 @@ class APIClient {
     }
 
     // ==================== AUTH ====================
-    async register(userData) {
-        return this.request('/auth/register', {
+    // Admin only: there is no public sign-up any more
+    async createUser(userData) {
+        return this.request('/auth/users', {
             method: 'POST',
             body: JSON.stringify(userData),
         });
+    }
+
+    // Admin only
+    async deleteUser(id) {
+        return this.request(`/auth/users/${id}`, { method: 'DELETE' });
     }
 
     async login(email, password) {

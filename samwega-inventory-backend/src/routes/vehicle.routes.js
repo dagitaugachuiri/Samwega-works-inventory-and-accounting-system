@@ -87,12 +87,12 @@ router.delete(
 /**
  * @route   POST /api/v1/vehicles/:id/assign-user
  * @desc    Assign user to vehicle
- * @access  Admin, Store Manager
+ * @access  Admin only (store managers can view the team but not manage it)
  */
 router.post(
     '/:id/assign-user',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('ASSIGN_USER', 'vehicle'),
     writeLimiter,
     validateParams(vehicleIdSchema),

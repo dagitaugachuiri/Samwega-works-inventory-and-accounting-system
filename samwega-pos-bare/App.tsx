@@ -3,7 +3,6 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './src/screens/LoginScreen';
-import RegistrationScreen from './src/screens/RegistrationScreen';
 import WaitingVerificationScreen from './src/screens/WaitingVerificationScreen';
 import StockScreen from './src/screens/StockScreen';
 import IssuanceConfirmationScreen from './src/screens/IssuanceConfirmationScreen';
@@ -37,11 +36,6 @@ const App = () => {
             <Stack.Screen
               name="Login"
               component={LoginScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Registration"
-              component={RegistrationScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen

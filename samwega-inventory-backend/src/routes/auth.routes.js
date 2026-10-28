@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const { validateBody, validateParams } = require('../middleware/validation.middleware');
-const { verifyToken, requireRole } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, logActivity } = require('../middleware/auth.middleware');
 const { authLimiter } = require('../middleware/rateLimit.middleware');
 const {
-    registerSchema,
+    createUserSchema,
     loginSchema,
     verifyUserSchema,
     assignVehicleSchema,
@@ -16,14 +16,6 @@ const {
 /**
  * Public routes (no authentication required)
  */
-
-// Register new user
-router.post(
-    '/register',
-    authLimiter,
-    validateBody(registerSchema),
-    authController.register
-);
 
 // Login
 router.post(
@@ -53,7 +45,7 @@ router.patch(
 );
 
 /**
- * User management routes (admin/store_manager only)
+ * User management routes. Store managers can VIEW the team; only admins can change it.
  */
 
 // Get all users
@@ -73,6 +65,26 @@ router.get(
     authController.getUserById
 );
 
+// Create user: admin only (there is no public sign-up)
+router.post(
+    '/users',
+    verifyToken,
+    requireRole('admin'),
+    logActivity('CREATE', 'user'),
+    validateBody(createUserSchema),
+    authController.createUser
+);
+
+// Delete user: admin only
+router.delete(
+    '/users/:id',
+    verifyToken,
+    requireRole('admin'),
+    logActivity('DELETE', 'user'),
+    validateParams(userIdSchema),
+    authController.deleteUser
+);
+
 // Verify user
 router.patch(
     '/users/:id/verify',
@@ -87,7 +99,7 @@ router.patch(
 router.patch(
     '/users/:id/assign-vehicle',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     validateParams(userIdSchema),
     validateBody(assignVehicleSchema),
     authController.assignVehicle
@@ -97,7 +109,7 @@ router.patch(
 router.patch(
     '/users/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     validateParams(userIdSchema),
     validateBody(updateUserSchema),
     authController.updateUser

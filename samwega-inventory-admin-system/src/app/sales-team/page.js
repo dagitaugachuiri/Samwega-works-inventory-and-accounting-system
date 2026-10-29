@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Users, CheckCircle, XCircle, Truck, ArrowLeft, Plus, Shield, Lock, X, Key, GraduationCap, User, Activity, Search, Filter, Calendar, RotateCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 
@@ -34,11 +34,14 @@ export default function SalesTeamPage() {
     // Activity Log State
     const [activityLogs, setActivityLogs] = useState([]);
     const [loadingLogs, setLoadingLogs] = useState(false);
-    const [logFilters, setLogFilters] = useState({
-        userId: '',
-        action: '',
-        resource: ''
-    });
+    const EMPTY_LOG_FILTERS = { search: '', userId: '', action: '', resource: '', startDate: '', endDate: '' };
+    const [logFilters, setLogFilters] = useState(EMPTY_LOG_FILTERS);
+    const [debouncedLogSearch, setDebouncedLogSearch] = useState('');
+    const [logPage, setLogPage] = useState(1);
+    const [logPagination, setLogPagination] = useState(null);
+    const [logMeta, setLogMeta] = useState({ truncated: false, since: null });
+    const logRequest = useRef(0); // ignore an old answer arriving after a newer one
+    const LOG_PAGE_SIZE = 30;
     const [selectedLog, setSelectedLog] = useState(null);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const [resourceData, setResourceData] = useState(null);
@@ -119,23 +122,92 @@ export default function SalesTeamPage() {
 
     const fetchActivityLogs = async () => {
         setLoadingLogs(true);
+        const thisRequest = ++logRequest.current;
         try {
-            const res = await api.getActivityLogs(logFilters);
+            const params = { page: logPage, limit: LOG_PAGE_SIZE };
+            if (debouncedLogSearch) params.search = debouncedLogSearch;
+            if (logFilters.userId) params.userId = logFilters.userId;
+            if (logFilters.action) params.action = logFilters.action;
+            if (logFilters.resource) params.resource = logFilters.resource;
+            // whole days in local time; blank dates mean "the last 30 days"
+            if (logFilters.startDate) params.startDate = new Date(`${logFilters.startDate}T00:00:00`).toISOString();
+            if (logFilters.endDate) params.endDate = new Date(`${logFilters.endDate}T23:59:59`).toISOString();
+
+            const res = await api.getActivityLogs(params);
+            if (thisRequest !== logRequest.current) return;
             if (res.success) {
                 setActivityLogs(res.data || []);
+                setLogPagination(res.pagination || null);
+                setLogMeta({ truncated: !!res.truncated, since: res.since || null });
             }
         } catch (err) {
             console.error("Failed to fetch activity logs", err);
         } finally {
-            setLoadingLogs(false);
+            if (thisRequest === logRequest.current) setLoadingLogs(false);
         }
     };
+
+    // typing in the search box waits for a short pause
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedLogSearch(logFilters.search.trim()), 350);
+        return () => clearTimeout(t);
+    }, [logFilters.search]);
+
+    // any filter change goes back to page 1
+    useEffect(() => {
+        setLogPage(1);
+    }, [debouncedLogSearch, logFilters.userId, logFilters.action, logFilters.resource, logFilters.startDate, logFilters.endDate]);
 
     useEffect(() => {
         if (activeTab === 'activity') {
             fetchActivityLogs();
         }
-    }, [activeTab, logFilters]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, logPage, debouncedLogSearch, logFilters.userId, logFilters.action, logFilters.resource, logFilters.startDate, logFilters.endDate]);
+
+    // ---- wording for the activity log ----
+    const ACTION_LABELS = {
+        CREATE: ['Created', 'bg-emerald-100 text-emerald-700'],
+        UPDATE: ['Edited', 'bg-blue-100 text-blue-700'],
+        DELETE: ['Deleted', 'bg-rose-100 text-rose-700'],
+        DELETE_BATCH: ['Deleted', 'bg-rose-100 text-rose-700'],
+        VOID: ['Reversed', 'bg-amber-100 text-amber-700'],
+        REVERSE: ['Reversed', 'bg-amber-100 text-amber-700'],
+        APPROVE: ['Approved', 'bg-emerald-100 text-emerald-700'],
+        REPLENISH: ['Stock received', 'bg-sky-100 text-sky-700'],
+        ADJUST_STOCK: ['Stock adjusted', 'bg-violet-100 text-violet-700'],
+        RECORD_PAYMENT: ['Payment', 'bg-emerald-100 text-emerald-700'],
+        REMOVE_ITEMS: ['Items removed', 'bg-amber-100 text-amber-700'],
+        CLEANUP: ['Clean-up', 'bg-slate-100 text-slate-700'],
+        RECALCULATE: ['Recalculated', 'bg-slate-100 text-slate-700'],
+        RETURN: ['Returned', 'bg-amber-100 text-amber-700'],
+        CONFIRM: ['Confirmed', 'bg-emerald-100 text-emerald-700'],
+        ASSIGN_USER: ['Assigned', 'bg-indigo-100 text-indigo-700'],
+        ASSIGN_VEHICLE: ['Assigned', 'bg-indigo-100 text-indigo-700'],
+        VERIFY: ['Activation', 'bg-indigo-100 text-indigo-700'],
+        BULK_IMPORT: ['Import', 'bg-sky-100 text-sky-700'],
+    };
+    const actionLabel = (a) => (ACTION_LABELS[a] ? ACTION_LABELS[a][0] : String(a || '').replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase()));
+    const actionColor = (a) => (ACTION_LABELS[a] ? ACTION_LABELS[a][1] : 'bg-slate-100 text-slate-700');
+    const AREA_LABELS = { inventory: 'Products & stock', sale: 'Sales', invoice: 'Invoices', supplier: 'Suppliers', expense: 'Expenses', transfer: 'Stock transfers', vehicle: 'Vehicles', user: 'Team', reconciliation: 'Reconciliation' };
+
+    // Older entries were saved as "CREATE sale: X by Nancy". Say it more like a person would.
+    const PAST = { CREATE: 'created', UPDATE: 'edited', DELETE: 'deleted', VOID: 'reversed', REVERSE: 'reversed', APPROVE: 'approved', REPLENISH: 'received stock for', ADJUST_STOCK: 'adjusted stock of', RECORD_PAYMENT: 'recorded a payment on', REMOVE_ITEMS: 'removed items from' };
+    const prettyDescription = (log) => {
+        const m = /^([A-Z_]+) ([a-z_]+)(?:: (.*?)| \((.*?)\))? by (.+)$/.exec(log.description || '');
+        if (!m) return log.description || '';
+        const what = AREA_LABELS[m[2]] ? m[2] : m[2].replace(/_/g, ' ');
+        const ident = m[3] || '';
+        return `${log.username} ${PAST[m[1]] || m[1].toLowerCase().replace(/_/g, ' ')} ${what}${ident ? ' ' + ident : ''}`;
+    };
+    const clearLogFilters = () => { setLogFilters(EMPTY_LOG_FILTERS); setDebouncedLogSearch(''); };
+    const logFilterCount = Object.entries(logFilters).filter(([, v]) => v).length;
+    const applyLogPreset = (days) => {
+        const pad = (n) => String(n).padStart(2, '0');
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const to = new Date(); const from = new Date(); from.setDate(to.getDate() - days);
+        setLogFilters(f => ({ ...f, startDate: fmt(from), endDate: fmt(to) }));
+    };
 
     const toggleVerification = async (userId, currentStatus) => {
         setUpdating(userId);
@@ -418,112 +490,153 @@ export default function SalesTeamPage() {
             {/* Activity Log View */}
             {activeTab === 'activity' && (
                 <div className="glass-panel overflow-hidden">
-                    <div className="border-b border-slate-200 bg-slate-50 p-4">
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-1.5 shadow-sm flex-1 max-w-xs">
+                    <div className="border-b border-slate-200 bg-slate-50 p-4 space-y-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm" style={{ minWidth: '16rem', maxWidth: '26rem' }}>
                                 <Search size={16} className="text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Filter by Resource (sale, invoice...)"
-                                    className="bg-transparent border-none focus:outline-none text-sm w-full"
-                                    value={logFilters.resource}
-                                    onChange={(e) => setLogFilters({ ...logFilters, resource: e.target.value })}
+                                    placeholder="Search a person or what they did (e.g. nails, Kevin, invoice)"
+                                    className="w-full border-none bg-transparent text-sm focus:outline-none"
+                                    value={logFilters.search}
+                                    onChange={(e) => setLogFilters({ ...logFilters, search: e.target.value })}
                                 />
                             </div>
                             <select
-                                className="bg-white rounded-lg border border-slate-200 px-3 py-1.5 shadow-sm text-sm focus:outline-none"
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none"
+                                value={logFilters.userId}
+                                onChange={(e) => setLogFilters({ ...logFilters, userId: e.target.value })}
+                            >
+                                <option value="">Everyone</option>
+                                {users.map((u) => <option key={u.id} value={u.id}>{u.username}</option>)}
+                            </select>
+                            <select
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none"
+                                value={logFilters.resource}
+                                onChange={(e) => setLogFilters({ ...logFilters, resource: e.target.value })}
+                            >
+                                <option value="">All areas</option>
+                                {Object.entries(AREA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                            </select>
+                            <select
+                                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none"
                                 value={logFilters.action}
                                 onChange={(e) => setLogFilters({ ...logFilters, action: e.target.value })}
                             >
-                                <option value="">All Actions</option>
-                                <option value="CREATE">CREATE</option>
-                                <option value="UPDATE">UPDATE</option>
-                                <option value="DELETE">DELETE</option>
-                                <option value="VOID">VOID</option>
-                                <option value="APPROVE">APPROVE</option>
+                                <option value="">All actions</option>
+                                {['CREATE', 'UPDATE', 'DELETE', 'VOID', 'REVERSE', 'APPROVE', 'REPLENISH', 'ADJUST_STOCK', 'RECORD_PAYMENT', 'REMOVE_ITEMS', 'RETURN', 'ASSIGN_USER', 'VERIFY'].map((a) => (
+                                    <option key={a} value={a}>{actionLabel(a)}</option>
+                                ))}
                             </select>
-                            <button
-                                onClick={fetchActivityLogs}
-                                className="p-2 text-slate-500 hover:text-sky-600 transition-colors"
-                                title="Refresh Logs"
-                            >
+                            <button onClick={fetchActivityLogs} className="p-2 text-slate-500 transition-colors hover:text-sky-600" title="Refresh">
                                 <RotateCw size={18} className={loadingLogs ? "animate-spin" : ""} />
                             </button>
                         </div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <input type="date" value={logFilters.startDate} max={logFilters.endDate || undefined} onChange={(e) => setLogFilters({ ...logFilters, startDate: e.target.value })} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm" aria-label="From date" />
+                            <span className="text-xs text-slate-400">to</span>
+                            <input type="date" value={logFilters.endDate} min={logFilters.startDate || undefined} onChange={(e) => setLogFilters({ ...logFilters, endDate: e.target.value })} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm" aria-label="To date" />
+                            <button onClick={() => applyLogPreset(0)} className="btn-ghost px-2 py-1 text-xs">Today</button>
+                            <button onClick={() => applyLogPreset(6)} className="btn-ghost px-2 py-1 text-xs">7 days</button>
+                            <button onClick={() => applyLogPreset(89)} className="btn-ghost px-2 py-1 text-xs">90 days</button>
+                            {logFilterCount > 0 && (
+                                <button onClick={clearLogFilters} className="text-sky-600 hover:underline">Clear filters</button>
+                            )}
+                            <span className="ml-auto text-xs text-slate-400">
+                                {logFilters.startDate ? 'Showing the dates you picked' : 'Showing the last 30 days. Pick dates to look further back.'}
+                            </span>
+                        </div>
+                        {logMeta.truncated && (
+                            <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                There is more activity than can be searched at once. Showing the newest 5,000 entries in this period. Narrow the dates to see older ones.
+                            </p>
+                        )}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="border-b border-slate-200 bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Timestamp</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">User</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Action</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Resource</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Description</th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700">Audit</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">When</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Who</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">What happened</th>
+                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700">Type</th>
+                                    <th className="px-6 py-4 text-right text-xs font-semibold text-slate-700">Details</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
-                                {loadingLogs ? (
-                                    <tr>
-                                        <td colSpan="5" className="py-12 text-center text-slate-500">Loading logs...</td>
-                                    </tr>
+                                {loadingLogs && activityLogs.length === 0 ? (
+                                    <tr><td colSpan="5" className="py-12 text-center text-slate-500">Loading logs...</td></tr>
                                 ) : activityLogs.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="py-12 text-center text-slate-500">No activity logs found</td>
-                                    </tr>
+                                    <tr><td colSpan="5" className="py-12 text-center text-slate-500">No activity found for these filters</td></tr>
                                 ) : (
-                                    activityLogs.map((log) => (
-                                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                                                {log.timestamp ? new Date(log.timestamp.seconds * 1000 || log.timestamp).toLocaleString() : 'N/A'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="bg-slate-100 rounded-full p-1">
-                                                        <User size={12} className="text-slate-600" />
+                                    activityLogs.map((log) => {
+                                        const when = log.timestamp ? new Date(log.timestamp.seconds ? log.timestamp.seconds * 1000 : log.timestamp) : null;
+                                        const userGone = users.length > 0 && log.userId && !users.some((u) => u.id === log.userId);
+                                        return (
+                                            <tr key={log.id} className="transition-colors hover:bg-slate-50">
+                                                <td className="whitespace-nowrap px-6 py-3 text-xs text-slate-500">
+                                                    {when ? when.toLocaleString() : 'N/A'}
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="rounded-full bg-slate-100 p-1"><User size={12} className="text-slate-600" /></div>
+                                                        <span className="text-sm font-medium text-slate-700">{log.username}</span>
+                                                        {userGone && <span className="rounded bg-slate-100 px-1.5 text-[10px] text-slate-400">removed user</span>}
                                                     </div>
-                                                    <span className="text-sm font-medium text-slate-700">{log.username}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider
-                                                    ${log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-700' :
-                                                        log.action === 'UPDATE' ? 'bg-blue-100 text-blue-700' :
-                                                            log.action === 'DELETE' ? 'bg-rose-100 text-rose-700' :
-                                                                log.action === 'VOID' ? 'bg-amber-100 text-amber-700' :
-                                                                    'bg-slate-100 text-slate-700'}`}>
-                                                    {log.action}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600 capitalize">
-                                                {log.resource}
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600">
-                                                <div className="flex flex-col">
-                                                    <span>{log.description}</span>
-                                                    {log.resourceId && (
-                                                        <span className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {log.resourceId}</span>
+                                                </td>
+                                                <td className="px-6 py-3 text-sm text-slate-700">
+                                                    {prettyDescription(log)}
+                                                    {log.details && log.details.from && log.details.to && (
+                                                        <span className="ml-1 text-xs text-slate-400">({log.details.from} to {log.details.to})</span>
                                                     )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedLog(log);
-                                                        setIsLogModalOpen(true);
-                                                    }}
-                                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline"
-                                                >
-                                                    View Details
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${actionColor(log.action)}`}>
+                                                        {actionLabel(log.action)}
+                                                    </span>
+                                                    <span className="ml-2 text-xs text-slate-400">{AREA_LABELS[log.resource] || log.resource}</span>
+                                                </td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <button
+                                                        onClick={() => { setSelectedLog(log); setIsLogModalOpen(true); }}
+                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline"
+                                                    >
+                                                        View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
                     </div>
+                    {logPagination && (
+                        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+                            <span>
+                                {logPagination.total
+                                    ? `Showing ${(logPage - 1) * LOG_PAGE_SIZE + 1}-${(logPage - 1) * LOG_PAGE_SIZE + activityLogs.length} of ${logPagination.total}`
+                                    : 'No entries'}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setLogPage((p) => Math.max(1, p - 1))}
+                                    disabled={logPage <= 1 || loadingLogs}
+                                    className="btn-ghost px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Prev
+                                </button>
+                                <span>Page {logPage} of {logPagination.totalPages || 1}</span>
+                                <button
+                                    onClick={() => setLogPage((p) => Math.min(logPagination.totalPages || 1, p + 1))}
+                                    disabled={logPage >= (logPagination.totalPages || 1) || loadingLogs}
+                                    className="btn-ghost px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

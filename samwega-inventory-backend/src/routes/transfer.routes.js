@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -21,6 +21,7 @@ const {
 router.post(
     '/',
     verifyToken,
+    logActivity('CREATE', 'transfer'),
     requireRole('admin', 'store_manager'),
     writeLimiter,
     validateBody(createTransferSchema),
@@ -35,6 +36,7 @@ router.post(
 router.post(
     '/return',
     verifyToken,
+    logActivity('RETURN', 'transfer'),
     requireRole('admin', 'store_manager'),
     writeLimiter,
     transferController.returnStock
@@ -86,6 +88,7 @@ router.get(
 router.post(
     '/:id/approve',
     verifyToken,
+    logActivity('APPROVE', 'transfer'),
     requireRole('admin', 'store_manager'),
     writeLimiter,
     validateParams(transferIdSchema),
@@ -100,6 +103,7 @@ router.post(
 router.post(
     '/:id/confirm',
     verifyToken,
+    logActivity('CONFIRM', 'transfer'),
     requireVerified,
     validateParams(transferIdSchema),
     validateBody(confirmTransferSchema),

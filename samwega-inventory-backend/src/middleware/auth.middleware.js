@@ -223,7 +223,22 @@ const logActivity = (action, resource) => {
                         } catch (e) { }
                     }
 
-                    const description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${req.user.username || req.user.email}`;
+                    const actor = req.user.username || req.user.email;
+                    let description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${actor}`;
+
+                    // A plain sentence ("Nancy removed 12 x Ordinary nails, stock 40 -> 28") when we can build one
+                    let extraDetails = {};
+                    try {
+                        const { describeActivity } = require('../utils/activity-describer');
+                        let parsed = responseBody;
+                        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                        const data = parsed && (parsed.data !== undefined ? parsed.data : parsed);
+                        const described = describeActivity({ action, resource, req, data, actor });
+                        if (described) {
+                            description = described.description;
+                            extraDetails = described.extra || {};
+                        }
+                    } catch (e) { /* keep the generic sentence */ }
 
                     await activityLogService.log({
                         userId: req.user.uid,
@@ -237,6 +252,7 @@ const logActivity = (action, resource) => {
                             url: req.originalUrl,
                             params: req.params,
                             identifier: identifier || null,
+                            ...extraDetails,
                             statusCode: res.statusCode
                             // body: req.body // Be careful with sensitive data
                         }

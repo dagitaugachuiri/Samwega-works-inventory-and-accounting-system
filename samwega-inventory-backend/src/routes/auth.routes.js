@@ -90,6 +90,7 @@ router.patch(
     '/users/:id/verify',
     verifyToken,
     requireRole('admin'),
+    logActivity('VERIFY', 'user'),
     validateParams(userIdSchema),
     validateBody(verifyUserSchema),
     authController.verifyUser
@@ -100,6 +101,7 @@ router.patch(
     '/users/:id/assign-vehicle',
     verifyToken,
     requireRole('admin'),
+    logActivity('ASSIGN_VEHICLE', 'user'),
     validateParams(userIdSchema),
     validateBody(assignVehicleSchema),
     authController.assignVehicle
@@ -110,6 +112,7 @@ router.patch(
     '/users/:id',
     verifyToken,
     requireRole('admin'),
+    logActivity('UPDATE', 'user'),
     validateParams(userIdSchema),
     validateBody(updateUserSchema),
     authController.updateUser

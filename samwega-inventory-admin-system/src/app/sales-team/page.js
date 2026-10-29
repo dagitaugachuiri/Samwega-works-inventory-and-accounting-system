@@ -1000,7 +1000,7 @@ export default function SalesTeamPage() {
                                             selectedLog.action === 'UPDATE' ? 'bg-blue-100 text-blue-700' :
                                                 selectedLog.action === 'DELETE' ? 'bg-rose-100 text-rose-700' :
                                                     'bg-slate-100 text-slate-700'}`}>
-                                        {selectedLog.action}
+                                        {actionLabel(selectedLog.action)}
                                     </span>
                                 </div>
                                 <div className="space-y-1">
@@ -1012,15 +1012,76 @@ export default function SalesTeamPage() {
                             <div className="rounded-xl bg-slate-50 p-4 border border-slate-100">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Description</p>
                                 <p className="text-sm text-slate-800 leading-relaxed font-medium">
-                                    {selectedLog.description}
+                                    {prettyDescription(selectedLog)}
                                 </p>
                             </div>
+
+                            {/* What this entry changed, as recorded at the time */}
+                            {selectedLog.details && (selectedLog.details.quantity !== undefined || selectedLog.details.before !== undefined || selectedLog.details.amount || (selectedLog.details.from && selectedLog.details.to)) && (
+                                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                    <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-emerald-700">What changed</p>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        {selectedLog.details.productName && (
+                                            <div className="col-span-2 rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">Product</span>
+                                                <span className="font-bold text-slate-900">{selectedLog.details.productName}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.details.quantity !== undefined && (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">{selectedLog.details.quantity < 0 ? 'Removed' : 'Added'}</span>
+                                                <span className="font-bold text-slate-900">{Math.abs(selectedLog.details.quantity)} {selectedLog.details.unit ? (Math.abs(selectedLog.details.quantity) === 1 ? selectedLog.details.unit : selectedLog.details.unit + 's') : 'units'}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.details.before !== undefined && selectedLog.details.after !== undefined ? (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">Stock then</span>
+                                                <span className="font-bold text-slate-900">{selectedLog.details.before} to {selectedLog.details.after}</span>
+                                            </div>
+                                        ) : selectedLog.details.after !== undefined ? (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">Stock after</span>
+                                                <span className="font-bold text-slate-900">{selectedLog.details.after}</span>
+                                            </div>
+                                        ) : null}
+                                        {selectedLog.details.buyingPrice ? (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">Buying price</span>
+                                                <span className="font-bold text-slate-900">KSh {Number(selectedLog.details.buyingPrice).toLocaleString()}</span>
+                                            </div>
+                                        ) : null}
+                                        {selectedLog.details.invoiceNumber && (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">On invoice</span>
+                                                <span className="font-bold text-slate-900">{selectedLog.details.invoiceNumber}</span>
+                                            </div>
+                                        )}
+                                        {selectedLog.details.amount ? (
+                                            <div className="rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">Amount</span>
+                                                <span className="font-bold text-slate-900">KSh {Number(selectedLog.details.amount).toLocaleString()}</span>
+                                            </div>
+                                        ) : null}
+                                        {selectedLog.details.from && selectedLog.details.to && (
+                                            <div className="col-span-2 rounded-lg bg-white/70 p-2">
+                                                <span className="block text-slate-500">From to</span>
+                                                <span className="font-bold text-slate-900">{selectedLog.details.from} to {selectedLog.details.to}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {['REPLENISH', 'ADJUST_STOCK'].includes(selectedLog.action) && selectedLog.details && selectedLog.details.quantity === undefined && (
+                                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                                    This entry was saved before quantities were recorded, so the amount added is not available. New entries show it.
+                                </p>
+                            )}
 
                             {/* Resource Data Preview */}
                             {(loadingResource || resourceData) && (
                                 <div className="space-y-3 p-4 rounded-xl bg-sky-50/50 border border-sky-100">
                                     <div className="flex items-center justify-between border-b border-sky-100 pb-2">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Resource Preview</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-sky-600">Resource now <span className="font-normal normal-case text-slate-400">(as it is today, not at that moment)</span></p>
                                         {loadingResource && <div className="h-4 w-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>}
                                     </div>
 
@@ -1068,7 +1129,7 @@ export default function SalesTeamPage() {
                                                     <p className="text-sm font-semibold text-slate-900 px-1">{resourceData.productName}</p>
                                                     <div className="grid grid-cols-2 gap-2 text-xs">
                                                         <div className="bg-white/60 p-2 rounded-lg">
-                                                            <span className="text-slate-500 block">Stock Level</span>
+                                                            <span className="text-slate-500 block">Stock level now</span>
                                                             <span className="font-bold text-slate-900">{resourceData.stock} units</span>
                                                         </div>
                                                         <div className="bg-white/60 p-2 rounded-lg">

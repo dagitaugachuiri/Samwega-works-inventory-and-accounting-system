@@ -233,7 +233,18 @@ const logActivity = (action, resource) => {
                         let parsed = responseBody;
                         if (typeof parsed === 'string') parsed = JSON.parse(parsed);
                         const data = parsed && (parsed.data !== undefined ? parsed.data : parsed);
-                        const described = describeActivity({ action, resource, req, data, actor });
+                        // one small read so the sentence can say which invoice the stock went on
+                        const lookups = {};
+                        if (req.body && req.body.invoiceId && resource === 'inventory') {
+                            try {
+                                const invSnap = await getFirestore().collection('invoices').doc(String(req.body.invoiceId)).get();
+                                if (invSnap.exists) {
+                                    const i = invSnap.data();
+                                    lookups.invoice = { invoiceNumber: i.invoiceNumber, supplierName: i.supplierName };
+                                }
+                            } catch (e) { /* the sentence still works without it */ }
+                        }
+                        const described = describeActivity({ action, resource, req, data, actor, lookups });
                         if (described) {
                             description = described.description;
                             extraDetails = described.extra || {};

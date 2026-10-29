@@ -11,13 +11,18 @@ const pick = (...vals) => vals.find(v => v !== undefined && v !== null && v !== 
 const count = (n, word) => `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
 const LAYER = ['carton', 'box', 'piece'];
 
-function describeActivity({ action, resource, req, data, actor }) {
+function describeActivity({ action, resource, req, data, actor, lookups = {} }) {
     const body = (req && req.body) || {};
     const d = (data && typeof data === 'object') ? data : {};
     const id = req && req.params && req.params.id;
     const key = `${resource}:${action}`;
     const extra = {};
     let text = null;
+    // invoice the stock was received on (looked up by the logger when the request carried an invoiceId)
+    const inv = lookups.invoice || null;
+    const onInvoice = inv ? ` on invoice ${inv.invoiceNumber}${inv.supplierName ? ' (' + inv.supplierName + ')' : ''}` : (body.invoiceId ? ' on an invoice' : '');
+    if (inv) extra.invoiceNumber = inv.invoiceNumber;
+    if (body.invoiceId) extra.invoiceId = body.invoiceId;
 
     switch (key) {
         // ---------------- products / stock ----------------
@@ -25,7 +30,9 @@ function describeActivity({ action, resource, req, data, actor }) {
             const adj = Number(body.adjustment);
             const name = pick(d.productName, d.name, 'a product');
             if (!adj) break;
-            text = `${adj > 0 ? 'added' : 'removed'} ${Math.abs(adj)} x ${name}`;
+            extra.productName = name;
+            extra.quantity = adj; // + added, - removed
+            text = `${adj > 0 ? 'added' : 'removed'} ${Math.abs(adj)} x ${name}${onInvoice}`;
             if (body.reason) text += ` (${String(body.reason).replace(/_/g, ' ')})`;
             if (typeof d.stock === 'number') {
                 extra.before = d.stock - adj;
@@ -39,7 +46,11 @@ function describeActivity({ action, resource, req, data, actor }) {
             const name = pick(d.productName, d.name, 'a product');
             if (!qty) break;
             const layer = LAYER[body.layerIndex] || null;
-            text = `received ${layer ? count(qty, layer) : qty} of ${name}`;
+            extra.productName = name;
+            extra.quantity = qty;
+            extra.unit = layer || 'piece';
+            if (body.buyingPrice) extra.buyingPrice = Number(body.buyingPrice);
+            text = `received ${layer ? count(qty, layer) : qty} of ${name}${onInvoice}`;
             if (body.buyingPrice) text += ` at ${money(body.buyingPrice)}`;
             if (typeof d.stock === 'number') { extra.after = d.stock; text += `, stock now ${d.stock}`; }
             break;

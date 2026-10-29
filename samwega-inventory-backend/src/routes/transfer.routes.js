@@ -43,13 +43,13 @@ router.post(
 /**
  * @route   GET /api/v1/transfers
  * @desc    Get all transfers
- * @access  Required roles: Admin, Store Manager, Accountant
+ * @access  Admin, Accountant
  */
 router.get(
     '/',
     verifyToken,
     requireVerified,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'accountant'),
     validateQuery(searchTransfersSchema),
     transferController.getAllTransfers
 );
@@ -75,7 +75,7 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'accountant'),
     validateParams(transferIdSchema),
     transferController.getTransferById
 );

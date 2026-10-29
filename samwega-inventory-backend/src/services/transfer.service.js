@@ -587,7 +587,7 @@ class TransferService {
             // Verify vehicle exists and user is assigned
             const vehicle = await vehicleService.getVehicleById(vehicleId);
             if (vehicle.assignedUserId !== userId) {
-                throw new UnauthorizedError('Only the assigned sales representative can break units');
+                throw new AuthorizationError('Only the assigned sales representative can break units');
             }
 
             // Get inventory item for packaging structure

@@ -513,6 +513,16 @@ export default function StockScreen({ route, navigation }) {
                             </View>
                             <Text style={styles.utilityLabel}>Confirm{"\n"}Collection</Text>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.utilityButton}
+                            onPress={() => navigation.navigate('ReturnedGoods', { vehicleId })}
+                        >
+                            <View style={[styles.utilityIconBg, { backgroundColor: '#DCFCE7' }]}>
+                                <Text style={styles.utilityEmoji}>↩️</Text>
+                            </View>
+                            <Text style={styles.utilityLabel}>Returned{"\n"}Goods</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
 

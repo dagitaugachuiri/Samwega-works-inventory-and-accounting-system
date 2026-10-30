@@ -112,6 +112,14 @@ class ReceiptService {
     }
 
     /**
+     * Darker divider for receipts ("=" prints heavier than "-")
+     * @returns {string}
+     */
+    createStrongDivider() {
+        return '='.repeat(this.printerWidth);
+    }
+
+    /**
      * Format currency
      * @param {number} amount 
      * @returns {string}
@@ -169,38 +177,22 @@ class ReceiptService {
     }
 
     /**
-     * Item table in 32 columns: Description | Price | Subtotal.
-     * Returns one string per printed line, header first.
+     * Item lines: name on its own line, then "qty x price = amount" underneath.
      * @param {Array} items
      * @returns {string[]}
      */
     generateItemLines(items) {
-        const DESC = 14, PRICE = 7, SUB = 11; // 14 + 7 + 11 = 32
-        const lines = [this.formatLine([
-            { text: 'Description', width: DESC },
-            { text: 'Price', width: PRICE, align: 'right' },
-            { text: 'Subtotal', width: SUB, align: 'right' },
-        ])];
-
-        items.forEach((item) => {
+        const lines = [];
+        items.forEach((item, index) => {
             const qty = Number(item.quantity) || 0;
             const unit = Number(item.unitPrice) || 0;
             const lineTotal = item.totalPrice !== undefined && item.totalPrice !== null
                 ? Number(item.totalPrice)
                 : qty * unit;
-            const descLines = this.wrapText(`${this.formatQty(qty)} ${item.productName || 'Unknown'}`, DESC);
 
-            descLines.forEach((text, i) => {
-                if (i === 0) {
-                    lines.push(this.formatLine([
-                        { text, width: DESC },
-                        { text: this.formatMoney(unit), width: PRICE, align: 'right' },
-                        { text: this.formatMoney(lineTotal), width: SUB, align: 'right' },
-                    ]));
-                } else {
-                    lines.push(text);
-                }
-            });
+            this.wrapText(item.productName || 'Unknown', this.printerWidth).forEach((t) => lines.push(t));
+            lines.push(`  ${this.formatQty(qty)} x ${this.formatMoney(unit)} = ${this.formatMoney(lineTotal)}`);
+            if (index < items.length - 1) lines.push(' '); // small gap between items
         });
         return lines;
     }
@@ -221,19 +213,15 @@ class ReceiptService {
         });
 
         const line = (text) => `<L>${text}</L>\n`;
-        const divider = () => this.createDivider() + '\n';
-        // Label in a fixed column, value wrapped under it
-        const field = (label, value) => {
-            const head = label.padEnd(10);
-            const parts = this.wrapText(String(value), this.printerWidth - head.length);
-            return parts.map((part, i) => line((i === 0 ? head : ' '.repeat(head.length)) + part)).join('');
-        };
+        const divider = () => this.createStrongDivider() + '\n';
+        // "Label: value", wrapped if long (no space-padding, the printer font is not fixed-width)
+        const field = (label, value) =>
+            this.wrapText(`${label}: ${value}`, this.printerWidth).map((part) => line(part)).join('');
 
         let receipt = '';
 
-        // STORE: large name at the top
-        receipt += '<CD>SAMWEGA</CD>\n';
-        receipt += '<CD>WORKS LTD</CD>\n';
+        // STORE: name on one line
+        receipt += '<CD>SAMWEGA WORKS LTD</CD>\n';
         receipt += '<C>GILGIL, KENYA</C>\n';
         receipt += '\n';
 
@@ -250,18 +238,21 @@ class ReceiptService {
         receipt += divider();
 
         // ITEMS
+        receipt += line('ITEM');
+        receipt += line('  Qty x Price = Amount');
+        receipt += this.createDivider() + '\n';
         this.generateItemLines(sale.items || []).forEach((l) => { receipt += line(l); });
         receipt += divider();
 
         // TOTALS
-        receipt += line(this.createRow('Subtotal', this.formatMoney(sale.subtotal || 0)));
+        receipt += line(`Subtotal: ${this.formatMoney(sale.subtotal || 0)}`);
         if (sale.taxAmount > 0) {
-            receipt += line(this.createRow('Tax', this.formatMoney(sale.taxAmount)));
+            receipt += line(`Tax: ${this.formatMoney(sale.taxAmount)}`);
         }
         if (sale.discountAmount > 0) {
-            receipt += line(this.createRow('Discount', '-' + this.formatMoney(sale.discountAmount)));
+            receipt += line(`Discount: -${this.formatMoney(sale.discountAmount)}`);
         }
-        receipt += line(this.createRow('TOTAL', this.formatMoney(sale.grandTotal || 0)));
+        receipt += `<CM>TOTAL: ${this.formatMoney(sale.grandTotal || 0)}</CM>\n`;
         receipt += divider();
 
         // PAYMENTS
@@ -274,10 +265,10 @@ class ReceiptService {
         };
         if (sale.payments && sale.payments.length > 0) {
             sale.payments.forEach((p) => {
-                receipt += line(this.createRow(labelFor(p.method, p.bankName || sale.bankName), this.formatMoney(p.amount)));
+                receipt += line(`${labelFor(p.method, p.bankName || sale.bankName)}: ${this.formatMoney(p.amount)}`);
             });
         } else {
-            receipt += line(this.createRow(labelFor(sale.paymentMethod, sale.bankName), this.formatMoney(sale.grandTotal || 0)));
+            receipt += line(`${labelFor(sale.paymentMethod, sale.bankName)}: ${this.formatMoney(sale.grandTotal || 0)}`);
         }
         receipt += divider();
 

@@ -33,7 +33,7 @@ export default function ReplenishModal({ isOpen, onClose, item, onSuccess }) {
             setLoadingInvoices(true);
             const [invoicesRes, suppliersRes] = await Promise.all([
                 api.getInvoices(),
-                api.getSuppliers()
+                api.getSupplierOptions()
             ]);
 
             const invoiceData = invoicesRes.success && invoicesRes.data

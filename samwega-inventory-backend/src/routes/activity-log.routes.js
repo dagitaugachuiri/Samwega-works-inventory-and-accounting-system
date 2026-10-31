@@ -5,7 +5,7 @@ const { verifyToken, requireRole } = require('../middleware/auth.middleware');
 
 // Viewing the log: admin and store manager (read-only; nothing here can change anything)
 router.use(verifyToken);
-router.use(requireRole('admin', 'store_manager'));
+router.use(requireRole('admin'));
 
 /**
  * GET /api/v1/activity-logs

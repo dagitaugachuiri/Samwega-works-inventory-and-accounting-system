@@ -112,7 +112,7 @@ router.put(
 router.post(
     '/:id/void',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('VOID', 'sale'),
     writeLimiter,
     validateParams(saleIdSchema),

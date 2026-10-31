@@ -37,7 +37,7 @@ router.post(
     '/return',
     verifyToken,
     logActivity('RETURN', 'transfer'),
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     writeLimiter,
     transferController.returnStock
 );
@@ -45,12 +45,13 @@ router.post(
 /**
  * @route   GET /api/v1/transfers
  * @desc    Get all transfers
- * @access  All verified users
+ * @access  Admin, Accountant
  */
 router.get(
     '/',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'accountant'),
     validateQuery(searchTransfersSchema),
     transferController.getAllTransfers
 );
@@ -76,6 +77,7 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'accountant'),
     validateParams(transferIdSchema),
     transferController.getTransferById
 );
@@ -108,6 +110,18 @@ router.post(
     validateParams(transferIdSchema),
     validateBody(confirmTransferSchema),
     transferController.confirmTransfer
+);
+/**
+ * @route   POST /api/v1/transfers/:id/confirm-return
+ * @desc    Driver confirms a returned load (record only, no stock change)
+ * @access  Assigned driver
+ */
+router.post(
+    '/:id/confirm-return',
+    verifyToken,
+    requireRole('driver'),
+    validateParams(transferIdSchema),
+    transferController.confirmReturn
 );
 
 /**

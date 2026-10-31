@@ -20,6 +20,14 @@ router.get(
     supplierController.getAllSuppliers
 );
 
+// All suppliers, light fields, for dropdowns (must stay above '/:id')
+router.get(
+    '/options',
+    verifyToken,
+    requireVerified,
+    supplierController.getSupplierOptions
+);
+
 // Get supplier by ID
 router.get(
     '/:id',
@@ -29,22 +37,22 @@ router.get(
     supplierController.getSupplierById
 );
 
-// Create supplier
+// Create supplier: admin and store manager only
 router.post(
     '/',
     verifyToken,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'store_manager'),
     logActivity('CREATE', 'supplier'),
     writeLimiter,
     validateBody(createSupplierSchema),
     supplierController.createSupplier
 );
 
-// Update supplier
+// Update supplier details: admin and store manager (accountants only handle payments, on invoices)
 router.put(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'store_manager'),
     logActivity('UPDATE', 'supplier'),
     writeLimiter,
     validateParams(supplierIdSchema),
@@ -58,8 +66,20 @@ router.delete(
     verifyToken,
     requireRole('admin'),
     logActivity('DELETE', 'supplier'),
+    writeLimiter,
     validateParams(supplierIdSchema),
     supplierController.deleteSupplier
+);
+
+// Rebuild a supplier's totals from its (non-voided) invoices: admin only
+router.post(
+    '/:id/recalculate',
+    verifyToken,
+    requireRole('admin'),
+    logActivity('RECALCULATE', 'supplier'),
+    writeLimiter,
+    validateParams(supplierIdSchema),
+    supplierController.recalculateFinancials
 );
 
 module.exports = router;

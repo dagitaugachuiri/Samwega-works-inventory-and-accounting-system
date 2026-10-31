@@ -6,6 +6,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import WaitingVerificationScreen from './src/screens/WaitingVerificationScreen';
 import StockScreen from './src/screens/StockScreen';
 import IssuanceConfirmationScreen from './src/screens/IssuanceConfirmationScreen';
+import ReturnedGoodsScreen from './src/screens/ReturnedGoodsScreen';
 import SalesScreen from './src/screens/SalesScreen';
 import SalesDashboardScreen from './src/screens/SalesDashboardScreen';
 import SalesListScreen from './src/screens/SalesListScreen';
@@ -52,6 +53,11 @@ const App = () => {
               name="IssuanceConfirmation"
               component={IssuanceConfirmationScreen}
               options={{ title: 'Confirm Collection' }}
+            />
+            <Stack.Screen
+              name="ReturnedGoods"
+              component={ReturnedGoodsScreen}
+              options={{ title: 'Returned Goods' }}
             />
             <Stack.Screen
               name="SalesDashboard"

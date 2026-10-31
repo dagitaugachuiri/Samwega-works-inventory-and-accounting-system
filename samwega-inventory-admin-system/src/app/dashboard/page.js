@@ -265,32 +265,31 @@ export default function Dashboard() {
                           <div className="text-lg font-semibold text-slate-900">KSh {profit.toFixed(2)}</div>
                         </td> */}
 
-                        {/* ACTIONS */}
-                        <td className="px-4 py-3 align-top text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {user?.role !== 'accountant' && (
-                              <>
-                                <button
+                      {/* ACTIONS */}
+                                <td className="px-4 py-3 align-top text-center">
+                                <div className="flex items-center justify-center gap-2">
+                       {user?.role === 'admin' ? (
+                       <>
+                       <button
                                   onClick={() => setEditModal({ open: true, item })}
-                                  className="btn-ghost p-2 rounded hover:bg-slate-100 text-sky-600 transition-colors"
-                                  title="Edit item"
-                                >
-                                  <Edit size={14} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(item.id, item.productName)}
-                                  className="btn-danger p-2 rounded"
-                                  title="Delete item"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </>
-                            )}
-                            {user?.role === 'accountant' && (
-                              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Read Only</span>
-                            )}
-                          </div>
-                        </td>
+                                 className="btn-ghost p-2 rounded hover:bg-slate-100 text-sky-600 transition-colors"
+                                 title="Edit item"
+                                        >
+                   <Edit size={14} />
+                     </button>
+                       <button
+                               onClick={() => handleDelete(item.id, item.productName)}
+                               className="btn-danger p-2 rounded"
+                              title="Delete item"
+                       >
+                     <Trash2 size={14} />
+                     </button>
+                      </>
+                      ) : (
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Read Only</span>
+                          )}
+                         </div>
+                      </td>  
                       </tr>
                     );
                   })

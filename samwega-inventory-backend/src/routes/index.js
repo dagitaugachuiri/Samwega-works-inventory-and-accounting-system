@@ -29,7 +29,8 @@ router.get('/', (req, res) => {
             storeLocations: '/api/v1/store-locations',
             warehouses: '/api/v1/warehouses',
             customers: '/api/v1/customers',
-            pos: '/api/v1/pos'
+            pos: '/api/v1/pos',
+            wallets: '/api/v1/wallets'
         }
     });
 });
@@ -54,6 +55,7 @@ const customerRoutes = require('./customer.routes');
 const posRoutes = require('./pos.routes');
 const activityLogRoutes = require('./activity-log.routes');
 const debtRoutes = require('./debt.routes');
+const walletRoutes = require('./wallet.routes');
 
 
 // Mount routes
@@ -77,6 +79,7 @@ router.use(`/${API_VERSION}/customers`, customerRoutes);
 router.use(`/${API_VERSION}/pos`, posRoutes);
 router.use(`/${API_VERSION}/activity-logs`, activityLogRoutes);
 router.use(`/${API_VERSION}/debt`, debtRoutes);
+router.use(`/${API_VERSION}/wallets`, walletRoutes);
 
 
 module.exports = router;

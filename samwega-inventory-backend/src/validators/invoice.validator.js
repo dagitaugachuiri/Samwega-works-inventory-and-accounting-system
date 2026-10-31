@@ -22,6 +22,14 @@ const createInvoiceSchema = Joi.object({
         .messages({
             'any.required': 'Invoice date is required'
         }),
+        //Added items to the schema to allow for invoice items to be included in the creation of an invoice. Each item must have a description, quantity, and unit price.
+    items: Joi.array().items(
+    Joi.object({
+        description: Joi.string().required(),
+        quantity: Joi.number().positive().required(),
+        unitPrice: Joi.number().min(0).required()
+    })
+    ).optional(),
 
     dueDate: Joi.date()
         .iso()
@@ -54,6 +62,10 @@ const createInvoiceSchema = Joi.object({
         .valid('cash', 'mpesa', 'bank_transfer', 'cheque', 'credit')
         .optional(),
 
+    entryStatus: Joi.string()
+        .valid('draft', 'finalized')
+        .default('draft'),
+
     notes: Joi.string()
         .max(1000)
         .optional(),
@@ -67,6 +79,7 @@ const createInvoiceSchema = Joi.object({
  * Update invoice validation schema
  */
 const updateInvoiceSchema = Joi.object({
+    supplierId: Joi.string().optional(), // lets an admin move an invoice to the right supplier
     invoiceNumber: Joi.string().optional(),
     invoiceDate: Joi.date().iso().optional(),
     dueDate: Joi.date().iso().optional(),
@@ -76,7 +89,10 @@ const updateInvoiceSchema = Joi.object({
     paymentStatus: Joi.string().valid('pending', 'partial', 'paid').optional(),
     amountPaid: Joi.number().min(0).optional(),
     paymentMethod: Joi.string().valid('cash', 'mpesa', 'bank_transfer', 'cheque', 'credit').optional(),
+    entryStatus: Joi.string().valid('draft', 'finalized').optional(),
     notes: Joi.string().max(1000).optional()
+
+
 }).min(1);
 
 /**
@@ -127,7 +143,8 @@ const invoiceIdSchema = Joi.object({
  */
 const searchInvoicesSchema = Joi.object({
     supplierId: Joi.string().optional(),
-    paymentStatus: Joi.string().valid('pending', 'partial', 'paid').optional(),
+    paymentStatus: Joi.string().valid('pending', 'partial', 'paid', 'unpaid').optional(),
+    etrStatus: Joi.string().valid('etr', 'non-etr').optional(),
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional(),
     minAmount: Joi.number().min(0).optional(),
@@ -136,13 +153,36 @@ const searchInvoicesSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sortBy: Joi.string().valid('invoiceDate', 'totalAmount', 'createdAt').default('invoiceDate'),
-    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+    search: Joi.string().trim().max(100).allow('').optional(),
+    status: Joi.string().valid('active', 'voided').optional() // Filter by invoice status
+});
+
+const reverseInvoiceSchema = Joi.object({
+    reason: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Reason for reversing the invoice is required'
+        })
+});
+
+const removeInvoiceItemsSchema = Joi.object({
+    adjustmentIds: Joi.array().items(Joi.string().trim()).min(1).required()
+});
+
+const cleanupInvoicesSchema = Joi.object({
+    action: Joi.string().valid('delete-empty', 'repair-totals', 'backfill-keyed-by').required(),
+    // defaults to a harmless preview; the real run must say dryRun:false
+    dryRun: Joi.boolean().default(true)
 });
 
 module.exports = {
+    cleanupInvoicesSchema,
     createInvoiceSchema,
     updateInvoiceSchema,
     recordPaymentSchema,
     invoiceIdSchema,
-    searchInvoicesSchema
+    searchInvoicesSchema,
+    reverseInvoiceSchema,
+    removeInvoiceItemsSchema
 };

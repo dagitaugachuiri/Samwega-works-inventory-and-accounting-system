@@ -59,6 +59,22 @@ router.get(
  * @desc    Get customer by ID
  * @access  All verified users
  */
+router.post(
+    '/recalculate-debts',
+    verifyToken,
+    requireRole('admin'),
+    writeLimiter,
+    customerController.recalculateDebts
+);
+
+router.get(
+    '/:id/unpaid-sales',
+    verifyToken,
+    requireVerified,
+    validateParams(customerIdSchema),
+    customerController.getUnpaidSales
+);
+
 router.get(
     '/:id',
     verifyToken,

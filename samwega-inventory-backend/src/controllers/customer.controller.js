@@ -33,8 +33,8 @@ const getAllCustomers = async (req, res) => {
  */
 const searchCustomers = async (req, res) => {
     try {
-        const { q, limit } = req.query;
-        const customers = await customerService.searchCustomers(q, limit);
+        const { q, limit, vehicleId } = req.query;
+        const customers = await customerService.searchCustomers(q, limit, vehicleId || null, req.user.uid);
         return res.status(200).json(successResponse({ customers }, 'Customers found successfully'));
     } catch (error) {
         logger.error('Search customers controller error:', error);
@@ -105,10 +105,30 @@ const deleteCustomer = async (req, res) => {
  */
 const recordPayment = async (req, res) => {
     try {
-        const customer = await customerService.recordPayment(req.params.id, req.body.amount);
+        const customer = await customerService.recordPayment(req.params.id, req.body.amount, req.body.method || 'cash', req.user.uid);
         return res.status(200).json(successResponse(customer, 'Payment recorded successfully'));
     } catch (error) {
         logger.error('Record payment controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const recalculateDebts = async (req, res) => {
+    try {
+        const result = await customerService.recalculateAllDebts();
+        return res.status(200).json(successResponse(result, 'Debts recalculated'));
+    } catch (error) {
+        logger.error('Recalculate debts controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const getUnpaidSales = async (req, res) => {
+    try {
+        const result = await customerService.getUnpaidSales(req.params.id);
+        return res.status(200).json(successResponse(result, 'Unpaid sales retrieved'));
+    } catch (error) {
+        logger.error('Get unpaid sales controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
@@ -133,5 +153,7 @@ module.exports = {
     recordPayment,
     getCustomersByVehicle,
     setMessagesStopped,
-    getSummary
+    getSummary,
+    getUnpaidSales,
+    recalculateDebts
 };

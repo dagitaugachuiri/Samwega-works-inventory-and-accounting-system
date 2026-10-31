@@ -471,6 +471,7 @@ export default function StockScreen({ route, navigation }) {
                         style={styles.collectionAlert}
                         onPress={() => navigation.navigate('IssuanceConfirmation', { vehicleId })}
                     >
+                        
                         <View style={styles.alertIconContainer}>
                             <Text style={styles.alertEmoji}>🚨</Text>
                         </View>
@@ -511,6 +512,16 @@ export default function StockScreen({ route, navigation }) {
                                 <Text style={styles.utilityEmoji}>📦</Text>
                             </View>
                             <Text style={styles.utilityLabel}>Confirm{"\n"}Collection</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.utilityButton}
+                            onPress={() => navigation.navigate('ReturnedGoods', { vehicleId })}
+                        >
+                            <View style={[styles.utilityIconBg, { backgroundColor: '#DCFCE7' }]}>
+                                <Text style={styles.utilityEmoji}>↩️</Text>
+                            </View>
+                            <Text style={styles.utilityLabel}>Returned{"\n"}Goods</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

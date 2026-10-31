@@ -21,6 +21,15 @@ const createVehicle = async (req, res, next) => {
 const getAllVehicles = async (req, res, next) => {
     logger.info('getAllVehicles: Controller started', { query: req.query });
     try {
+        const fullAccessRoles = ['admin', 'store_manager', 'accountant'];
+        if (!fullAccessRoles.includes(req.user.role)) {
+            if (!req.user.assignedVehicleId) {
+                return res.json(successResponse({ vehicles: [], pagination: null }, 'No vehicle assigned'));
+            }
+            const vehicle = await vehicleService.getVehicleById(req.user.assignedVehicleId);
+            return res.json(successResponse({ vehicles: [vehicle], pagination: null }, 'Vehicles retrieved successfully'));
+        }
+
         logger.info('getAllVehicles: Calling service...');
         const result = await vehicleService.getAllVehicles(req.query);
         logger.info('getAllVehicles: Service returned', { vehicleCount: result?.vehicles?.length || 0 });

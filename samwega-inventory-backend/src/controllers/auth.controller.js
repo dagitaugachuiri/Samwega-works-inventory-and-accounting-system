@@ -4,16 +4,33 @@ const logger = require('../utils/logger');
 
 class AuthController {
     /**
-     * Register a new user
-     * POST /api/v1/auth/register
+     * Create a user (admin only)
+     * POST /api/v1/auth/users
      */
-    async register(req, res, next) {
+    async createUser(req, res, next) {
         try {
-            const result = await authService.register(req.body);
+            const user = await authService.createUser(req.body, req.user);
 
             res.status(201).json(successResponse(
-                result,
-                'User registered successfully'
+                user,
+                'User created successfully'
+            ));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Delete a user (admin only)
+     * DELETE /api/v1/auth/users/:id
+     */
+    async deleteUser(req, res, next) {
+        try {
+            const deleted = await authService.deleteUser(req.params.id, req.user);
+
+            res.json(successResponse(
+                deleted,
+                'User deleted successfully'
             ));
         } catch (error) {
             next(error);

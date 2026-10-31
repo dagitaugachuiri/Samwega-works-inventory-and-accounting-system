@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -21,6 +21,7 @@ const {
 router.post(
     '/',
     verifyToken,
+    logActivity('CREATE', 'transfer'),
     requireRole('admin', 'store_manager'),
     writeLimiter,
     validateBody(createTransferSchema),
@@ -35,7 +36,8 @@ router.post(
 router.post(
     '/return',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    logActivity('RETURN', 'transfer'),
+    requireRole('admin'),
     writeLimiter,
     transferController.returnStock
 );
@@ -43,12 +45,13 @@ router.post(
 /**
  * @route   GET /api/v1/transfers
  * @desc    Get all transfers
- * @access  All verified users
+ * @access  Admin, Accountant
  */
 router.get(
     '/',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'accountant'),
     validateQuery(searchTransfersSchema),
     transferController.getAllTransfers
 );
@@ -74,6 +77,7 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
+    requireRole('admin', 'accountant'),
     validateParams(transferIdSchema),
     transferController.getTransferById
 );
@@ -86,6 +90,7 @@ router.get(
 router.post(
     '/:id/approve',
     verifyToken,
+    logActivity('APPROVE', 'transfer'),
     requireRole('admin', 'store_manager'),
     writeLimiter,
     validateParams(transferIdSchema),
@@ -100,10 +105,23 @@ router.post(
 router.post(
     '/:id/confirm',
     verifyToken,
+    logActivity('CONFIRM', 'transfer'),
     requireVerified,
     validateParams(transferIdSchema),
     validateBody(confirmTransferSchema),
     transferController.confirmTransfer
+);
+/**
+ * @route   POST /api/v1/transfers/:id/confirm-return
+ * @desc    Driver confirms a returned load (record only, no stock change)
+ * @access  Assigned driver
+ */
+router.post(
+    '/:id/confirm-return',
+    verifyToken,
+    requireRole('driver'),
+    validateParams(transferIdSchema),
+    transferController.confirmReturn
 );
 
 /**

@@ -91,11 +91,17 @@ class APIClient {
     }
 
     // ==================== AUTH ====================
-    async register(userData) {
-        return this.request('/auth/register', {
+    // Admin only: there is no public sign-up any more
+    async createUser(userData) {
+        return this.request('/auth/users', {
             method: 'POST',
             body: JSON.stringify(userData),
         });
+    }
+
+    // Admin only
+    async deleteUser(id) {
+        return this.request(`/auth/users/${id}`, { method: 'DELETE' });
     }
 
     async login(email, password) {
@@ -155,8 +161,8 @@ class APIClient {
     }
 
     async adjustStock(id, data) {
-        return this.request(`/inventory/${id}/adjust`, {
-            method: 'PUT',
+        return this.request(`/inventory/${id}/adjust-stock`, {
+            method: 'PATCH',
             body: JSON.stringify(data),
         });
     }
@@ -180,6 +186,25 @@ class APIClient {
         return this.request(`/invoices/${invoiceId}/payments`, {
             method: 'POST',
             body: JSON.stringify(paymentData),
+        });
+    }
+
+    // ==================== PAYMENT WALLETS ====================
+    async getWallets(includeInactive = false) {
+        return this.request(`/wallets${includeInactive ? '?includeInactive=true' : ''}`);
+    }
+
+    async createWallet(data) {
+        return this.request('/wallets', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async setWalletActive(id, isActive) {
+        return this.request(`/wallets/${id}/active`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isActive }),
         });
     }
 
@@ -247,6 +272,10 @@ class APIClient {
     async getTransfers(filters = {}) {
         const query = new URLSearchParams(filters).toString();
         return this.request(`/transfers${query ? `?${query}` : ''}`);
+    }
+    async getVehicleTransfers(vehicleId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/vehicles/${vehicleId}/transfers${query ? `?${query}` : ''}`);
     }
 
     async getTransferById(id) {
@@ -629,6 +658,21 @@ class APIClient {
     async getCustomerById(id) {
         return this.request(`/customers/${id}`);
     }
+
+    async getCustomerUnpaidSales(id) {
+        return this.request(`/customers/${id}/unpaid-sales`);
+    }
+
+    async recordCustomerPayment(id, amount, method = 'cash') {
+        return this.request(`/customers/${id}/payment`, {
+            method: 'POST',
+            body: JSON.stringify({ amount, method }),
+        });
+    }
+
+    async recalculateCustomerDebts() {
+        return this.request('/customers/recalculate-debts', { method: 'POST' });
+    }
     async getCustomersByVehicle() {
         return this.request(`/customers/by-vehicle`);
     }
@@ -673,6 +717,15 @@ class APIClient {
         return this.request(`/suppliers${query ? `?${query}` : ''}`);
     }
 
+    // Every supplier (id, name, etrStatus, isActive) for dropdowns and name lookups - not paginated
+    async getSupplierOptions() {
+        return this.request('/suppliers/options');
+    }
+
+    async recalculateSupplier(id) {
+        return this.request(`/suppliers/${id}/recalculate`, { method: 'POST' });
+    }
+
     async getSupplierById(id) {
         return this.request(`/suppliers/${id}`);
     }
@@ -707,6 +760,19 @@ class APIClient {
         return this.request(`/invoices/${id}`);
     }
 
+    // Stock received on an invoice (what the invoice page lists as items)
+    async getInvoiceItems(id) {
+        return this.request(`/invoices/${id}/items`);
+    }
+
+    // Admin clean-up: action = 'delete-empty' | 'repair-totals'. dryRun=true only previews.
+    async cleanupInvoices(action, dryRun = true) {
+        return this.request('/invoices/cleanup', {
+            method: 'POST',
+            body: JSON.stringify({ action, dryRun }),
+        });
+    }
+
     async createInvoice(data) {
         return this.request('/invoices', {
             method: 'POST',
@@ -725,6 +791,20 @@ class APIClient {
         return this.request(`/invoices/${id}/payments`, {
             method: 'POST',
             body: JSON.stringify(paymentData),
+        });
+    }
+    async removeInvoiceItems(id, adjustmentIds) {
+        return this.request(`/invoices/${id}/remove-items`, {
+            method: 'POST',
+            body: JSON.stringify({ adjustmentIds }),
+        });
+    }
+
+    // Reverse = keep the invoice on record but undo its stock and supplier totals (reason required)
+    async reverseInvoice(id, reason) {
+        return this.request(`/invoices/${id}/reverse`, {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
         });
     }
 

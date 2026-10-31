@@ -61,17 +61,6 @@ api.interceptors.response.use(
     }
 );
 
-export const register = async (email, password, username, phone, role = 'sales_rep') => {
-    const response = await api.post('/auth/register', {
-        email,
-        password,
-        username,
-        phone,
-        role
-    });
-    return response.data;
-};
-
 export const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     return response.data;
@@ -94,6 +83,21 @@ export const getCollectedItems = async (vehicleId) => {
 
 export const getVehicles = async () => {
     const response = await api.get('/vehicles');
+    return response.data;
+};
+export const getVehicleTransfers = async (vehicleId, params = {}) => {
+    const response = await api.get(`/vehicles/${vehicleId}/transfers`, { params });
+    return response.data;
+};
+
+export const confirmReturn = async (transferId) => {
+    const response = await api.post(`/transfers/${transferId}/confirm-return`, {});
+    return response.data;
+};
+
+
+export const getWallets = async () => {
+    const response = await api.get('/wallets');
     return response.data;
 };
 
@@ -138,8 +142,9 @@ export const patchSaleDebtLink = async (saleId, { debtId, debtCode }) => {
 };
 
 
-export const searchCustomers = async (query) => {
-    const response = await api.get('/customers/search', { params: { q: query, limit: 10 } });
+export const searchCustomers = async (query, vehicleId) => {
+    // vehicleId limits results to customers who have bought from this vehicle
+    const response = await api.get('/customers/search', { params: { q: query, limit: 10, ...(vehicleId ? { vehicleId } : {}) } });
     return response.data;
 };
 

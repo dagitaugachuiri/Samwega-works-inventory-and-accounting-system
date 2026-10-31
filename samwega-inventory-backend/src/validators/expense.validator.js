@@ -164,6 +164,7 @@ const searchExpensesSchema = Joi.object({
     endDate: Joi.date().iso().optional(),
     minAmount: Joi.number().positive().optional(),
     maxAmount: Joi.number().positive().optional(),
+    search: Joi.string().trim().max(100).allow('').optional(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(2000).default(20),
     sortBy: Joi.string().valid('expenseNumber', 'amount', 'expenseDate', 'createdAt').default('createdAt'),

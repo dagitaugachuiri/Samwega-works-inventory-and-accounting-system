@@ -298,11 +298,15 @@ class ExpenseService {
                 endDate,
                 minAmount,
                 maxAmount,
-                page = 1,
-                limit = 20,
+                search,
                 sortBy = 'createdAt',
                 sortOrder = 'desc'
             } = filters;
+
+            // Query-string values arrive as strings: "20" + 20 === "2020" in JS, which made slice()
+            // return everything after the first page and repeat expenses. Always use real numbers.
+            const page = Math.max(1, parseInt(filters.page, 10) || 1);
+            const limit = Math.min(2000, Math.max(1, parseInt(filters.limit, 10) || 20));
 
             const cacheKey = `${this.cachePrefix}list:${JSON.stringify(filters)}:${userId}`;
             const cached = await cache.get(cacheKey);
@@ -363,16 +367,30 @@ class ExpenseService {
                 expenses = expenses.filter(exp => exp.amount <= maxAmount);
             }
 
-            // Sort expenses
-            expenses.sort((a, b) => {
-                const aVal = a[sortBy];
-                const bVal = b[sortBy];
+            // Keyword search (done here so it covers every page, not just the one on screen)
+            if (search && String(search).trim()) {
+                const terms = String(search).toLowerCase().split(/\s+/).filter(Boolean);
+                expenses = expenses.filter(exp => {
+                    const haystack = [exp.description, exp.category, exp.vehicleName, exp.expenseNumber, exp.submittedByName]
+                        .filter(Boolean).join(' ').toLowerCase();
+                    return terms.every(t => haystack.includes(t));
+                });
+            }
 
-                if (sortOrder === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
+            // Sort. The comparator must return 0 for ties and then fall back to the id, otherwise
+            // expenses with equal values can swap places between page requests (repeats / gaps).
+            const compare = (a, b) => {
+                const av = a[sortBy];
+                const bv = b[sortBy];
+                if (av === bv) return 0;
+                if (av === undefined || av === null) return 1;
+                if (bv === undefined || bv === null) return -1;
+                return av > bv ? 1 : -1;
+            };
+            expenses.sort((a, b) => {
+                const c = sortOrder === 'asc' ? compare(a, b) : -compare(a, b);
+                if (c !== 0) return c;
+                return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
             });
 
             // Pagination
@@ -397,8 +415,8 @@ class ExpenseService {
             const result = {
                 expenses: expensesWithFlags,
                 pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
+                    page,
+                    limit,
                     total,
                     totalPages: Math.ceil(total / limit),
                     hasNextPage: endIndex < total,
@@ -564,74 +582,58 @@ class ExpenseService {
         }
     }
 
-    /**
-     * Get expenses by category
-     * @param {string} startDate
-     * @param {string} endDate
-     * @returns {Promise<Object>}
-     */
     async getExpensesByCategory(startDate, endDate, vehicleId = null, userId = null, userRole = null) {
     try {
         const privileged = ['admin', 'store_manager', 'accountant'].includes(userRole);
         const cacheKey = `${this.cachePrefix}category:${startDate}:${endDate}:${vehicleId || 'all'}:${privileged ? 'all' : userId}`;
-            if (cached) return cached;
+        const cached = await cache.get(cacheKey);
+        if (cached) return cached;
 
-            let query = this.db.collection(this.collection);
-
-            // Filter by vehicle if provided - single where clause to avoid index requirement
-            if (vehicleId) {
-                query = query.where('vehicleId', '==', vehicleId);
-            }
-
-            const snapshot = await query.get();
-            let expenses = serializeDocs(snapshot);
-            if (!privileged) {
-           expenses = expenses.filter(e => e.submittedBy === userId);
-            }
-
-            // Filter by date client-side to avoid composite index
-            if (startDate) {
-                const start = new Date(startDate);
-                expenses = expenses.filter(exp => new Date(exp.expenseDate) >= start);
-            }
-            if (endDate) {
-                const end = new Date(endDate);
-                expenses = expenses.filter(exp => new Date(exp.expenseDate) <= end);
-            }
-            expenses = expenses.filter(e => e.status !== 'rejected');
-
-            // Aggregate by category
-            const categoryMap = {};
-            expenses.forEach(expense => {
-                if (!categoryMap[expense.category]) {
-                    categoryMap[expense.category] = {
-                        category: expense.category,
-                        totalAmount: 0,
-                        count: 0
-                    };
-                }
-                categoryMap[expense.category].totalAmount += expense.amount;
-                categoryMap[expense.category].count += 1;
-            });
-
-            const summary = {
-                categories: Object.values(categoryMap),
-                totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
-                totalCount: expenses.length,
-                startDate,
-                endDate
-            };
-            
-
-            // Cache the result
-            await cache.set(cacheKey, summary, this.cacheTTL);
-
-            return summary;
-        } catch (error) {
-            logger.error('Get expenses by category error:', error);
-            throw error;
+        let query = this.db.collection(this.collection);
+        if (vehicleId) {
+            query = query.where('vehicleId', '==', vehicleId);
         }
+
+        const snapshot = await query.get();
+        let expenses = serializeDocs(snapshot);
+
+        if (!privileged) {
+            expenses = expenses.filter(e => e.submittedBy === userId);
+        }
+        if (startDate) {
+            const start = new Date(startDate);
+            expenses = expenses.filter(exp => new Date(exp.expenseDate) >= start);
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            expenses = expenses.filter(exp => new Date(exp.expenseDate) <= end);
+        }
+        expenses = expenses.filter(e => e.status !== 'rejected');
+
+        const categoryMap = {};
+        expenses.forEach(expense => {
+            if (!categoryMap[expense.category]) {
+                categoryMap[expense.category] = { category: expense.category, totalAmount: 0, count: 0 };
+            }
+            categoryMap[expense.category].totalAmount += expense.amount;
+            categoryMap[expense.category].count += 1;
+        });
+
+        const summary = {
+            categories: Object.values(categoryMap),
+            totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
+            totalCount: expenses.length,
+            startDate,
+            endDate
+        };
+
+        await cache.set(cacheKey, summary, this.cacheTTL);
+        return summary;
+    } catch (error) {
+        logger.error('Get expenses by category error:', error);
+        throw error;
     }
+}
 
 
 }

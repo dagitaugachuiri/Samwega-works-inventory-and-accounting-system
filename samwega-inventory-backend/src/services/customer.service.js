@@ -535,10 +535,37 @@ class CustomerService {
             await this.repointSalesPhone(before.customerPhone, updates.customerPhone);
         }
 
+        if (updates.customerName !== undefined && updates.customerName !== before.customerName) {
+            await this.repointSalesName(customerId, updates.customerName);
+        }
+
         logger.info(`Customer updated: ${customerId}`);
         await cache.delPattern(`${this.cachePrefix}*`);
 
         return await this.getCustomerById(customerId);
+    }
+
+    /**
+     * Put a customer's new name on their existing sales, so receipts show it
+     */
+    async repointSalesName(customerId, newName) {
+        const salesSnap = await this.db.collection('sales')
+            .where('customerId', '==', customerId)
+            .get();
+
+        for (let i = 0; i < salesSnap.docs.length; i += 450) {
+            const batch = this.db.batch();
+            salesSnap.docs.slice(i, i + 450).forEach((saleDoc) => {
+                batch.update(saleDoc.ref, {
+                    customerName: newName,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            await batch.commit();
+        }
+
+        await cache.delPattern('sale:*');
+        logger.info(`Updated name on ${salesSnap.size} sales for customer ${customerId}`);
     }
 
     /**

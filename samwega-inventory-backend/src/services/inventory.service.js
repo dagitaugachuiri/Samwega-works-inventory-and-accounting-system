@@ -46,15 +46,7 @@ class InventoryService {
                     stock: (existingData.stock || 0) + addedStock,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
-                if (itemData.buyingPrice !== undefined) {
-                    // average with what is already on the shelf instead of overwriting
-                    updates.buyingPrice = this._averageCost(
-                        existingData.stock || 0, existingData.buyingPrice || 0,
-                        addedStock, (itemData.buyingPrice || 0) * addedStock
-                    );
-                    updates.lastBuyingPrice = itemData.buyingPrice;
-                    if (existingData.buyingPricePerUnit !== undefined) updates.buyingPricePerUnit = updates.buyingPrice;
-                }
+                if (itemData.buyingPrice !== undefined) updates.buyingPrice = itemData.buyingPrice;
                 if (itemData.sellingPrice !== undefined) updates.sellingPrice = itemData.sellingPrice;
                 if (itemData.lastPurchaseInvoiceId || itemData.invoiceId) {
                     updates.lastPurchaseInvoiceId = itemData.invoiceId || itemData.lastPurchaseInvoiceId;
@@ -102,25 +94,6 @@ class InventoryService {
             throw error;
         }
     }
-    /**
-     * Moving-average unit cost after receiving stock.
-     * Before this, every receipt OVERWROTE the product's buying price with the new invoice's price, so
-     * all stock already on the shelf was re-valued at that price: add 10 units at a lower price and the
-     * stock value of the whole product went DOWN. Averaging keeps old stock at its own cost, so a
-     * receipt always raises stock value by exactly what the invoice cost.
-     * @param {number} currentStock - pieces in stock BEFORE the receipt
-     * @param {number} currentCost  - current unit cost
-     * @param {number} addedPieces  - pieces received
-     * @param {number} batchCost    - what the received pieces cost in total
-     */
-    _averageCost(currentStock, currentCost, addedPieces, batchCost) {
-        if (!(addedPieces > 0)) return currentCost || 0;
-        const batchUnit = batchCost / addedPieces;
-        if (!(currentStock > 0) || !(currentCost > 0)) return Math.round(batchUnit * 100) / 100;
-        const avg = (currentStock * currentCost + batchCost) / (currentStock + addedPieces);
-        return Math.round(avg * 100) / 100;
-    }
-
          async _logInvoiceStockIn({ inventoryId, productName, previousStock, adjustment, invoiceId, buyingPrice }) {
                 if (!invoiceId || !adjustment) return;
         await this.db.collection('stock_adjustments').add({
@@ -659,14 +632,9 @@ class InventoryService {
                 });
             }
 
-            const newAvgCost = this._averageCost(currentStock, item.buyingPrice || 0, stockToAdd, itemCost);
             await this.db.collection(this.collection).doc(itemId).update({
                 stock: currentStock + stockToAdd,
-                // moving average: the cost of this batch is blended with the stock already held
-                buyingPrice: newAvgCost,
-                // some products also carry a per-unit price that the reports read first: keep it in step
-                ...(item.buyingPricePerUnit !== undefined ? { buyingPricePerUnit: newAvgCost } : {}),
-                lastBuyingPrice: buyingPrice || item.buyingPrice || 0,
+                buyingPrice: buyingPrice || item.buyingPrice,        // 
                 sellingPrice: replenishData.sellingPrice || item.sellingPrice,  // 
                 packagingStructure: updatedPackagingStructure,
                 lastPurchaseInvoiceId: invoiceId,
@@ -722,9 +690,8 @@ class InventoryService {
         const byItem = new Map();
         for (const d of entries) {
             const a = d.data();
-            const g = byItem.get(a.inventoryId) || { qty: 0, cost: 0, layers: [] };
+            const g = byItem.get(a.inventoryId) || { qty: 0, layers: [] };
             g.qty += a.adjustment;
-            g.cost += (a.itemCost !== undefined && a.itemCost !== null) ? a.itemCost : (a.buyingPrice || 0) * a.adjustment;
             if (a.layerIndex !== undefined && a.quantity) g.layers.push({ layerIndex: a.layerIndex, quantity: a.quantity });
             byItem.set(a.inventoryId, g);
         }
@@ -762,14 +729,6 @@ class InventoryService {
                         updatedAt: FV.serverTimestamp()
                     };
                     if (it.data.replenishmentHistory) updates.replenishmentHistory = history;
-                    // take this batch's cost back out so stock value falls by what the invoice added
-                    if (remaining > 0 && it.cost > 0 && it.data.buyingPrice > 0) {
-                        const back = ((it.data.stock || 0) * it.data.buyingPrice - it.cost) / remaining;
-                        if (isFinite(back) && back > 0) {
-                            updates.buyingPrice = Math.round(back * 100) / 100;
-                            if (it.data.buyingPricePerUnit !== undefined) updates.buyingPricePerUnit = updates.buyingPrice;
-                        }
-                    }
                     if (Array.isArray(it.data.packagingStructure) && it.layers.length) {
                         updates.packagingStructure = it.data.packagingStructure.map((layer, idx) => {
                             const removed = it.layers.filter(l => l.layerIndex === idx).reduce((s, l) => s + l.quantity, 0);

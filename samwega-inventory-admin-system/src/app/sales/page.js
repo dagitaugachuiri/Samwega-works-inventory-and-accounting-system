@@ -171,6 +171,7 @@ export default function SalesPage() {
                             <option value="New KCB">New KCB</option>
                             <option value="Old Absa">Old Absa</option>
                             <option value="New Absa">New Absa</option>
+                            <option value="Co-op Bank">Co-op Bank</option>
                             <option value="Family">Family</option>
                         </select>
                     </div>

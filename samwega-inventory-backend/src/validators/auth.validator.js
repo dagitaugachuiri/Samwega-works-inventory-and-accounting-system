@@ -3,7 +3,8 @@ const Joi = require('joi');
 /**
  * User registration validation schema
  */
-const registerSchema = Joi.object({
+// Used by the admin-only create-user route. There is no public sign-up.
+const createUserSchema = Joi.object({
     email: Joi.string()
         .email()
         .required()
@@ -32,8 +33,9 @@ const registerSchema = Joi.object({
 
     role: Joi.string()
         .valid('admin', 'store_manager', 'sales_rep', 'accountant', 'driver')
-        .default('sales_rep')
+        .required()
         .messages({
+            'any.required': 'Role is required',
             'any.only': 'Role must be one of: admin, store_manager, sales_rep, accountant, driver'
         }),
 
@@ -42,7 +44,10 @@ const registerSchema = Joi.object({
         .optional()
         .messages({
             'string.pattern.base': 'Please provide a valid Kenyan phone number'
-        })
+        }),
+
+    // admin-created accounts are active unless the admin says otherwise
+    isVerified: Joi.boolean().default(true)
 });
 
 /**
@@ -127,7 +132,7 @@ const userIdSchema = Joi.object({
 });
 
 module.exports = {
-    registerSchema,
+    createUserSchema,
     loginSchema,
     verifyUserSchema,
     assignVehicleSchema,

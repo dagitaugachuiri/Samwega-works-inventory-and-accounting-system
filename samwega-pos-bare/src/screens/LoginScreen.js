@@ -125,10 +125,7 @@ export default function LoginScreen({ navigation }) {
 
                 {/* Footer */}
                 <View style={styles.footer}>
-                    <Text style={styles.footerText}>Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Registration')}>
-                        <Text style={styles.footerLink}>Create one</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.footerText}>Accounts are created by your administrator.</Text>
                 </View>
             </View>
 

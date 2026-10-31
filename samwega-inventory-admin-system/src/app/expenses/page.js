@@ -1,5 +1,7 @@
 "use client"
 import { useState, useEffect } from "react";
+const [statusFilter, setStatusFilter] = useState("");
+const [actingId, setActingId] = useState(null);
 import { Plus, Search, CheckCircle, XCircle, Clock, Calendar, Filter, Truck, User, Fuel, Wrench, Briefcase, Calculator, Trash2, DollarSign, Loader2 } from "lucide-react";
 import api from "../../lib/api";
 
@@ -57,6 +59,16 @@ function DollarSignIcon(props) {
         </svg>
     )
 }
+const STATUS_STYLES = {
+    pending: { label: "Not reviewed", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+    approved: { label: "Approved", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    rejected: { label: "Rejected", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+};
+
+function StatusBadge({ status }) {
+    const s = STATUS_STYLES[status] || STATUS_STYLES.pending;
+    return <span className={`text-xs px-2 py-1 rounded-md border font-medium ${s.cls}`}>{s.label}</span>;
+}
 
 export default function ExpensesPage() {
     const [expenses, setExpenses] = useState([]);
@@ -100,28 +112,14 @@ export default function ExpensesPage() {
         }
     };
 
-    const fetchExpenses = async () => {
-        try {
-            setLoading(true);
-            const filters = {};
-
-            // Only add filters if they have values
-            if (startDate) filters.startDate = startDate;
-            if (endDate) filters.endDate = endDate;
-            if (vehicleFilter) filters.vehicleId = vehicleFilter;
-
-            const response = await api.getExpenses(filters);
-            if (response.success && response.data) {
-                // Handle different response structures (pagination wrapper vs direct array)
-                const expensesList = response.data.expenses || response.data || [];
-                setExpenses(expensesList);
-            }
-        } catch (error) {
-            console.error("Failed to fetch expenses:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const filteredExpenses = expenses.filter(expense => {
+    const matchesSearch = !search ||
+        expense.description?.toLowerCase().includes(search.toLowerCase()) ||
+        expense.category?.toLowerCase().includes(search.toLowerCase()) ||
+        expense.vehicleName?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = !statusFilter || expense.status === statusFilter;
+    return matchesSearch && matchesStatus;
+});
 
     const fetchCategoryStats = async () => {
         try {
@@ -195,16 +193,24 @@ export default function ExpensesPage() {
             setIsSubmitting(false);
         }
     };
-
-
-
-    const filteredExpenses = expenses.filter(expense => {
-        const matchesSearch = !search ||
-            expense.description?.toLowerCase().includes(search.toLowerCase()) ||
-            expense.category?.toLowerCase().includes(search.toLowerCase()) ||
-            expense.vehicleName?.toLowerCase().includes(search.toLowerCase());
-        return matchesSearch;
-    });
+     const handleReview = async (expense, approved) => {
+     const body = { approved };
+     if (!approved) {
+        const reason = window.prompt("Reason for rejecting this expense?");
+        if (!reason || !reason.trim()) return;
+        body.rejectionReason = reason.trim();
+     }
+     try {
+        setActingId(expense.id);
+        await api.approveExpense(expense.id, body);
+        fetchExpenses();
+        fetchCategoryStats();
+    } catch (error) {
+        alert(error?.message || "Could not update this expense.");
+    } finally {
+        setActingId(null);
+    }
+    };
 
     return (
         <div className="flex w-full flex-col gap-6">
@@ -277,6 +283,15 @@ export default function ExpensesPage() {
                                 ))}
                             </select>
                         </div>
+                        <div>
+                       <label className="block text-xs font-medium text-slate-700 mb-1">Status</label>
+                       <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-field w-full text-sm">
+                           <option value="">All</option>
+                           <option value="pending">Not reviewed</option>
+                           <option value="approved">Approved</option>
+                           <option value="rejected">Rejected</option>
+                     </select>
+                     </div>
 
                     </div>
                 </div>
@@ -304,6 +319,8 @@ export default function ExpensesPage() {
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Category</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Description</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-slate-500">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-slate-500">Action</th>
 
                             </tr>
                         </thead>
@@ -338,10 +355,35 @@ export default function ExpensesPage() {
                                         <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900 whitespace-nowrap">
                                             KSh {expense.amount.toLocaleString()}
                                         </td>
+                                        <td className="px-4 py-3">
+                                           <StatusBadge status={expense.status} />
+                                           {expense.status === 'approved' && expense.approvedByName && (
+                                          <p className="text-[10px] text-slate-400 mt-1">by {expense.approvedByName}</p>
+                                            )}
+                                        {expense.status === 'rejected' && expense.rejectionReason && (
+                                        <p className="text-[10px] text-slate-400 mt-1 max-w-[160px] truncate" title={expense.rejectionReason}>
+                                         {expense.rejectionReason}
+                                         </p>
+                                         )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                                        {expense.canApprove && (
+                                       <div className="flex justify-end gap-2">
+                                       <button onClick={() => handleReview(expense, true)} disabled={actingId === expense.id}
+                                       className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 disabled:opacity-50">
+                                       <CheckCircle size={14} /> Approve
+                                       </button>
+                                       <button onClick={() => handleReview(expense, false)} disabled={actingId === expense.id}
+                                       className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50">
+                                       <XCircle size={14} /> Reject
+                                 </button>
+                                 </div>
+                                  )}
+                                  </td>
 
                                     </tr>
                                 ))
-                            ) : (
+                                ) : (
                                 <tr>
                                     <td colSpan="7" className="px-4 py-8 text-center text-slate-400">
                                         No expenses found for the selected period

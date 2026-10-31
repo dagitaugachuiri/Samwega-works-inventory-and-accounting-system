@@ -91,11 +91,17 @@ class APIClient {
     }
 
     // ==================== AUTH ====================
-    async register(userData) {
-        return this.request('/auth/register', {
+    // Admin only: there is no public sign-up any more
+    async createUser(userData) {
+        return this.request('/auth/users', {
             method: 'POST',
             body: JSON.stringify(userData),
         });
+    }
+
+    // Admin only
+    async deleteUser(id) {
+        return this.request(`/auth/users/${id}`, { method: 'DELETE' });
     }
 
     async login(email, password) {
@@ -407,7 +413,7 @@ class APIClient {
 
     async approveExpense(id, data) {
         return this.request(`/expenses/${id}/approve`, {
-            method: 'PUT',
+            method: 'POST',
             body: JSON.stringify(data),
         });
     }
@@ -653,6 +659,24 @@ class APIClient {
         return this.request(`/customers/${id}`);
     }
 
+    async getCustomerUnpaidSales(id) {
+        return this.request(`/customers/${id}/unpaid-sales`);
+    }
+
+    async recordCustomerPayment(id, amount, method = 'cash') {
+        return this.request(`/customers/${id}/payment`, {
+            method: 'POST',
+            body: JSON.stringify({ amount, method }),
+        });
+    }
+
+    async recalculateCustomerDebts() {
+        return this.request('/customers/recalculate-debts', { method: 'POST' });
+    }
+    async getCustomersByVehicle() {
+        return this.request(`/customers/by-vehicle`);
+    }
+
     async createCustomer(data) {
         return this.request('/customers', {
             method: 'POST',
@@ -667,11 +691,23 @@ class APIClient {
         });
     }
 
+    async  getCustomersSummary() {
+        return this.request('/customers/summary');
+    }
+
+    async setCustomerMessagesStopped(id, stopped) {
+        return this.request(`/customers/${id}/messages`, {
+            method: 'PATCH',
+            body: JSON.stringify({ stopped }),
+        });
+    }
+
     async deleteCustomer(id) {
         return this.request(`/customers/${id}`, {
             method: 'DELETE',
         });
     }
+
 
 
 

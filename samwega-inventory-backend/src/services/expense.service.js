@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 const cache = require('../utils/cache');
 const { NotFoundError, ValidationError, UnauthorizedError } = require('../utils/errors');
 const { serializeDoc, serializeDocs } = require('../utils/serializer');
-const textSMSService = require('../config/textsms.config');
+
 
 const CATEGORY_NAMES = {
     fuel: "Fuel",
@@ -39,6 +39,16 @@ class ExpenseService {
         this.cachePrefix = 'expense:';
         this.cacheTTL = 300; // 5 minutes
     }
+
+    canApprove(approverRole, approverId, submitterId, submitterRole) {
+    if (approverRole === 'admin') return true;
+    if (approverRole === 'accountant') {
+        return submitterId !== approverId &&
+               submitterRole !== 'accountant' &&
+               submitterRole !== 'admin';
+    }
+    return false;
+   }
 
     /**
      * Generate expense number
@@ -102,7 +112,7 @@ class ExpenseService {
                 submittedAt: admin.firestore.FieldValue.serverTimestamp(),
                 category,
                 description,
-                amount,
+                amount: parseFloat(amount),
                 currency,
                 expenseDate: new Date(expenseDate),
                 vehicleId: vehicleId || null,
@@ -125,14 +135,16 @@ class ExpenseService {
                 notes,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                
             };
+             const parsedAmount = parseFloat(amount);
+             if (!(parsedAmount > 0)) throw new ValidationError('Amount must be greater than 0');
 
             const docRef = await this.db.collection(this.collection).add(expense);
 
             logger.info(`Expense created: ${expenseNumber}`, { id: docRef.id, amount, category });
 
-            // Send SMS notification to approvers
-            await this.sendExpenseNotification(docRef.id, 'submitted');
+        
 
             // Invalidate cache
             await cache.delPattern(`${this.cachePrefix}*`);
@@ -173,6 +185,9 @@ class ExpenseService {
             let baseNum = parseInt(lastExpNum.split('-')[2]);
             const year = new Date().getFullYear();
 
+            const amount = parseFloat(item.amount);
+            if (!(amount > 0)) throw new ValidationError(`Row ${i + 1}: amount must be greater than 0`);
+
             for (let i = 0; i < expenses.length; i++) {
                 const item = expenses[i];
                 const expNum = `EXP-${year}-${String(baseNum + i).padStart(4, '0')}`;
@@ -192,7 +207,7 @@ class ExpenseService {
                     submittedAt: admin.firestore.FieldValue.serverTimestamp(),
                     category: item.category,
                     description: item.description,
-                    amount: parseFloat(item.amount),
+                    amount: parsedAmount,
                     currency: item.currency || 'KES',
                     expenseDate: new Date(expenseDate || item.expenseDate),
                     vehicleId: item.vehicleId || null,
@@ -209,6 +224,8 @@ class ExpenseService {
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 };
+                const parsedAmount = parseFloat(amount);
+                if (!(parsedAmount > 0)) throw new ValidationError('Amount must be greater than 0');
 
                 const docRef = this.db.collection(this.collection).doc();
                 batch.set(docRef, expense);
@@ -220,27 +237,7 @@ class ExpenseService {
             await batch.commit();
             logger.info(`Batch expenses created by ${userName}: ${results.length} items, Total: ${totalAmount}`);
 
-            // Send single summary SMS notification
-            try {
-                // Get admin/approver phone numbers
-                const adminsSnapshot = await this.db.collection('users')
-                    .where('role', 'in', ['admin', 'store_manager', 'accountant'])
-                    .get();
-                const recipients = serializeDocs(adminsSnapshot).map(u => u.phoneNumber).filter(Boolean);
 
-                const itemsList = results.map(r => {
-                    const catName = CATEGORY_NAMES[r.category] || r.category;
-                    return `• ${catName}: KSh ${r.amount.toLocaleString()}`;
-                }).join('\n');
-
-                const message = `SAMWEGA: Expense Receipt\nSubmitted by: ${userName}\nItems:\n${itemsList}\nTOTAL: KSh ${totalAmount.toLocaleString()}\nPlease review.`;
-                
-                for (const phone of recipients) {
-                    await textSMSService.sendSMS(phone, message);
-                }
-            } catch (smsError) {
-                logger.error('Batch expense SMS notification error:', smsError);
-            }
 
             // Invalidate cache
             await cache.delPattern(`${this.cachePrefix}*`);
@@ -338,6 +335,9 @@ class ExpenseService {
                 logger.error('[ExpenseService] Serialization error:', serError);
                 throw serError;
             }
+            if (!['admin', 'store_manager', 'accountant'].includes(userRole)) {
+            expenses = expenses.filter(e => e.submittedBy === userId);
+            }
 
             // Apply additional filters client-side to avoid Firestore composite index requirements
             if (category) {
@@ -381,9 +381,21 @@ class ExpenseService {
             const endIndex = startIndex + limit;
             const paginatedExpenses = expenses.slice(startIndex, endIndex);
 
+            const roleMap = new Map();
+            const ids = [...new Set(paginatedExpenses.map(e => e.submittedBy).filter(Boolean))];
+            if (ids.length) {
+            const docs = await this.db.getAll(...ids.map(id => this.db.collection('users').doc(id)));
+            docs.forEach(d => { if (d.exists) roleMap.set(d.id, d.data().role); });
+            }
+           const expensesWithFlags = paginatedExpenses.map(e => ({
+           ...e,
+           canApprove: e.status === 'pending' &&
+           this.canApprove(userRole, userId, e.submittedBy, roleMap.get(e.submittedBy))
+          }));
+
             console.log('[ExpenseService] Building result object...');
             const result = {
-                expenses: paginatedExpenses,
+                expenses: expensesWithFlags,
                 pagination: {
                     page: parseInt(page),
                     limit: parseInt(limit),
@@ -435,6 +447,7 @@ class ExpenseService {
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${expenseId}`);
             await cache.delPattern(`${this.cachePrefix}list:*`);
+            await cache.delPattern(`${this.cachePrefix}category:*`);
 
             return await this.getExpenseById(expenseId);
         } catch (error) {
@@ -466,7 +479,21 @@ class ExpenseService {
                 throw new NotFoundError('Approver');
             }
             const approverData = approverDoc.data();
+            if (!['admin', 'accountant'].includes(approverData.role)) {
+            throw new UnauthorizedError('Only admins or accountants can approve expenses');
+            }
+            if (expense.submittedBy === approverId && approverData.role !== 'admin') {
+            throw new UnauthorizedError('You cannot approve your own expense');
+           }
+
             const approverName = approverData.fullName || approverData.email;
+            const submitterDoc = await this.db.collection('users').doc(expense.submittedBy).get();
+            const submitterRole = submitterDoc.exists ? submitterDoc.data().role : null;
+
+            if (!this.canApprove(approverData.role, approverId, expense.submittedBy, submitterRole)) {
+            throw new UnauthorizedError('You are not allowed to approve this expense');
+            }
+
 
             // Update expense
             const updates = {
@@ -491,12 +518,12 @@ class ExpenseService {
 
             logger.info(`Expense ${approved ? 'approved' : 'rejected'}: ${expense.expenseNumber}`, { approverId });
 
-            // Send SMS notification to submitter
-            await this.sendExpenseNotification(expenseId, approved ? 'approved' : 'rejected');
+
 
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${expenseId}`);
             await cache.delPattern(`${this.cachePrefix}list:*`);
+            await cache.delPattern(`${this.cachePrefix}category:*`);
 
             return await this.getExpenseById(expenseId);
         } catch (error) {
@@ -530,6 +557,7 @@ class ExpenseService {
             // Invalidate cache
             await cache.del(`${this.cachePrefix}${expenseId}`);
             await cache.delPattern(`${this.cachePrefix}list:*`);
+            await cache.delPattern(`${this.cachePrefix}category:*`);
         } catch (error) {
             logger.error('Delete expense error:', error);
             throw error;
@@ -542,10 +570,10 @@ class ExpenseService {
      * @param {string} endDate
      * @returns {Promise<Object>}
      */
-    async getExpensesByCategory(startDate, endDate, vehicleId = null) {
-        try {
-            const cacheKey = `${this.cachePrefix}category:${startDate}:${endDate}:${vehicleId || 'all'}`;
-            const cached = await cache.get(cacheKey);
+    async getExpensesByCategory(startDate, endDate, vehicleId = null, userId = null, userRole = null) {
+    try {
+        const privileged = ['admin', 'store_manager', 'accountant'].includes(userRole);
+        const cacheKey = `${this.cachePrefix}category:${startDate}:${endDate}:${vehicleId || 'all'}:${privileged ? 'all' : userId}`;
             if (cached) return cached;
 
             let query = this.db.collection(this.collection);
@@ -557,6 +585,9 @@ class ExpenseService {
 
             const snapshot = await query.get();
             let expenses = serializeDocs(snapshot);
+            if (!privileged) {
+           expenses = expenses.filter(e => e.submittedBy === userId);
+            }
 
             // Filter by date client-side to avoid composite index
             if (startDate) {
@@ -567,6 +598,7 @@ class ExpenseService {
                 const end = new Date(endDate);
                 expenses = expenses.filter(exp => new Date(exp.expenseDate) <= end);
             }
+            expenses = expenses.filter(e => e.status !== 'rejected');
 
             // Aggregate by category
             const categoryMap = {};
@@ -589,6 +621,7 @@ class ExpenseService {
                 startDate,
                 endDate
             };
+            
 
             // Cache the result
             await cache.set(cacheKey, summary, this.cacheTTL);
@@ -600,54 +633,7 @@ class ExpenseService {
         }
     }
 
-    /**
-     * Send expense notification via SMS
-     * @param {string} expenseId
-     * @param {string} type
-     * @returns {Promise<void>}
-     */
-    async sendExpenseNotification(expenseId, type) {
-        try {
-            const expense = await this.getExpenseById(expenseId);
 
-            let message = '';
-            let recipients = [];
-
-            if (type === 'submitted') {
-                // Notify approvers (admin and store managers)
-                const usersSnapshot = await this.db.collection('users')
-                    .where('role', '==', 'admin')
-                    .get();
-                recipients = serializeDocs(usersSnapshot).map(u => u.phoneNumber).filter(Boolean);
-
-                message = `SAMWEGA: New expense ${expense.expenseNumber} submitted by ${expense.submittedByName} for ${expense.currency} ${expense.amount.toLocaleString()} (${expense.category}). Please review.`;
-            } else if (type === 'approved' || type === 'rejected') {
-                // Notify submitter
-                const submitterDoc = await this.db.collection('users').doc(expense.submittedBy).get();
-                if (submitterDoc.exists && submitterDoc.data().phoneNumber) {
-                    recipients = [submitterDoc.data().phoneNumber];
-                }
-
-                if (type === 'approved') {
-                    message = `SAMWEGA: Your expense ${expense.expenseNumber} for ${expense.currency} ${expense.amount.toLocaleString()} has been approved by ${expense.approvedByName}.`;
-                } else {
-                    message = `SAMWEGA: Your expense ${expense.expenseNumber} for ${expense.currency} ${expense.amount.toLocaleString()} has been rejected. Reason: ${expense.rejectionReason}`;
-                }
-            }
-
-            // Send SMS to all recipients
-            for (const phone of recipients) {
-                try {
-                    await textSMSService.sendSMS(phone, message);
-                } catch (smsError) {
-                    logger.error(`Failed to send SMS to ${phone}:`, smsError);
-                }
-            }
-        } catch (error) {
-            logger.error('Send expense notification error:', error);
-            // Don't throw - notification failure shouldn't block expense operations
-        }
-    }
 }
 
 module.exports = new ExpenseService();

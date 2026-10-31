@@ -223,7 +223,33 @@ const logActivity = (action, resource) => {
                         } catch (e) { }
                     }
 
-                    const description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${req.user.username || req.user.email}`;
+                    const actor = req.user.username || req.user.email;
+                    let description = `${action} ${resource}${identifier ? `: ${identifier}` : (resourceId ? ` (${resourceId})` : '')} by ${actor}`;
+
+                    // A plain sentence ("Nancy removed 12 x Ordinary nails, stock 40 -> 28") when we can build one
+                    let extraDetails = {};
+                    try {
+                        const { describeActivity } = require('../utils/activity-describer');
+                        let parsed = responseBody;
+                        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                        const data = parsed && (parsed.data !== undefined ? parsed.data : parsed);
+                        // one small read so the sentence can say which invoice the stock went on
+                        const lookups = {};
+                        if (req.body && req.body.invoiceId && resource === 'inventory') {
+                            try {
+                                const invSnap = await getFirestore().collection('invoices').doc(String(req.body.invoiceId)).get();
+                                if (invSnap.exists) {
+                                    const i = invSnap.data();
+                                    lookups.invoice = { invoiceNumber: i.invoiceNumber, supplierName: i.supplierName };
+                                }
+                            } catch (e) { /* the sentence still works without it */ }
+                        }
+                        const described = describeActivity({ action, resource, req, data, actor, lookups });
+                        if (described) {
+                            description = described.description;
+                            extraDetails = described.extra || {};
+                        }
+                    } catch (e) { /* keep the generic sentence */ }
 
                     await activityLogService.log({
                         userId: req.user.uid,
@@ -237,6 +263,7 @@ const logActivity = (action, resource) => {
                             url: req.originalUrl,
                             params: req.params,
                             identifier: identifier || null,
+                            ...extraDetails,
                             statusCode: res.statusCode
                             // body: req.body // Be careful with sensitive data
                         }

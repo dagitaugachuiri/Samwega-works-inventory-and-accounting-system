@@ -100,12 +100,13 @@ router.put(
 /**
  * @route   POST /api/v1/expenses/:id/approve
  * @desc    Approve or reject expense
- * @access  Admin, Store Manager
+ * @access  Admin, Accountant
  */
 router.post(
     '/:id/approve',
     verifyToken,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'accountant'),
+    requireVerified,
     logActivity('APPROVE', 'expense'),
     writeLimiter,
     validateParams(expenseIdSchema),

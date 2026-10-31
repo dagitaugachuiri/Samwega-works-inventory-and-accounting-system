@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
     Home,
     Users,
+    UsersRound,
     FileText,
     BarChart,
     Wallet,
@@ -54,7 +55,7 @@ export default function Sidebar() {
         { name: "Transfer Stock", href: "/issue-stock", icon: ArrowRightLeft, roles: ["admin", "store_manager"] },
         { name: "Sales", href: "/sales-dashboard", icon: ShoppingCart, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
         { name: "Customers", href: "/customers", icon: UsersRound, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
-        { name: "Vehicles", href: "/vehicles", icon: Truck, roles: ["admin", "store_manager", "accountant"] },
+        { name: "Vehicles", href: "/vehicles", icon: Truck, roles: ["admin", "store_manager", "sales_rep", "accountant"] },
         { name: "Team Management", href: "/sales-team", icon: Contact, roles: ["admin", "store_manager"] },
         { name: "Suppliers", href: "/suppliers", icon: Users, roles: ["admin", "store_manager", "accountant"] },
         { name: "Invoices", href: "/invoices", icon: FileText, roles: ["admin", "store_manager", "accountant"] },

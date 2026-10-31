@@ -33,8 +33,8 @@ const getAllCustomers = async (req, res) => {
  */
 const searchCustomers = async (req, res) => {
     try {
-        const { q, limit } = req.query;
-        const customers = await customerService.searchCustomers(q, limit);
+        const { q, limit, vehicleId } = req.query;
+        const customers = await customerService.searchCustomers(q, limit, vehicleId || null, req.user.uid);
         return res.status(200).json(successResponse({ customers }, 'Customers found successfully'));
     } catch (error) {
         logger.error('Search customers controller error:', error);
@@ -54,7 +54,16 @@ const getCustomerById = async (req, res) => {
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
-
+    
+const getCustomersByVehicle = async (req, res) => {
+    try {
+        const vehicles = await customerService.getCustomersGroupedByVehicle();
+        return res.status(200).json(successResponse({ vehicles }, 'Customers by vehicle retrieved'));
+    } catch (error) {
+        logger.error('Get customers by vehicle controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
 /**
  * Update customer
  */
@@ -64,6 +73,16 @@ const updateCustomer = async (req, res) => {
         return res.status(200).json(successResponse(customer, 'Customer updated successfully'));
     } catch (error) {
         logger.error('Update customer controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+const setMessagesStopped = async (req, res) => {
+    try {
+        const stopped = req.body.stopped;
+        const customer = await customerService.setMessagesStopped(req.params.id, stopped, req.user.uid);
+        return res.status(200).json(successResponse(customer, stopped ? 'Messages stopped' : 'Messages resumed'));
+    } catch (error) {
+        logger.error('Set messages stopped controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
@@ -86,10 +105,40 @@ const deleteCustomer = async (req, res) => {
  */
 const recordPayment = async (req, res) => {
     try {
-        const customer = await customerService.recordPayment(req.params.id, req.body.amount);
+        const customer = await customerService.recordPayment(req.params.id, req.body.amount, req.body.method || 'cash', req.user.uid);
         return res.status(200).json(successResponse(customer, 'Payment recorded successfully'));
     } catch (error) {
         logger.error('Record payment controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const recalculateDebts = async (req, res) => {
+    try {
+        const result = await customerService.recalculateAllDebts();
+        return res.status(200).json(successResponse(result, 'Debts recalculated'));
+    } catch (error) {
+        logger.error('Recalculate debts controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const getUnpaidSales = async (req, res) => {
+    try {
+        const result = await customerService.getUnpaidSales(req.params.id);
+        return res.status(200).json(successResponse(result, 'Unpaid sales retrieved'));
+    } catch (error) {
+        logger.error('Get unpaid sales controller error:', error);
+        return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
+    }
+};
+
+const getSummary = async (req, res) => {
+    try {
+        const summary = await customerService.getSummary();
+        return res.status(200).json(successResponse(summary, 'Summary retrieved'));
+    } catch (error) {
+        logger.error('Get customer summary controller error:', error);
         return res.status(error.statusCode || 500).json(errorResponse(error.message, error.details));
     }
 };
@@ -101,5 +150,10 @@ module.exports = {
     getCustomerById,
     updateCustomer,
     deleteCustomer,
-    recordPayment
+    recordPayment,
+    getCustomersByVehicle,
+    setMessagesStopped,
+    getSummary,
+    getUnpaidSales,
+    recalculateDebts
 };

@@ -179,7 +179,7 @@ export default function SalesScreen({ route, navigation }) {
     const searchForCustomers = async (query) => {
         setSearchingCustomers(true);
         try {
-            const response = await searchCustomers(query);
+            const response = await searchCustomers(query, vehicleId);
             const customers = response.data?.customers || [];
             setCustomerSuggestions(customers);
             setShowCustomerSuggestions(true);

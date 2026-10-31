@@ -28,19 +28,6 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/customers
- * @desc    Get all customers
- * @access  All verified users
- */
-router.get(
-    '/',
-    verifyToken,
-    requireVerified,
-    validateQuery(getAllCustomersSchema),
-    customerController.getAllCustomers
-);
-
-/**
  * @route   GET /api/v1/customers/search
  * @desc    Search customers (autocomplete)
  * @access  All verified users
@@ -52,12 +39,42 @@ router.get(
     validateQuery(searchCustomersSchema),
     customerController.searchCustomers
 );
+router.get(
+    '/by-vehicle',
+    verifyToken,
+    requireVerified,
+    customerController.getCustomersByVehicle
+);
+
+router.get(
+    '/summary',
+    verifyToken,
+    requireVerified,
+    customerController.getSummary
+);
+
 
 /**
  * @route   GET /api/v1/customers/:id
  * @desc    Get customer by ID
  * @access  All verified users
  */
+router.post(
+    '/recalculate-debts',
+    verifyToken,
+    requireRole('admin'),
+    writeLimiter,
+    customerController.recalculateDebts
+);
+
+router.get(
+    '/:id/unpaid-sales',
+    verifyToken,
+    requireVerified,
+    validateParams(customerIdSchema),
+    customerController.getUnpaidSales
+);
+
 router.get(
     '/:id',
     verifyToken,
@@ -69,27 +86,36 @@ router.get(
 /**
  * @route   PUT /api/v1/customers/:id
  * @desc    Update customer
- * @access  All verified users
+ * @access  Admin only
  */
 router.put(
     '/:id',
     verifyToken,
-    requireVerified,
+    requireRole('admin'),
     writeLimiter,
     validateParams(customerIdSchema),
     validateBody(updateCustomerSchema),
     customerController.updateCustomer
 );
 
+router.patch(
+    '/:id/messages',
+    verifyToken,
+    requireRole('admin'),
+    writeLimiter,
+    validateParams(customerIdSchema),
+    customerController.setMessagesStopped
+);
+
 /**
  * @route   DELETE /api/v1/customers/:id
  * @desc    Delete customer
- * @access  Admin, Store Manager only
+ * @access  Admin only
  */
 router.delete(
     '/:id',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     writeLimiter,
     validateParams(customerIdSchema),
     customerController.deleteCustomer

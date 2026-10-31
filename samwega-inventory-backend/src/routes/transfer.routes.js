@@ -43,13 +43,13 @@ router.post(
 /**
  * @route   GET /api/v1/transfers
  * @desc    Get all transfers
- * @access  Required roles: Admin, Store Manager, Accountant
+ * @access  Admin, Accountant
  */
 router.get(
     '/',
     verifyToken,
     requireVerified,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'accountant'),
     validateQuery(searchTransfersSchema),
     transferController.getAllTransfers
 );
@@ -75,7 +75,7 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
-    requireRole('admin', 'store_manager', 'accountant'),
+    requireRole('admin', 'accountant'),
     validateParams(transferIdSchema),
     transferController.getTransferById
 );
@@ -106,6 +106,18 @@ router.post(
     validateParams(transferIdSchema),
     validateBody(confirmTransferSchema),
     transferController.confirmTransfer
+);
+/**
+ * @route   POST /api/v1/transfers/:id/confirm-return
+ * @desc    Driver confirms a returned load (record only, no stock change)
+ * @access  Assigned driver
+ */
+router.post(
+    '/:id/confirm-return',
+    verifyToken,
+    requireRole('driver'),
+    validateParams(transferIdSchema),
+    transferController.confirmReturn
 );
 
 /**

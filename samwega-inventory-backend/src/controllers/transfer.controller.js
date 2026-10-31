@@ -158,6 +158,18 @@ const getVehicleTransfers = async (req, res, next) => {
         next(error);
     }
 };
+/**
+ * Driver confirms a return
+ */
+const confirmReturn = async (req, res, next) => {
+    try {
+        const transfer = await transferService.confirmReturn(req.params.id, req.user.uid);
+        res.json(successResponse(transfer, 'Return confirmed successfully'));
+    } catch (error) {
+        logger.error('Confirm return controller error:', error);
+        next(error);
+    }
+};
 
 module.exports = {
     createTransfer,
@@ -170,5 +182,6 @@ module.exports = {
     getPendingTransfers,
     getCollectedItems,
     returnStock,
-    getVehicleTransfers
+    getVehicleTransfers,
+    confirmReturn
 };

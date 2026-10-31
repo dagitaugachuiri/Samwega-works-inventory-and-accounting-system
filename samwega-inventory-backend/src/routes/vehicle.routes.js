@@ -137,7 +137,7 @@ router.get(
     '/:id/transfers',
     verifyToken,
     requireVerified,
-    requireRole('admin', 'store_manager', 'accountant', 'driver'),
+    requireRole('admin', 'store_manager', 'accountant', 'driver','sales_rep'),
     requireVehicleScope(['admin', 'store_manager', 'accountant']),
     validateParams(vehicleIdSchema),
     transferController.getVehicleTransfers

@@ -587,7 +587,7 @@ class TransferService {
             // Verify vehicle exists and user is assigned
             const vehicle = await vehicleService.getVehicleById(vehicleId);
             if (vehicle.assignedUserId !== userId) {
-                throw new UnauthorizedError('Only the assigned sales representative can break units');
+                throw new AuthorizationError('Only the assigned sales representative can break units');
             }
 
             // Get inventory item for packaging structure
@@ -821,6 +821,9 @@ class TransferService {
                     issuedBy: userId,
                     issuedByName: userName,
                     notes,
+                    returnConfirmedBy: null,
+                    returnConfirmedByName: null,
+                    returnConfirmedAt: null,
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
@@ -1051,6 +1054,57 @@ class TransferService {
             throw error;
         }
     }
+    /**
+ * Driver confirms a return they have seen (record only, no stock change)
+ * @param {string} transferId
+ * @param {string} driverId
+ * @returns {Promise<Object>}
+ */
+async confirmReturn(transferId, driverId) {
+    try {
+        const transferDoc = await this.db.collection(this.collection).doc(transferId).get();
+        if (!transferDoc.exists) {
+            throw new NotFoundError('Transfer');
+        }
+
+        const transfer = transferDoc.data();
+
+        if (transfer.type !== 'return') {
+            throw new ValidationError('Only returns can be confirmed this way');
+        }
+
+        if (transfer.returnConfirmedAt) {
+            throw new ValidationError('This return has already been confirmed');
+        }
+
+        const vehicle = await vehicleService.getVehicleById(transfer.vehicleId);
+        if (vehicle.assignedDriverId !== driverId) {
+            throw new AuthorizationError('Only the assigned driver can confirm this return');
+        }
+
+        const driverDoc = await this.db.collection('users').doc(driverId).get();
+        const driverName = driverDoc.exists ? (driverDoc.data().fullName || driverDoc.data().email) : 'Unknown';
+
+        await this.db.collection(this.collection).doc(transferId).update({
+            returnConfirmedBy: driverId,
+            returnConfirmedByName: driverName,
+            returnConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        logger.info(`Return confirmed by driver: ${transfer.transferNumber}`, { transferId, driverId });
+
+        await cache.del(`${this.cachePrefix}${transferId}`);
+        await cache.delPattern(`${this.cachePrefix}*`);
+
+        return await this.getTransferById(transferId);
+    } catch (error) {
+        logger.error('Confirm return error:', error);
+        throw error;
+    }
 }
+
+}
+
 
 module.exports = new TransferService();

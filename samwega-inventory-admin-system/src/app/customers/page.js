@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, Car, BellOff, ChevronRight, Search, Printer, RefreshCw } from "lucide-react";
+import { Users, Car, BellOff, ChevronRight, Search } from "lucide-react";
 import api from "../../lib/api";
 import AlertContainer, { useAlert } from "../../components/Alert";
 
@@ -14,29 +14,6 @@ export default function CustomersLanding() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState([]);
     const [searching, setSearching] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [recalculating, setRecalculating] = useState(false);
-    const alert = useAlert();
-
-    useEffect(() => {
-        api.getCurrentUser()
-            .then((r) => setIsAdmin(unwrap(r)?.role === "admin"))
-            .catch(() => {});
-    }, []);
-
-    const recalculate = async () => {
-        if (!window.confirm("Recalculate every customer's debt from the sales records? Use this once to correct the figures.")) return;
-        setRecalculating(true);
-        try {
-            const r = unwrap(await api.recalculateCustomerDebts());
-            alert.success(`Debt recalculated for ${r.customers} customers, ${r.withDebt} with debt. Reloading…`);
-            setTimeout(() => window.location.reload(), 1200);
-        } catch (e) {
-            alert.error("Recalculation failed: " + e.message);
-            setRecalculating(false);
-        }
-    };
-
     useEffect(() => {
         let cancelled = false;
         Promise.all([api.getCustomersSummary(), api.getCustomersByVehicle()])
@@ -88,21 +65,9 @@ export default function CustomersLanding() {
 
     return (
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold text-slate-900">Customers</h1>
-                    <p className="text-sm text-slate-500">Customers grouped by vehicle</p>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                    {isAdmin && (
-                        <button onClick={recalculate} disabled={recalculating} className="btn-ghost">
-                            <RefreshCw size={16} className="mr-2" /> {recalculating ? "Recalculating…" : "Recalculate debts"}
-                        </button>
-                    )}
-                    <Link href="/customers/print" className="btn-ghost">
-                        <Printer size={16} className="mr-2" /> Print debt report
-                    </Link>
-                </div>
+            <div>
+                <h1 className="text-2xl font-semibold text-slate-900">Customers</h1>
+                <p className="text-sm text-slate-500">Customers grouped by vehicle</p>
             </div>
 
             {/* Stats */}

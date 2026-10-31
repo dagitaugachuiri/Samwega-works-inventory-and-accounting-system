@@ -26,6 +26,11 @@ export default function CustomersPrintPage() {
     const alert = useAlert();
 
     useEffect(() => {
+        const v = new URLSearchParams(window.location.search).get("vehicle");
+        if (v) setVehicleFilter(v);
+    }, []);
+
+    useEffect(() => {
         let cancelled = false;
         api.getCustomersByVehicle()
             .then((r) => !cancelled && setVehicles(unwrap(r)?.vehicles ?? []))

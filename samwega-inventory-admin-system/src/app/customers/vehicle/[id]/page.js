@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Pencil, Trash2, Search, ArrowLeft } from "lucide-react";
+import { Pencil, Trash2, Search, ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import api from "../../../../lib/api";
 import AlertContainer, { useAlert } from "../../../../components/Alert";
 
@@ -51,6 +51,21 @@ export default function VehicleCustomersPage() {
         }),
         { purchases: 0, debt: 0 }
     );
+
+    const [recalculating, setRecalculating] = useState(false);
+
+    const recalculate = async () => {
+        if (!window.confirm("Recalculate every customer's debt from the sales records? Use this once to correct the figures.")) return;
+        setRecalculating(true);
+        try {
+            const r = (await api.recalculateCustomerDebts())?.data ?? {};
+            alert.success(`Debt recalculated for ${r.customers} customers, ${r.withDebt} with debt. Reloading…`);
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (e) {
+            alert.error("Recalculation failed: " + e.message);
+            setRecalculating(false);
+        }
+    };
 
     const patchLocal = (customerId, changes) =>
         setVehicle((v) => ({
@@ -118,6 +133,16 @@ export default function VehicleCustomersPage() {
                     <h1 className="mt-1 text-2xl font-semibold text-slate-900">
                         {vehicle?.vehicleName || "Vehicle"}
                     </h1>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                    {isAdmin && (
+                        <button onClick={recalculate} disabled={recalculating} className="btn-ghost">
+                            <RefreshCw size={16} className="mr-2" /> {recalculating ? "Recalculating…" : "Recalculate debts"}
+                        </button>
+                    )}
+                    <Link href={`/customers/print?vehicle=${id}`} className="btn-ghost">
+                        <Printer size={16} className="mr-2" /> Print debt report
+                    </Link>
                 </div>
             </div>
 

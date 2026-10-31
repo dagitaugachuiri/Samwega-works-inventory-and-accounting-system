@@ -107,6 +107,11 @@ export const confirmReturn = async (transferId) => {
 };
 
 
+export const getWallets = async () => {
+    const response = await api.get('/wallets');
+    return response.data;
+};
+
 export const getIssuances = async (vehicleId) => {
     // Note: This endpoint was just added to the backend!
     const response = await api.get(`/vehicles/${vehicleId}/issuances`);

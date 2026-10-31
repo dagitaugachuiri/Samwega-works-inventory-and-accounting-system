@@ -662,6 +662,15 @@ class APIClient {
         return this.request(`/suppliers${query ? `?${query}` : ''}`);
     }
 
+    // Every supplier (id, name, etrStatus, isActive) for dropdowns and name lookups - not paginated
+    async getSupplierOptions() {
+        return this.request('/suppliers/options');
+    }
+
+    async recalculateSupplier(id) {
+        return this.request(`/suppliers/${id}/recalculate`, { method: 'POST' });
+    }
+
     async getSupplierById(id) {
         return this.request(`/suppliers/${id}`);
     }
@@ -693,7 +702,20 @@ class APIClient {
     }
 
     async getInvoiceById(id) {
+        return this.request(`/invoices/${id}`);
+    }
+
+    // Stock received on an invoice (what the invoice page lists as items)
+    async getInvoiceItems(id) {
         return this.request(`/invoices/${id}/items`);
+    }
+
+    // Admin clean-up: action = 'delete-empty' | 'repair-totals'. dryRun=true only previews.
+    async cleanupInvoices(action, dryRun = true) {
+        return this.request('/invoices/cleanup', {
+            method: 'POST',
+            body: JSON.stringify({ action, dryRun }),
+        });
     }
 
     async createInvoice(data) {
@@ -720,6 +742,14 @@ class APIClient {
         return this.request(`/invoices/${id}/remove-items`, {
             method: 'POST',
             body: JSON.stringify({ adjustmentIds }),
+        });
+    }
+
+    // Reverse = keep the invoice on record but undo its stock and supplier totals (reason required)
+    async reverseInvoice(id, reason) {
+        return this.request(`/invoices/${id}/reverse`, {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
         });
     }
 

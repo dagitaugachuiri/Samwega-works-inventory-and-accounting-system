@@ -21,7 +21,7 @@ class InvoiceController {
                 result.pagination.total
             );
             // keep your usual response shape, but guarantee the full pagination info is present
-            res.json({ ...base, pagination: { ...(base.pagination || {}), ...result.pagination } });
+            res.json({ ...base, pagination: { ...(base.pagination || {}), ...result.pagination }, summary: result.summary });
         } catch (error) {
             next(error);
         }
@@ -56,7 +56,7 @@ class InvoiceController {
 
     async recordPayment(req, res, next) {
         try {
-            const invoice = await invoiceService.recordPayment(req.params.id, req.body);
+            const invoice = await invoiceService.recordPayment(req.params.id, req.body, req.user);
             res.json(successResponse(invoice, 'Payment recorded successfully'));
         } catch (error) {
             next(error);
@@ -76,6 +76,18 @@ class InvoiceController {
         try {
             const result = await invoiceService.reverseInvoice(req.params.id, req.body.reason, req.user);
             res.json(successResponse(result, 'Invoice reversed successfully'));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async cleanupInvoices(req, res, next) {
+        try {
+            const result = await invoiceService.cleanupInvoices(req.body);
+            const msg = result.dryRun
+                ? `${result.count} invoice(s) would be affected (nothing changed yet)`
+                : `${result.count} invoice(s) updated`;
+            res.json(successResponse(result, msg));
         } catch (error) {
             next(error);
         }

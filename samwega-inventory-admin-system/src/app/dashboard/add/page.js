@@ -55,7 +55,7 @@ export default function BulkAddItemPage() {
   const fetchInitialData = async () => {
     try {
       const [suppliersRes, warehousesRes, inventoryRes, invoicesRes, userRes] = await Promise.all([
-        api.getSuppliers(),
+        api.getSupplierOptions(),
         api.getWarehouses(),
         api.getInventory(),
         api.getInvoices({ limit: 50 }),
@@ -353,7 +353,7 @@ export default function BulkAddItemPage() {
                       className="w-full h-10 px-3 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-200 focus:border-slate-400 text-sm bg-white"
                     >
                       <option value="">Select Supplier</option>
-                      {suppliers.map(s => (
+                      {suppliers.filter(s => s.isActive !== false).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>

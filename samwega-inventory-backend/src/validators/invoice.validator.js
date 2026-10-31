@@ -79,6 +79,7 @@ const createInvoiceSchema = Joi.object({
  * Update invoice validation schema
  */
 const updateInvoiceSchema = Joi.object({
+    supplierId: Joi.string().optional(), // lets an admin move an invoice to the right supplier
     invoiceNumber: Joi.string().optional(),
     invoiceDate: Joi.date().iso().optional(),
     dueDate: Joi.date().iso().optional(),
@@ -142,7 +143,8 @@ const invoiceIdSchema = Joi.object({
  */
 const searchInvoicesSchema = Joi.object({
     supplierId: Joi.string().optional(),
-    paymentStatus: Joi.string().valid('pending', 'partial', 'paid').optional(),
+    paymentStatus: Joi.string().valid('pending', 'partial', 'paid', 'unpaid').optional(),
+    etrStatus: Joi.string().valid('etr', 'non-etr').optional(),
     startDate: Joi.date().iso().optional(),
     endDate: Joi.date().iso().optional(),
     minAmount: Joi.number().min(0).optional(),
@@ -168,7 +170,14 @@ const removeInvoiceItemsSchema = Joi.object({
     adjustmentIds: Joi.array().items(Joi.string().trim()).min(1).required()
 });
 
+const cleanupInvoicesSchema = Joi.object({
+    action: Joi.string().valid('delete-empty', 'repair-totals', 'backfill-keyed-by').required(),
+    // defaults to a harmless preview; the real run must say dryRun:false
+    dryRun: Joi.boolean().default(true)
+});
+
 module.exports = {
+    cleanupInvoicesSchema,
     createInvoiceSchema,
     updateInvoiceSchema,
     recordPaymentSchema,

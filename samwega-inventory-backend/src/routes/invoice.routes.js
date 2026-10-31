@@ -11,6 +11,7 @@ const {
     invoiceIdSchema,
     searchInvoicesSchema,
     reverseInvoiceSchema,
+    cleanupInvoicesSchema,
     removeInvoiceItemsSchema      // NEW: add this to invoice.validator.js (snippet in chat)
 } = require('../validators/invoice.validator');
 
@@ -75,11 +76,11 @@ router.put(
     invoiceController.updateInvoice
 );
 
-// Record payment
+// Record payment: admin and accountant (accountants handle supplier payments, nothing else on invoices)
 router.post(
     '/:id/payments',
     verifyToken,
-    requireRole('admin'),
+    requireRole('admin', 'accountant'),
     logActivity('RECORD_PAYMENT', 'invoice'),
     writeLimiter,
     validateParams(invoiceIdSchema),
@@ -97,6 +98,17 @@ router.post(
     validateParams(invoiceIdSchema),
     validateBody(removeInvoiceItemsSchema),
     invoiceController.removeInvoiceItems
+);
+
+// Admin clean-up: delete empty invoices / repair zero totals (dryRun by default)
+router.post(
+    '/cleanup',
+    verifyToken,
+    requireRole('admin'),
+    logActivity('CLEANUP', 'invoice'),
+    writeLimiter,
+    validateBody(cleanupInvoicesSchema),
+    invoiceController.cleanupInvoices
 );
 
 // Reverse (void) invoice

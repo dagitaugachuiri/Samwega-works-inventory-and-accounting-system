@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Plus, Search, Edit, Trash2, Building2, Calendar, DollarSign, X, CreditCard } from "lucide-react";
+import { FileText, Plus, Search, Edit, Trash2, Building2, Calendar, DollarSign, X, CreditCard, RotateCcw } from "lucide-react";
 import api from "../../lib/api";
 import Link from "next/link";
 import PaymentModal from "../../components/PaymentModal";
@@ -25,6 +25,12 @@ export default function InvoicesPage() {
     });
     
     const [selectedIds, setSelectedIds] = useState([]);
+    const [showCleanup, setShowCleanup] = useState(false);
+    const EMPTY_FILTERS = { startDate: "", endDate: "", supplierId: "", paymentStatus: "", etrStatus: "", minAmount: "", maxAmount: "", view: "active" };
+    const [filters, setFilters] = useState(EMPTY_FILTERS);
+    const [summary, setSummary] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
+    const activeFilterCount = Object.entries(filters).filter(([k, v]) => v && !(k === "view" && v === "active")).length;
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const [saving, setSaving] = useState(false);
     const [paymentModal, setPaymentModal] = useState({ open: false, invoice: null });
@@ -54,11 +60,11 @@ export default function InvoicesPage() {
         setSelectedIds([]); // never keep ticks from another page or search
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, debouncedSearch]);
+    }, [page, debouncedSearch, filters]);
 
     const fetchSuppliers = async () => {
         try {
-            const res = await api.getSuppliers();
+            const res = await api.getSupplierOptions();
             if (res.success && res.data) {
                 const list = res.data.suppliers || res.data;
                 setSuppliers(Array.isArray(list) ? list : []);
@@ -71,12 +77,22 @@ export default function InvoicesPage() {
     const fetchData = async () => {
         try {
             const params = { page, limit: 20 };
+            // dates are whole days in local time (Kenya), so "to" includes the last day fully
+            if (filters.startDate) params.startDate = new Date(`${filters.startDate}T00:00:00`).toISOString();
+            if (filters.endDate) params.endDate = new Date(`${filters.endDate}T23:59:59`).toISOString();
+            if (filters.supplierId) params.supplierId = filters.supplierId;
+            if (filters.paymentStatus) params.paymentStatus = filters.paymentStatus;
+            if (filters.etrStatus) params.etrStatus = filters.etrStatus;
+            if (filters.minAmount !== "") params.minAmount = filters.minAmount;
+            if (filters.maxAmount !== "") params.maxAmount = filters.maxAmount;
+            if (filters.view === "reversed") params.status = "voided";
             if (debouncedSearch) params.search = debouncedSearch;
             const res = await api.getInvoices(params);
             if (res.success && res.data) {
                 const list = res.data.invoices || res.data;
                 setInvoices(Array.isArray(list) ? list : []);
                 setPagination(res.pagination || res.data.pagination || null);
+                setSummary(res.summary || null);
             }
         } catch (error) {
             console.error("Failed to fetch data:", error);
@@ -149,6 +165,8 @@ export default function InvoicesPage() {
             if (editingInvoice) {
                 // When editing, don't change the invoice number
                 const payload = {
+                    // only sent when changed: lets you fix an "Unknown" supplier
+                    ...(form.supplierId !== editingInvoice.supplierId ? { supplierId: form.supplierId } : {}),
                     invoiceDate: new Date(form.invoiceDate).toISOString(),
                     totalAmount,
                     amountPaid,
@@ -179,6 +197,55 @@ export default function InvoicesPage() {
             alert.error("Failed to save: " + error.message);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const setFilter = (key, value) => { setFilters(f => ({ ...f, [key]: value })); setPage(1); };
+    const clearFilters = () => { setFilters(EMPTY_FILTERS); setPage(1); };
+    const toIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const applyPreset = (preset) => {
+        const today = new Date();
+        let from = new Date(today);
+        if (preset === "week") from.setDate(today.getDate() - 6);
+        if (preset === "month") from = new Date(today.getFullYear(), today.getMonth(), 1);
+        setFilters(f => ({ ...f, startDate: toIso(from), endDate: toIso(today) }));
+        setPage(1);
+    };
+
+    const handleReverse = async (inv) => {
+        const reason = window.prompt(
+            `Reverse invoice ${inv.invoiceNumber}?\n\nThe stock it brought in is taken back out of inventory and its amount comes off the supplier. ` +
+            `The invoice stays on record under "Reversed".\n\nReason (required):`
+        );
+        if (reason === null) return;
+        if (!reason.trim()) { alert.error("A reason is required"); return; }
+        try {
+            await api.reverseInvoice(inv.id, reason.trim());
+            alert.success("Invoice reversed");
+            fetchData();
+        } catch (error) {
+            alert.error("Failed to reverse: " + error.message);
+        }
+    };
+
+    // Admin clean-up: always previews first, then asks before changing anything
+    const runCleanup = async (action) => {
+        const what = action === 'delete-empty'
+            ? "delete invoices that have no items, no total and no payments"
+            : action === 'backfill-keyed-by'
+                ? "fill in who keyed these invoices in, from the activity log"
+                : "rebuild item counts and totals from the stock actually received";
+        try {
+            const preview = await api.cleanupInvoices(action, true);
+            const { count, invoices: sample } = preview.data;
+            if (!count) { alert.success("Nothing to do - no invoices need this."); return; }
+            const names = sample.slice(0, 8).map(i => i.invoiceNumber).join(", ");
+            if (!window.confirm(`This will ${what}.\n\n${count} invoice(s): ${names}${count > 8 ? ", ..." : ""}\n\nContinue?`)) return;
+            const done = await api.cleanupInvoices(action, false);
+            alert.success(`${done.data.count} invoice(s) updated`);
+            fetchData();
+        } catch (error) {
+            alert.error("Clean-up failed: " + error.message);
         }
     };
 
@@ -242,25 +309,110 @@ export default function InvoicesPage() {
                     <h1 className="text-2xl font-semibold text-slate-900">Purchase Invoices</h1>
                     <p className="text-sm text-slate-500">Manage supplier invoices and procurement records</p>
                 </div>
-                {canCreate && (
-                <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-                    <Plus size={16} />
-                    New Invoice
+                <div className="flex items-center gap-2">
+                    {isAdmin && (
+                        <div className="relative">
+                            <button onClick={() => setShowCleanup(v => !v)} className="btn-ghost px-3 py-2 text-sm">
+                                Clean up ▾
+                            </button>
+                            {showCleanup && (
+                                <div className="absolute right-0 z-20 mt-1 w-64 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('repair-totals'); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50">
+                                        Repair zero totals
+                                        <span className="block text-xs text-slate-400">Invoices that show 0 but have items</span>
+                                    </button>
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('backfill-keyed-by'); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-slate-50">
+                                        Fill "keyed in by"
+                                        <span className="block text-xs text-slate-400">Older invoices, from the activity log</span>
+                                    </button>
+                                    <button onClick={() => { setShowCleanup(false); runCleanup('delete-empty'); }} className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">
+                                        Delete empty invoices
+                                        <span className="block text-xs text-slate-400">No items, no total, no payments</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {canCreate && (
+                    <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+                        <Plus size={16} />
+                        New Invoice
+                    </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Search + filters toggle */}
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-full max-w-sm">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Search invoices..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="input-field pl-9 w-full"
+                    />
+                </div>
+                <button
+                    onClick={() => setShowFilters(v => !v)}
+                    className={`btn-ghost flex items-center gap-2 px-4 py-2 text-sm ${activeFilterCount ? "text-sky-700" : ""}`}
+                >
+                    Filters {activeFilterCount > 0 && (
+                        <span className="rounded-full bg-sky-100 px-1.5 text-xs font-semibold text-sky-700">{activeFilterCount}</span>
+                    )}
+                    <span className="text-xs">{showFilters ? "▴" : "▾"}</span>
                 </button>
+                {activeFilterCount > 0 && (
+                    <button onClick={clearFilters} className="text-sm text-sky-600 hover:underline">Clear</button>
                 )}
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                    type="text"
-                    placeholder="Search invoices..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="input-field pl-9 w-full"
-                />
-            </div>
+            {/* Filters (compact, opens on demand) */}
+            {showFilters && (
+                <div className="glass-panel p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input type="date" value={filters.startDate} max={filters.endDate || undefined} onChange={(e) => setFilter("startDate", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }} aria-label="From date" />
+                        <span className="text-xs text-slate-400">to</span>
+                        <input type="date" value={filters.endDate} min={filters.startDate || undefined} onChange={(e) => setFilter("endDate", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }} aria-label="To date" />
+                        <button onClick={() => applyPreset("today")} className="btn-ghost px-2 py-1 text-xs">Today</button>
+                        <button onClick={() => applyPreset("week")} className="btn-ghost px-2 py-1 text-xs">7 days</button>
+                        <button onClick={() => applyPreset("month")} className="btn-ghost px-2 py-1 text-xs">This month</button>
+                        <span className="mx-1 hidden h-5 w-px bg-slate-200 sm:block" />
+                        <select value={filters.supplierId} onChange={(e) => setFilter("supplierId", e.target.value)} className="input-field py-1 text-sm" style={{ width: "10.5rem" }}>
+                            <option value="">All suppliers</option>
+                            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <select value={filters.paymentStatus} onChange={(e) => setFilter("paymentStatus", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9.5rem" }}>
+                            <option value="">Any payment</option>
+                            <option value="unpaid">Unpaid (owing)</option>
+                            <option value="pending">Not paid at all</option>
+                            <option value="partial">Part paid</option>
+                            <option value="paid">Fully paid</option>
+                        </select>
+                        <select value={filters.etrStatus} onChange={(e) => setFilter("etrStatus", e.target.value)} className="input-field py-1 text-sm" style={{ width: "8.5rem" }}>
+                            <option value="">ETR + non-ETR</option>
+                            <option value="etr">ETR only</option>
+                            <option value="non-etr">Non-ETR only</option>
+                        </select>
+                        <input type="number" min="0" placeholder="Min KES" value={filters.minAmount} onChange={(e) => setFilter("minAmount", e.target.value)} className="input-field py-1 text-sm" style={{ width: "6.5rem" }} />
+                        <input type="number" min="0" placeholder="Max KES" value={filters.maxAmount} onChange={(e) => setFilter("maxAmount", e.target.value)} className="input-field py-1 text-sm" style={{ width: "6.5rem" }} />
+                        <select value={filters.view} onChange={(e) => setFilter("view", e.target.value)} className="input-field py-1 text-sm" style={{ width: "9rem" }}>
+                            <option value="active">Active</option>
+                            <option value="reversed">Reversed</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+
+            {/* Totals for whatever is showing (always visible when there is something to say) */}
+            {summary && (activeFilterCount > 0 || showFilters) && (
+                <p className="text-sm text-slate-600">
+                    {pagination?.total ?? 0} invoice(s) &middot; Total <b>KES {summary.totalAmount.toLocaleString()}</b>
+                    &middot; Paid <b className="text-emerald-700">KES {summary.amountPaid.toLocaleString()}</b>
+                    &middot; Owing <b className="text-amber-700">KES {summary.balanceRemaining.toLocaleString()}</b>
+                </p>
+            )}
 
             {/* New Supplier Link */}
             {suppliers.length === 0 && (
@@ -294,13 +446,22 @@ export default function InvoicesPage() {
                             </tr>
                         ) : (
                             filteredInvoices.map((inv) => (
-                                <tr key={inv.id} className="hover:bg-slate-50">
+                                <tr
+                                    key={inv.id}
+                                    onClick={() => router.push(`/invoices/${inv.id}`)}
+                                    className="hover:bg-slate-50 cursor-pointer"
+                                >
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
                                             <FileText size={14} className="text-slate-400" />
                                             <span className="font-mono text-sm font-medium text-slate-900">
                                                 {inv.invoiceNumber || inv.id}
                                             </span>
+                                            {(inv.itemsCount || 0) === 0 && !(inv.totalAmount > 0) && (
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-600 border border-rose-200" title="No items, no total - safe to delete">
+                                                    Empty
+                                                </span>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -316,16 +477,27 @@ export default function InvoicesPage() {
                                         KES {(inv.amountPaid || inv.paidAmount || 0).toLocaleString()}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${(inv.paymentStatus || inv.status) === 'paid'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-amber-100 text-amber-700'
-                                            }`}>
-                                            {(inv.paymentStatus || inv.status) === 'paid' ? 'Paid' : 'Pending'}
-                                        </span>
+                                        {inv.status === 'voided' ? (
+                                            <span
+                                                className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700"
+                                                title={`Reversed${inv.voidedByName ? ` by ${inv.voidedByName}` : ''}${inv.voidReason ? `: ${inv.voidReason}` : ''}`}
+                                            >
+                                                Reversed
+                                            </span>
+                                        ) : (
+                                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${inv.paymentStatus === 'paid'
+                                                ? 'bg-green-100 text-green-700'
+                                                : inv.paymentStatus === 'partial'
+                                                    ? 'bg-sky-100 text-sky-700'
+                                                    : 'bg-amber-100 text-amber-700'
+                                                }`}>
+                                                {inv.paymentStatus === 'paid' ? 'Paid' : inv.paymentStatus === 'partial' ? 'Part paid' : 'Pending'}
+                                            </span>
+                                        )}
                                     </td>
-                                    <td className="px-4 py-3">
+                                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-center gap-1">
-                                            {(inv.balanceRemaining || 0) > 0 && (
+                                            {inv.status !== 'voided' && (inv.balanceRemaining || 0) > 0 && (
                                                 <button
                                                     onClick={() => setPaymentModal({ open: true, invoice: inv })}
                                                     className="p-1.5 rounded hover:bg-green-50 text-green-600"
@@ -334,18 +506,33 @@ export default function InvoicesPage() {
                                                     <CreditCard size={14} />
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => handleOpenModal(inv)}
-                                                className="p-1.5 rounded hover:bg-slate-100 text-slate-500"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(inv.id)}
-                                                className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {inv.status !== 'voided' && (
+                                                <button
+                                                    onClick={() => handleOpenModal(inv)}
+                                                    className="p-1.5 rounded hover:bg-slate-100 text-slate-500"
+                                                    title="Edit invoice"
+                                                >
+                                                    <Edit size={14} />
+                                                </button>
+                                            )}
+                                            {isAdmin && inv.status !== 'voided' && (
+                                                <button
+                                                    onClick={() => handleReverse(inv)}
+                                                    className="p-1.5 rounded hover:bg-amber-50 text-amber-600"
+                                                    title="Reverse invoice (keeps it on record)"
+                                                >
+                                                    <RotateCcw size={14} />
+                                                </button>
+                                            )}
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDelete(inv.id)}
+                                                    className="p-1.5 rounded hover:bg-rose-50 text-rose-500"
+                                                    title="Delete invoice"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -353,6 +540,33 @@ export default function InvoicesPage() {
                         )}
                     </tbody>
                 </table>
+                {/* Pagination */}
+                {pagination && (
+                    <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm text-slate-500">
+                        <span>
+                            {pagination.total
+                                ? `Showing ${(page - 1) * pagination.limit + 1}-${(page - 1) * pagination.limit + filteredInvoices.length} of ${pagination.total}`
+                                : "No invoices"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Prev
+                            </button>
+                            <span>Page {page} of {pagination.totalPages || 1}</span>
+                            <button
+                                onClick={() => setPage((p) => Math.min(pagination.totalPages || 1, p + 1))}
+                                disabled={page >= (pagination.totalPages || 1)}
+                                className="btn-ghost px-3 py-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal */}
@@ -414,6 +628,12 @@ export default function InvoicesPage() {
                          <label className="block text-sm font-medium text-slate-700 mb-2">
                            Items
                          </label>
+                        {editingInvoice && (
+                            <p className="mb-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                Changing items here does not change stock. To take wrongly received items out of inventory,
+                                open the invoice and use <b>Remove items</b>.
+                            </p>
+                        )}
                         <div className="space-y-2">
                          {form.items.map((item, idx) => (
                       <div key={idx} className="flex gap-2 items-start">

@@ -14,7 +14,27 @@ class SupplierController {
     async getAllSuppliers(req, res, next) {
         try {
             const result = await supplierService.getAllSuppliers(req.query);
-            res.json(paginatedResponse(result.suppliers, result.pagination.page, result.pagination.limit, result.pagination.total));
+            const base = paginatedResponse(result.suppliers, result.pagination.page, result.pagination.limit, result.pagination.total);
+            // same shape the invoices list uses (res.pagination), plus totals across ALL suppliers
+            res.json({ ...base, pagination: { ...result.pagination }, summary: result.summary });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getSupplierOptions(req, res, next) {
+        try {
+            const options = await supplierService.getSupplierOptions();
+            res.json(successResponse(options, 'Supplier options retrieved successfully'));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async recalculateFinancials(req, res, next) {
+        try {
+            const totals = await supplierService.recalculateFinancials(req.params.id);
+            res.json(successResponse(totals, 'Supplier totals recalculated from invoices'));
         } catch (error) {
             next(error);
         }

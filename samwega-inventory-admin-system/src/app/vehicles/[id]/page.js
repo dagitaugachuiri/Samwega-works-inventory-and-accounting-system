@@ -22,6 +22,7 @@ export default function VehicleDetailsDashboard() {
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("issuances");
 
   // Modal state
@@ -36,9 +37,13 @@ export default function VehicleDetailsDashboard() {
 
   // Fetch initial data
   useEffect(() => {
-    const id = window.location.pathname.split('/').pop();
-    setVehicleId(id);
-  }, []);
+  api.getCurrentUser().then((res) => {
+    const me = res?.data;
+    if (me && ['sales_rep', 'driver'].includes(me.role) && me.assignedVehicleId) {
+      router.replace(`/vehicles/${me.assignedVehicleId}`);
+    }
+   }).catch((err) => console.error('Error fetching user:', err));
+   }, []);
 
   useEffect(() => {
     if (!vehicleId) return;
@@ -51,13 +56,21 @@ export default function VehicleDetailsDashboard() {
         if (startDate) filters.startDate = startDate;
         if (endDate) filters.endDate = endDate;
 
+        const meRes = await api.getCurrentUser();
+        const currentUser = meRes?.data;
+        setUser(currentUser);
+       const canSeeTransfers = ['admin', 'store_manager', 'accountant', 'sales_rep', 'driver'].includes(currentUser?.role);
+
         const [vehicleRes, transfersRes, inventoryRes, salesRes, expensesRes, vInventoryRes] = await Promise.all([
           api.getVehicleById(vehicleId),
-          api.getTransfers(filters),
+          canSeeTransfers
+              ? api.getVehicleTransfers(vehicleId, filters)
+              : Promise.resolve({ data: { transfers: [] } }),    
           api.getInventory(),
           api.getSales(filters),
           api.getExpenses(filters),
           api.getVehicleInventoryReport(filters)
+          
         ]);
 
         setVehicle(vehicleRes?.data || vehicleRes);
@@ -593,23 +606,19 @@ function IssuancesTab({ transfers }) {
                 )}
               </td>
               <td className="px-6 py-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                    {(t.status === 'collected' ? t.confirmedByName : t.submittedByName)?.substring(0, 2).toUpperCase() || "??"}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-slate-900 font-medium">{t.status === 'collected' ? t.confirmedByName : t.submittedByName}</span>
-                    <span className="text-[10px] text-slate-400 capitalize">{t.status === 'collected' ? 'Confirmed Collection' : 'Issued by Admin'}</span>
-                  </div>
+               <div className="flex flex-col gap-2">
+                <div className="flex flex-col">
+                 <span className="text-slate-900 font-medium">{t.issuedByName || 'Unknown'}</span>
+                 <span className="text-[10px] text-blue-600 font-semibold uppercase">Issued by</span>
+               </div>
+               {t.confirmedByName && (
+               <div className="flex flex-col">
+                <span className="text-slate-900 font-medium">{t.confirmedByName}</span>
+                <span className="text-[10px] text-emerald-600 font-semibold uppercase">Confirmed by</span>
                 </div>
-              </td>
-              <td className="px-6 py-4 text-center">
-                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${t.status === 'collected' ? 'bg-emerald-50 text-emerald-600' :
-                  t.status === 'approved' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
-                  }`}>
-                  {t.status}
-                </span>
-              </td>
+                )}
+                </div>
+               </td>
             </tr>
           );
         }) : (

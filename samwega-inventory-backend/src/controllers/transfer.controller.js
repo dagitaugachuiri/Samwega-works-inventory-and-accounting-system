@@ -125,6 +125,7 @@ const getCollectedItems = async (req, res, next) => {
     }
 };
 
+
 /**
  * Return stock from vehicle
  */
@@ -134,6 +135,38 @@ const returnStock = async (req, res, next) => {
         res.json(successResponse(result, 'Stock returned successfully'));
     } catch (error) {
         logger.error('Return stock controller error:', error);
+        next(error);
+    }
+};
+
+/**
+ * Transfers for one vehicle (used by the vehicle page and driver returns)
+ */
+const getVehicleTransfers = async (req, res, next) => {
+    try {
+        const filters = { ...req.query, vehicleId: req.params.id };
+
+        // Drivers only see returned goods
+        if (req.user.role === 'driver') {
+            filters.status = 'returned';
+        }
+
+        const result = await transferService.getAllTransfers(filters);
+        res.json(successResponse(result, 'Vehicle transfers retrieved successfully'));
+    } catch (error) {
+        logger.error('Get vehicle transfers controller error:', error);
+        next(error);
+    }
+};
+/**
+ * Driver confirms a return
+ */
+const confirmReturn = async (req, res, next) => {
+    try {
+        const transfer = await transferService.confirmReturn(req.params.id, req.user.uid);
+        res.json(successResponse(transfer, 'Return confirmed successfully'));
+    } catch (error) {
+        logger.error('Confirm return controller error:', error);
         next(error);
     }
 };
@@ -148,5 +181,7 @@ module.exports = {
     breakUnit,
     getPendingTransfers,
     getCollectedItems,
-    returnStock
+    returnStock,
+    getVehicleTransfers,
+    confirmReturn
 };

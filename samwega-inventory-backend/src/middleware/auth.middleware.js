@@ -250,11 +250,35 @@ const logActivity = (action, resource) => {
     };
 };
 
+/**
+ * Full access roles see every vehicle.
+ * Everyone else can only access their own assigned vehicle.
+ * @param {string[]} fullAccessRoles
+ */
+const requireVehicleScope = (fullAccessRoles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return next(new AuthenticationError('Authentication required'));
+        }
+
+        if (fullAccessRoles.includes(req.user.role)) {
+            return next();
+        }
+
+        if (req.params.id && req.params.id === req.user.assignedVehicleId) {
+            return next();
+        }
+
+        return next(new AuthorizationError('You can only access your assigned vehicle'));
+    };
+};
+
 module.exports = {
     verifyToken,
     optionalAuth,
     requireRole,
     requireVerified,
     requireVehicle,
-    logActivity
+    logActivity,
+    requireVehicleScope
 };

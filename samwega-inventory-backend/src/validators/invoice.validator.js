@@ -151,7 +151,21 @@ const searchInvoicesSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
     sortBy: Joi.string().valid('invoiceDate', 'totalAmount', 'createdAt').default('invoiceDate'),
-    sortOrder: Joi.string().valid('asc', 'desc').default('desc')
+    sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
+    search: Joi.string().trim().max(100).allow('').optional(),
+    status: Joi.string().valid('active', 'voided').optional() // Filter by invoice status
+});
+
+const reverseInvoiceSchema = Joi.object({
+    reason: Joi.string()
+        .required()
+        .messages({
+            'any.required': 'Reason for reversing the invoice is required'
+        })
+});
+
+const removeInvoiceItemsSchema = Joi.object({
+    adjustmentIds: Joi.array().items(Joi.string().trim()).min(1).required()
 });
 
 module.exports = {
@@ -159,5 +173,7 @@ module.exports = {
     updateInvoiceSchema,
     recordPaymentSchema,
     invoiceIdSchema,
-    searchInvoicesSchema
+    searchInvoicesSchema,
+    reverseInvoiceSchema,
+    removeInvoiceItemsSchema
 };

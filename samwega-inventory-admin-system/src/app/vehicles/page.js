@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, TrendingUp, Truck, X, User, ArrowRight, ArrowLeft, FileText, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import api from "../../lib/api";
 
 export default function VehiclesPage() {
+    const router = useRouter();
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -32,6 +34,9 @@ export default function VehiclesPage() {
             const res = await api.getCurrentUser();
             if (res.success) {
                 setUser(res.data);
+                if (['sales_rep', 'driver'].includes(res.data?.role) && res.data?.assignedVehicleId) {
+                    router.replace(`/vehicles/${res.data.assignedVehicleId}`);
+                }
             }
         } catch (error) {
             console.error("Error fetching user:", error);

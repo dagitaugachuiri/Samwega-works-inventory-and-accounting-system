@@ -155,8 +155,8 @@ class APIClient {
     }
 
     async adjustStock(id, data) {
-        return this.request(`/inventory/${id}/adjust`, {
-            method: 'PUT',
+        return this.request(`/inventory/${id}/adjust-stock`, {
+            method: 'PATCH',
             body: JSON.stringify(data),
         });
     }
@@ -247,6 +247,10 @@ class APIClient {
     async getTransfers(filters = {}) {
         const query = new URLSearchParams(filters).toString();
         return this.request(`/transfers${query ? `?${query}` : ''}`);
+    }
+    async getVehicleTransfers(vehicleId, filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/vehicles/${vehicleId}/transfers${query ? `?${query}` : ''}`);
     }
 
     async getTransferById(id) {
@@ -689,7 +693,7 @@ class APIClient {
     }
 
     async getInvoiceById(id) {
-        return this.request(`/invoices/${id}`);
+        return this.request(`/invoices/${id}/items`);
     }
 
     async createInvoice(data) {
@@ -710,6 +714,12 @@ class APIClient {
         return this.request(`/invoices/${id}/payments`, {
             method: 'POST',
             body: JSON.stringify(paymentData),
+        });
+    }
+    async removeInvoiceItems(id, adjustmentIds) {
+        return this.request(`/invoices/${id}/remove-items`, {
+            method: 'POST',
+            body: JSON.stringify({ adjustmentIds }),
         });
     }
 

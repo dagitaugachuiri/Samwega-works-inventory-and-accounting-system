@@ -3,10 +3,10 @@ import { NavigationContainer, useNavigationContainerRef } from '@react-navigatio
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './src/screens/LoginScreen';
-import RegistrationScreen from './src/screens/RegistrationScreen';
 import WaitingVerificationScreen from './src/screens/WaitingVerificationScreen';
 import StockScreen from './src/screens/StockScreen';
 import IssuanceConfirmationScreen from './src/screens/IssuanceConfirmationScreen';
+import ReturnedGoodsScreen from './src/screens/ReturnedGoodsScreen';
 import SalesScreen from './src/screens/SalesScreen';
 import SalesDashboardScreen from './src/screens/SalesDashboardScreen';
 import SalesListScreen from './src/screens/SalesListScreen';
@@ -40,11 +40,6 @@ const App = () => {
               options={{ headerShown: false }}
             />
             <Stack.Screen
-              name="Registration"
-              component={RegistrationScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
               name="WaitingVerification"
               component={WaitingVerificationScreen}
               options={{ headerShown: false, gestureEnabled: false }}
@@ -58,6 +53,11 @@ const App = () => {
               name="IssuanceConfirmation"
               component={IssuanceConfirmationScreen}
               options={{ title: 'Confirm Collection' }}
+            />
+            <Stack.Screen
+              name="ReturnedGoods"
+              component={ReturnedGoodsScreen}
+              options={{ title: 'Returned Goods' }}
             />
             <Stack.Screen
               name="SalesDashboard"

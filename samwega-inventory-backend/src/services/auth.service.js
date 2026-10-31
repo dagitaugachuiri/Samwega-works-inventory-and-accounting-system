@@ -15,15 +15,17 @@ class AuthService {
     }
 
     /**
-     * Register a new user
-     * @param {Object} userData - User registration data
-     * @returns {Promise<Object>}
+     * Create a user. Only ever called from the admin-only POST /auth/users route.
+     * (There is no public sign-up any more: nobody can create their own account.)
+     * @param {Object} userData - email, password, username, role, phone, isVerified
+     * @param {Object} createdBy - the admin making the account (req.user)
+     * @returns {Promise<Object>} the new user (no login token: the new person logs in themselves)
      */
-    async register(userData) {
+    async createUser(userData, createdBy = null) {
+        let userRecord = null;
         try {
-            const { email, password, username, role = 'sales_rep', phone } = userData;
+            const { email, password, username, role, phone } = userData;
 
-            // Check if user already exists
             const existingUser = await this.db.collection('users')
                 .where('email', '==', email)
                 .limit(1)
@@ -34,7 +36,7 @@ class AuthService {
             }
 
             // Create Firebase Auth user
-            const userRecord = await this.auth.createUser({
+            userRecord = await this.auth.createUser({
                 email,
                 password,
                 displayName: username
@@ -43,7 +45,6 @@ class AuthService {
             // Hash password for Firestore storage (backup)
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // Create user document in Firestore
             const userDoc = {
                 email,
                 username,
@@ -52,31 +53,36 @@ class AuthService {
                 phone: phone || null,
                 phoneNumber: phone || null, // For frontend compatibility
                 hashedPassword,
-                isVerified: role === 'admin', // Auto-verify admins
+                // activation is an admin decision; accounts an admin creates are active unless said otherwise
+                isVerified: userData.isVerified !== false,
+                isDisabled: false,
                 assignedVehicleId: null,
+                createdBy: createdBy ? (createdBy.uid || null) : null,
+                createdByName: createdBy ? (createdBy.username || createdBy.email || null) : null,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
             };
 
-            await this.db.collection('users').doc(userRecord.uid).set(userDoc);
+            try {
+                await this.db.collection('users').doc(userRecord.uid).set(userDoc);
+            } catch (dbError) {
+                // don't leave a login behind that has no profile
+                await this.auth.deleteUser(userRecord.uid).catch(() => {});
+                throw dbError;
+            }
 
-            logger.info(`User registered successfully: ${email}`, { userId: userRecord.uid, role });
-
-            // Generate JWT token
-            const token = this.generateToken(userRecord.uid, email, role);
+            logger.info(`User created by admin: ${email}`, { userId: userRecord.uid, role });
 
             return {
-                user: {
-                    uid: userRecord.uid,
-                    email,
-                    username,
-                    role,
-                    isVerified: userDoc.isVerified
-                },
-                token
+                uid: userRecord.uid,
+                id: userRecord.uid,
+                email,
+                username,
+                role,
+                isVerified: userDoc.isVerified
             };
         } catch (error) {
-            logger.error('Registration error:', error);
+            logger.error('Create user error:', error);
 
             if (error.code === 'auth/email-already-exists') {
                 throw new ConflictError('User with this email already exists');
@@ -90,6 +96,62 @@ class AuthService {
 
             throw error;
         }
+    }
+
+    /**
+     * Permanently delete a user (admin only). Their name stays in old activity-log entries
+     * and on records they created, because those store the name as text.
+     * Disabling is the normal way to remove access; delete is for mistakes and accounts that no longer exist.
+     * @param {string} userId
+     * @param {Object} actingUser - req.user (the admin doing it)
+     */
+    async deleteUser(userId, actingUser) {
+        if (actingUser && actingUser.uid === userId) {
+            throw new ValidationError('You cannot delete your own account');
+        }
+
+        const ref = this.db.collection('users').doc(userId);
+        const doc = await ref.get();
+        // A login can exist with no profile ("non-existing" user): still allow cleaning it up
+        const data = doc.exists ? doc.data() : null;
+
+        if (data && data.role === 'admin') {
+            const admins = await this.db.collection('users').where('role', '==', 'admin').get();
+            const otherAdmins = admins.docs.filter(d => d.id !== userId);
+            if (otherAdmins.length === 0) {
+                throw new ValidationError('You cannot delete the last admin');
+            }
+        }
+
+        let authDeleted = false;
+        try {
+            await this.auth.deleteUser(userId);
+            authDeleted = true;
+        } catch (e) {
+            if (e.code !== 'auth/user-not-found') throw e;
+        }
+        if (!doc.exists && !authDeleted) {
+            throw new NotFoundError('User');
+        }
+
+        // Free up the vehicle this person was assigned to
+        const vehicleFields = ['assignedDriverId', 'assignedUserId'];
+        for (const field of vehicleFields) {
+            const vs = await this.db.collection('vehicles').where(field, '==', userId).get();
+            for (const v of vs.docs) {
+                await v.ref.update({ [field]: null, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            }
+        }
+
+        if (doc.exists) await ref.delete();
+
+        logger.info(`User deleted: ${userId}`, { by: actingUser && actingUser.uid });
+        return {
+            id: userId,
+            username: data ? (data.username || data.fullName || data.email) : null,
+            email: data ? data.email : null,
+            role: data ? data.role : null
+        };
     }
 
   /**

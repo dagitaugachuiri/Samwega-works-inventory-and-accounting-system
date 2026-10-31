@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const vehicleController = require('../controllers/vehicle.controller');
 const transferController = require('../controllers/transfer.controller');
-const { verifyToken, requireRole, requireVerified, logActivity } = require('../middleware/auth.middleware');
+const { verifyToken, requireRole, requireVerified,requireVehicleScope, logActivity} = require('../middleware/auth.middleware');
 const { writeLimiter } = require('../middleware/rateLimit.middleware');
 const { validateBody, validateParams, validateQuery } = require('../middleware/validation.middleware');
 const {
@@ -10,7 +10,7 @@ const {
     updateVehicleSchema,
     vehicleIdSchema,
     searchVehiclesSchema,
-    assignUserSchema
+    assignUserSchema,
 } = require('../validators/vehicle.validator');
 
 /**
@@ -50,6 +50,7 @@ router.get(
     '/:id',
     verifyToken,
     requireVerified,
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
     validateParams(vehicleIdSchema),
     vehicleController.getVehicleById
 );
@@ -87,12 +88,12 @@ router.delete(
 /**
  * @route   POST /api/v1/vehicles/:id/assign-user
  * @desc    Assign user to vehicle
- * @access  Admin, Store Manager
+ * @access  Admin only (store managers can view the team but not manage it)
  */
 router.post(
     '/:id/assign-user',
     verifyToken,
-    requireRole('admin', 'store_manager'),
+    requireRole('admin'),
     logActivity('ASSIGN_USER', 'vehicle'),
     writeLimiter,
     validateParams(vehicleIdSchema),
@@ -109,6 +110,7 @@ router.get(
     '/:id/inventory',
     verifyToken,
     requireVerified,
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
     validateParams(vehicleIdSchema),
     vehicleController.getVehicleInventory
 );
@@ -122,8 +124,23 @@ router.get(
     '/:id/issuances',
     verifyToken,
     requireVerified,
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
     validateParams(vehicleIdSchema),
     vehicleController.getVehicleIssuances
+);
+/**
+ * @route   GET /api/v1/vehicles/:id/transfers
+ * @desc    Transfers for a vehicle (drivers: own vehicle, returned only)
+ * @access  Admin, Store Manager, Accountant, Driver (own vehicle)
+ */
+router.get(
+    '/:id/transfers',
+    verifyToken,
+    requireVerified,
+    requireRole('admin', 'store_manager', 'accountant', 'driver','sales_rep'),
+    requireVehicleScope(['admin', 'store_manager', 'accountant']),
+    validateParams(vehicleIdSchema),
+    transferController.getVehicleTransfers
 );
 
 /**
@@ -138,5 +155,6 @@ router.get(
     validateParams(vehicleIdSchema),
     transferController.getCollectedItems
 );
+
 
 module.exports = router;

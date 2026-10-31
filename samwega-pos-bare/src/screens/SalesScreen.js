@@ -11,11 +11,12 @@ import {
     Platform,
     Switch,
 } from 'react-native';
-import { getVehicleInventory, recordSale, searchCustomers, createCustomer, patchSaleDebtLink } from '../services/api';
+import { getVehicleInventory, recordSale, searchCustomers, createCustomer, patchSaleDebtLink, getWallets } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReceiptService from '../services/ReceiptService';
 
-const BANKS = [
+// Fallback list, used only if wallets can't be loaded from the server and none are cached
+const DEFAULT_BANKS = [
     'Equity',
     'Old KCB',
     'New KCB',
@@ -74,6 +75,32 @@ export default function SalesScreen({ route, navigation }) {
         bankName: ''
     });
     const [showBankModal, setShowBankModal] = useState(false);
+    const [banks, setBanks] = useState(DEFAULT_BANKS);
+
+    // Load admin-managed wallets (cached so the POS still works offline)
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const cached = await AsyncStorage.getItem('paymentWallets');
+                if (cached && !cancelled) {
+                    const names = JSON.parse(cached);
+                    if (Array.isArray(names) && names.length > 0) setBanks(names);
+                }
+            } catch (e) { /* ignore cache errors */ }
+            try {
+                const res = await getWallets();
+                if (res?.success && Array.isArray(res.data) && !cancelled) {
+                    const names = res.data.map(w => w.name).filter(Boolean);
+                    setBanks(names);
+                    await AsyncStorage.setItem('paymentWallets', JSON.stringify(names));
+                }
+            } catch (e) {
+                console.warn('Could not refresh wallets, using cached list', e?.message);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     // Other state
     const [isEtr, setIsEtr] = useState(false);
@@ -1014,7 +1041,7 @@ export default function SalesScreen({ route, navigation }) {
             >
                 <AppText variant="h2" centered style={styles.modalTitle}>Select Bank</AppText>
                 <View style={styles.bankGrid}>
-                    {BANKS.map(bank => (
+                    {banks.map(bank => (
                         <TouchableOpacity
                             key={bank}
                             style={[

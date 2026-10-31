@@ -6,6 +6,7 @@ import {
   Printer, Receipt, Calendar, TrendingUp, AlertCircle,
   FileText, Plus, Wallet, ShoppingCart, Info, List, User
 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "../../../lib/api";
 import CustomModal from "../../../components/ui/CustomModal";
@@ -34,6 +35,13 @@ export default function VehicleDetailsDashboard() {
     onConfirm: null,
     loading: false
   });
+   const params = useParams();
+   const router = useRouter();
+
+  // Read the vehicle id from the URL (it was never set, so the page never loaded)
+   useEffect(() => {
+     if (params?.id) setVehicleId(params.id);
+   }, [params?.id]);
 
   // Fetch initial data
   useEffect(() => {
